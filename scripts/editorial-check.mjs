@@ -13,9 +13,9 @@ const checks = [
   ['boş şablon alanı', /(?:<link>|\{(?:şirket|proje|isim)[^}]*\}|\[(?:buraya )?(?:kaynak|link) ekle\])/giu],
   ['turn aracı artığı', /turn\d+(?:search|view|fetch|file)\d+/giu],
   ['contentReference artığı', /contentReference/giu],
-  ['OpenAI atıf artığı', /oaicite|oai_citation|attributableIndex/giu],
-  ['Gemini atıf artığı', /\[cite:\s*\d+|\[span_\d+\]\(start_span\)/giu],
-  ['sağlayıcı artığı', /grok_(?:card|render_citation_card_json)|attached_file|ppl-ai-file-upload/giu],
+  ['bozuk atıf işareti', /oaicite|oai_citation|attributableIndex/giu],
+  ['bozuk span işareti', /\[cite:\s*\d+|\[span_\d+\]\(start_span\)/giu],
+  ['harici araç artığı', /grok_(?:card|render_citation_card_json)|attached_file|ppl-ai-file-upload/giu],
   ['writing block artığı', /:::writing\b/giu],
   ['geçici büyük placeholder', /PASTE_[A-Z0-9_]+_HERE|TODO_CONTENT|LOREM IPSUM/gu],
   ['eski konsol etiketi', /yerel simülasyon|local simulation/giu],
@@ -30,8 +30,6 @@ function walk(dir) {
 }
 
 const intentionalReferencePages = new Set([
-  path.normalize('docs/katki/yazi-standardi.mdx'),
-  path.normalize('i18n/en/docusaurus-plugin-content-docs/current/katki/yazi-standardi.mdx'),
   path.normalize('src/lib/command-engine.mjs'),
   path.normalize('docs/cli/writing-check.mdx'),
   path.normalize('i18n/en/docusaurus-plugin-content-docs/current/cli/writing-check.mdx'),

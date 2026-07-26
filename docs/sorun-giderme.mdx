@@ -1,47 +1,119 @@
 ---
 title: Sorun giderme
-description: Kurulum, OAuth, session, origin, store ve realtime sorunlarını daralt.
+description: GuildGate 1.1.0 kurulumunda config, session, idempotency, transaction, realtime ve store sorunlarını teşhis et.
 ---
 
 # Sorun giderme
 
+Sorunu düzeltmeden önce action adı, `requestId`, error code, adapter türü ve sürümü kaydet. Secret veya ham token ekleme.
+
 ## Production başlangıçta kapanıyor
 
-Önce doctor çalıştır:
+Kontrol et:
+
+- `app.baseUrl` ve origin değerleri HTTPS mi?
+- localhost, `0.0.0.0`, `::`, `::1` veya IPv4-mapped loopback var mı?
+- CSRF secret en az 32 byte mı?
+- `__Host-` cookie `Secure` ve `Path=/` kullanıyor mu?
+- session süreleri ve maksimum sayı pozitif mi?
 
 ```bash
 npx guildgate-doctor --json
 ```
 
-HTTP `baseUrl`, localhost origin, kısa sır, Secure olmayan çerez veya eksik kalıcı store production profilinde başlangıcı durdurabilir.
+## `origin_not_allowed`
 
-## Discord callback uyuşmuyor
+Tarayıcı DevTools Network panelindeki gerçek `Origin` değerini config ile protocol, host ve port dahil karşılaştır. Reverse proxy'de origin'i yeniden yazma. CORS allowlist ile GuildGate allowlist'in aynı şeyi ifade ettiğini doğrula.
 
-Developer Portal'daki callback ile uygulamadaki adresi karakter karakter karşılaştır. Protokol, port, path ve trailing slash farkı uyuşmazlık üretir.
+## CSRF hatası
 
-## Her yazma isteği CSRF hatası veriyor
+- CSRF token aktif session için mi üretildi?
+- Session rotation sonrasında yeni token kullanılıyor mu?
+- Header adı bağdaştırıcının okuduğu alanla eşleşiyor mu?
+- İstek `credentials: "include"` kullanıyor mu?
+- Cookie domain/path nedeniyle gönderilmiyor olabilir mi?
 
-- CSRF değerini doğru header ile gönder.
-- Oturum çereziyle aynı origin üzerinden istek yap.
-- Rotasyon sonrası eski CSRF değerini kullanma.
-- Proxy'nin özel header'ı silmediğini kontrol et.
+## Oturum sürekli temizleniyor
 
-## Origin izin listesinde görünüyor ama reddediliyor
+Store saat değerlerini ve process saat senkronizasyonunu kontrol et. Session kaydındaki `expiresAt`, `idleExpiresAt`, `rotateAfter` değerlerini incele. Redis prefix veya database değiştiyse eski cookie artık kayda erişemeyebilir.
 
-URL'nin `origin` değerini yazdır ve tam karşılaştır. Path izin listesine dahil değildir; protokol ve port dahildir.
+## Session sayısı sınırı aşılıyor
 
-## Birden fazla instance farklı sonuç veriyor
+Custom store `SessionStore.create()` uygulamıyorsa çoklu worker yarışında cap aşılabilir. Ekleme ve eviction işlemini aynı transaction/Lua altında çalıştır.
 
-Bellek store'u production'da kalmış olabilir. Session, rate limit, idempotency, cache ve lock verisini instance'lar arasında ortaklaştır.
+## `idempotency_conflict`
 
-## Kilit sürekli kayboluyor
+Aynı key farklı request body hash'iyle kullanılmıştır. Her kullanıcı niyeti için yeni key üret; ağ retry'ında aynı body ve aynı key'i koru.
 
-Action timeout, kilit TTL ve renewal aralığını birlikte kontrol et. Uzun DB sorgusu abort sinyalini dinlemiyorsa kilit süresi dolduktan sonra yazma devam edebilir.
+## `idempotency_reservation_lost`
 
-## Realtime olayları eksik
+Worker reservation sahipliğini kaybetmiştir. Nedenler:
 
-Sequence değerini, replay retention süresini ve istemcinin son gördüğü cursor'u kontrol et. Session revocation veya geri basınç kapanması da yeniden bağlanma gerektirir.
+- TTL action süresinden kısa
+- renew store compare-and-set başarısız
+- Redis/PostgreSQL bağlantı kesintisi
+- geç tamamlanma penceresi dolmuş
+- custom store key üzerinden koşulsuz overwrite yapmış
 
-## Kullanıcıya iç hata görünüyor
+Domain yazımını tekrar çalıştırmadan önce saklanan sonucu ve fencing durumunu kontrol et.
 
-Framework bağdaştırıcısındaki error mapper'ı kontrol et. Kullanıcı yanıtına `error.message`, stack veya store hatasını doğrudan koyma; sabit GuildGate kodunu yerelleştirilmiş metne çevir.
+## Timeout oldu ama veri değişti
+
+`1.1.0` response deadline'ı kesin uygular; underlying promise iptal sinyalini dinlemiyorsa daha sonra commit edebilir. Aynı idempotency key ile status/replay isteği yap. Uygulama I/O'suna `context.signal` aktar ve `maximumLateSettlementMs` değerini gözden geçir.
+
+## Commit başarılı ama UI güncellenmedi
+
+Başarılı action sonucunda `meta.postCommitIssues` kontrol et. Cache veya realtime stage sorunu olabilir. Domain yazımını geri alma veya action'ı körlemesine tekrar etme. Outbox backlog, publisher ve hub bağlantı loglarını incele.
+
+## Transaction callback hatası rollback gibi görünüyor
+
+Custom adapter commit sonrasında callback exception'ını rollback catch bloğuna düşürüyor olabilir. Commit ve callback yürütmesini ayır; `TransactionPostCommitError`/`onPostCommitError` davranışını uygula.
+
+## Realtime subscribe reddediliyor
+
+- handshake origin/session doğru mu?
+- kanal parser doğru guild ID çıkarıyor mu?
+- kullanıcı yetkisi güncel mi?
+- `maximumSubscriptions` dolmuş mu?
+- async authorization sırasında bağlantı kapanmış mı?
+- Socket.IO event'i doğru `guildgate:subscribe` adıyla mı gönderiliyor?
+
+## Realtime bağlantı hemen kapanıyor
+
+Close code ve reason kaydet:
+
+- `1007`: bozuk JSON
+- `1008`: auth, rate veya subscription policy
+- `1009`: mesaj çok büyük
+- `1013`: istemci backpressure sınırını aştı
+
+Socket.IO transport `writable=false` ise buffered durum yavaş istemci olarak değerlendirilir.
+
+## Audit sayfasında kayıt atlanıyor
+
+Offset pagination kullanma. `listPage()` cursor'ını aynen geri gönder ve sort'u `(createdAt DESC, id DESC)` olarak uygula. Aynı timestamp kayıtlarını yalnızca tarih üzerinden sayfalama.
+
+## Redis tag temizliği eksik
+
+Custom adapter set/retag işlemini atomik yapmıyor olabilir. Eski tag membership, yeni entry ve yeni tag membership tek script içinde değişmelidir. Tag index TTL'ini entry ömründen kısa tutma.
+
+## CI ile yerel sonuç farklı
+
+- Node sürümü 22 veya 24 mü?
+- `npm ci` lockfile kullanıyor mu?
+- service test environment değişkenleri mevcut mu?
+- PostgreSQL 17 ve Redis 8 hazır mı?
+- local testte atlanan iki live-service tanımı CI'da gerçekten çalışıyor mu?
+
+## Destek kaydı
+
+Şunları ekle:
+
+- GuildGate ve Node sürümü
+- public adapter türleri
+- action adı ve kararlı hata kodu
+- redacted doctor çıktısı
+- `requestId`
+- tekrar üretme adımları
+
+Secret, `.env`, token, cookie veya tam database URL ekleme.

@@ -1,37 +1,93 @@
 ---
-title: CSRF and origins
-description: Apply exact-origin and session-bound CSRF validation to writes.
+title: CSRF and origin checks
+description: Configure exact-origin allowlists, session-bound CSRF, and production URL guards.
 ---
 
-# CSRF and origins
+# CSRF and origin checks
 
-GuildGate uses two separate controls: exact origin matching and a session-bound CSRF token. Neither replaces the other.
+Origin checks and CSRF protect different parts of the same boundary. Origin limits which web source may send the request; the CSRF token proves the request was prepared for the active session.
 
-## Exact origin matching
+## Exact-origin allowlist
 
-`https://panel.example.com` is different from:
+```ts
+security: {
+  allowedOrigins: [
+    "https://dashboard.example.com",
+    "https://admin.example.com",
+  ],
+  // ...
+}
+```
 
-- `http://panel.example.com`
-- `https://admin.panel.example.com`
-- `https://panel.example.com:8443`
-- `https://panel.example.com.evil.test`
+An origin is normalized by protocol, hostname, and port. The path is not part of it. Do not use wildcards, substring matching, or `endsWith()` checks.
 
-Do not weaken the check with substring or suffix matching. Compare the parsed URL `origin` against an explicit set.
+These are different origins:
 
-## Session-bound CSRF
+- `https://dashboard.example.com`
+- `https://dashboard.example.com:8443`
+- `http://dashboard.example.com`
 
-The CSRF value is cryptographically bound to the session. A valid-looking value from another session is rejected.
+## Production URL validation
 
-For a protected write, the client:
+In `1.1.0`, production configuration rejects:
 
-1. Sends the session cookie.
-2. Adds the CSRF value in a dedicated header.
-3. Lets the server validate origin, session and token binding.
+- application URLs and origins without HTTPS
+- `localhost` and `*.localhost`
+- `127.0.0.0/8`
+- `0.0.0.0`
+- `::` and `::1`
+- IPv4-mapped IPv6 addresses that resolve to loopback
 
-## Production rejections
+The same guard applies to configured Discord OAuth authorize and token endpoints. This prevents a production token from being sent to a local endpoint after an environment-variable mistake.
 
-The production profile rejects an empty origin list, HTTP origins, localhost origins and short CSRF secrets.
+## CSRF secret
+
+`csrfSecret` must contain at least 32 bytes. Tokens are HMAC values derived from the session ID hash and a random nonce.
+
+```ts
+const token = gate.csrf.issue(session.idHash);
+const valid = gate.csrf.verify(session.idHash, tokenFromHeader);
+```
+
+Do not place the secret in source control. Plan rotation because replacing a single key invalidates existing CSRF tokens.
+
+## Unsafe methods
+
+`POST`, `PUT`, `PATCH`, and `DELETE` are unsafe. They require a session-bound token unless the action explicitly sets `csrf: "disabled"`.
+
+Do not modify data from a GET route. Cache and crawler behavior would otherwise create a write outside CSRF protection.
+
+## Header and cookie layout
+
+Example client request:
+
+```ts
+await fetch("/api/guilds/123/settings", {
+  method: "PATCH",
+  credentials: "include",
+  headers: {
+    "content-type": "application/json",
+    "x-csrf-token": csrfToken,
+    "idempotency-key": crypto.randomUUID(),
+  },
+  body: JSON.stringify(payload),
+});
+```
+
+Do not store the same CSRF value inside the session cookie. Keep the cookie `HttpOnly` and provide the token through a controlled bootstrap endpoint or HTML payload.
 
 ## Proxy note
 
-Origin validation does not depend on the client IP. If you use IP-based rate limits or audit hashing, trust addresses only from a configured proxy chain.
+Origin validation should use the actual `Origin` header rather than `Host`, `X-Forwarded-Host`, or referrer. Verify that the reverse proxy preserves it and redirects HTTP to HTTPS correctly.
+
+## Tests
+
+- allowed production origin
+- same host with a different port
+- `http` versus `https`
+- missing origin header
+- malformed URL
+- CSRF token from another session
+- stale rotation token
+- safe versus unsafe methods
+- loopback and IPv4-mapped loopback configuration

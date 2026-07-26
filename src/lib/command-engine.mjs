@@ -158,14 +158,22 @@ function helpOutput(locale) {
       line(TEXT.en.helpTitle, 'heading'),
       line('help                                      List commands'),
       line('version                                   Show the documented package version'),
+      line('contracts                                 Show contract markers'),
+      line('exports                                   List public export paths'),
       line('doctor [--json]                           Review a reference deployment profile'),
       line('config check --preset NAME                Check development or production rules'),
       line('origin check URL                          Test an exact origin match'),
       line('session policy [flags]                    Review TTL, idle, rotation and session caps'),
       line('store check [flags]                       Review store placement'),
+      line('store list|contract                       Review 1.1 store capabilities'),
+      line('idempotency reservation                   Explain reservation ownership'),
+      line('transaction finality                      Explain commit finality'),
+      line('deadline settlement                       Explain bounded late settlement'),
       line('action test NAME [flags]                  Walk through a protected write'),
       line('rate-limit test --requests N --limit N    Check a fixed-window result'),
       line('realtime check [flags]                    Check resume and sequence handling'),
+      line('realtime limits|transports|replay         Review realtime 1.1 behavior'),
+      line('cli doctor|writing-check|migration        Show installed CLI help summary'),
       line('security explain TOPIC                    Explain csrf, origin, session or locks'),
       line('examples                                  Show ready-to-run examples'),
       line('clear                                     Clear the console'),
@@ -176,14 +184,22 @@ function helpOutput(locale) {
     line(TEXT.tr.helpTitle, 'heading'),
     line('help                                      Komutları listeler'),
     line('version                                   Belgelenen paket sürümünü gösterir'),
+    line('contracts                                 Sözleşme işaretlerini gösterir'),
+    line('exports                                   Public export yollarını listeler'),
     line('doctor [--json]                           Örnek üretim profilini inceler'),
     line('config check --preset NAME                development veya production kurallarını denetler'),
     line('origin check URL                          Tam origin eşleşmesini sınar'),
     line('session policy [flags]                    TTL, boşta kalma, yenileme ve oturum sınırını inceler'),
     line('store check [flags]                       Depo yerleşimini inceler'),
+    line('store list|contract                       1.1 store yeteneklerini inceler'),
+    line('idempotency reservation                   Reservation sahipliğini açıklar'),
+    line('transaction finality                      Commit kesinliğini açıklar'),
+    line('deadline settlement                       Sınırlı geç tamamlanmayı açıklar'),
     line('action test NAME [flags]                  Korunan bir yazma isteğini adım adım kontrol eder'),
     line('rate-limit test --requests N --limit N    Sabit pencere sonucunu hesaplar'),
     line('realtime check [flags]                    Sıra ve yeniden bağlanma değerlerini kontrol eder'),
+    line('realtime limits|transports|replay         Realtime 1.1 davranışını inceler'),
+    line('cli doctor|writing-check|migration        Kurulu CLI yardım özetini gösterir'),
     line('security explain TOPIC                    csrf, origin, session veya locks konusunu açıklar'),
     line('examples                                  Hazır örnekleri gösterir'),
     line('clear                                     Konsolu temizler'),
@@ -192,15 +208,23 @@ function helpOutput(locale) {
 
 function examplesOutput(locale) {
   const commands = [
+    'contracts',
+    'exports',
     'doctor',
     'doctor --json',
     'config check --preset production',
     'origin check https://panel.example.com',
     'session policy --ttl 86400000 --idle 1800000 --rotate 900000 --max 5',
     'store check --session persistent --oauth persistent --rate redis --lock redis --audit persistent',
+    'store contract',
+    'idempotency reservation',
+    'transaction finality',
+    'deadline settlement',
     'action test guild.settings.update --method PATCH --origin https://panel.example.com --session valid --csrf valid --permission MANAGE_GUILD --bot-permission VIEW_CHANNEL',
     'rate-limit test --requests 8 --limit 5',
-    'realtime check --transport websocket --sequence 42 --resume 40',
+    'realtime check --transport socketio --sequence 42 --resume 40',
+    'realtime transports',
+    'cli migration',
     'security explain csrf',
   ];
   return [line(TEXT[locale].examplesTitle, 'heading'), ...commands.map((command) => line(command, 'code'))];
@@ -210,7 +234,7 @@ function doctorOutput(locale, jsonMode) {
   const report = {
     ok: false,
     package: '@kavtuai/guildgate',
-    version: '1.0.0',
+    version: '1.1.0',
     runtime: 'Node.js 22.x',
     profile: 'reference-production',
     checks: {
@@ -233,7 +257,7 @@ function doctorOutput(locale, jsonMode) {
   if (locale === 'en') {
     return [
       line(TEXT.en.doctorTitle, 'heading'),
-      line('✓ Package: @kavtuai/guildgate 1.0.0', 'success'),
+      line('✓ Package: @kavtuai/guildgate 1.1.0', 'success'),
       line('✓ Runtime: Node.js 22.x', 'success'),
       line('✓ HTTPS base URL and exact origin list', 'success'),
       line('✓ Persistent sessions, Redis rate limits and Redis locks', 'success'),
@@ -244,7 +268,7 @@ function doctorOutput(locale, jsonMode) {
 
   return [
     line(TEXT.tr.doctorTitle, 'heading'),
-    line('✓ Paket: @kavtuai/guildgate 1.0.0', 'success'),
+    line('✓ Paket: @kavtuai/guildgate 1.1.0', 'success'),
     line('✓ Çalışma ortamı: Node.js 22.x', 'success'),
     line('✓ HTTPS temel adres ve tam origin listesi', 'success'),
     line('✓ Kalıcı oturum, Redis istek sınırı ve Redis kilidi', 'success'),
@@ -480,8 +504,8 @@ function realtimeOutput(locale, flags) {
   const transport = String(flags.get('transport') ?? 'websocket').toLowerCase();
   const sequence = Number(flags.get('sequence') ?? 42);
   const resume = Number(flags.get('resume') ?? 40);
-  if (!['websocket', 'sse'].includes(transport)) {
-    return [line(locale === 'en' ? 'transport must be websocket or sse.' : 'transport websocket veya sse olmalı.', 'error')];
+  if (!['websocket', 'socketio', 'sse'].includes(transport)) {
+    return [line(locale === 'en' ? 'transport must be websocket, socketio or sse.' : 'transport websocket, socketio veya sse olmalı.', 'error')];
   }
   if (!Number.isInteger(sequence) || !Number.isInteger(resume) || sequence < 0 || resume < 0 || resume > sequence) {
     return [line(locale === 'en' ? 'sequence and resume must be non-negative integers, and resume cannot exceed sequence.' : 'sequence ve resume sıfırdan küçük olamaz; resume sequence değerini aşamaz.', 'error')];
@@ -526,6 +550,149 @@ function securityExplainOutput(locale, topic) {
   return [line(TEXT[locale].securityTitle(topic), 'heading'), ...selected.map((note) => line(`• ${note}`, 'info'))];
 }
 
+
+function contractOutput(locale) {
+  return locale === 'en'
+    ? [
+        line('Contract markers', 'heading'),
+        line('Adapter contract: 1.1', 'success'),
+        line('Action contract: 1.0', 'success'),
+        line('Realtime contract: 1.0', 'success'),
+      ]
+    : [
+        line('Sözleşme işaretleri', 'heading'),
+        line('Adapter sözleşmesi: 1.1', 'success'),
+        line('Action sözleşmesi: 1.0', 'success'),
+        line('Realtime sözleşmesi: 1.0', 'success'),
+      ];
+}
+
+function exportOutput(locale) {
+  const paths = [
+    '.', 'discord', 'fastify', 'express', 'redis', 'realtime', 'testing', 'analytics',
+    'contracts', 'discordjs', 'hono', 'operator', 'postgres', 'telemetry', 'transactions', 'locks',
+  ];
+  return [
+    line(locale === 'en' ? 'Public export paths (16)' : 'Public export yolları (16)', 'heading'),
+    ...paths.map((path) => line(path === '.' ? '@kavtuai/guildgate' : `@kavtuai/guildgate/${path}`, 'code')),
+  ];
+}
+
+function storeReferenceOutput(locale, topic) {
+  if (topic === 'list') {
+    const stores = ['sessions', 'oauthStates', 'credentials', 'rateLimits', 'cache', 'idempotency', 'locks', 'audit', 'outbox', 'policies'];
+    return [
+      line(locale === 'en' ? 'GuildGateStores (10)' : 'GuildGateStores (10)', 'heading'),
+      ...stores.map((name) => line(`✓ ${name}`, 'success')),
+    ];
+  }
+  if (topic === 'contract') {
+    return locale === 'en'
+      ? [
+          line('Adapter contract 1.1', 'heading'),
+          line('✓ Atomic per-user session cap', 'success'),
+          line('✓ Reservation-owner compare-and-set', 'success'),
+          line('✓ Opaque audit cursor paging', 'success'),
+          line('✓ Bounded outbox claim leases', 'success'),
+          line('Run runStoreContract() and backend race tests in CI.', 'info'),
+        ]
+      : [
+          line('Adapter sözleşmesi 1.1', 'heading'),
+          line('✓ Atomik kullanıcı başına session sınırı', 'success'),
+          line('✓ Reservation owner compare-and-set', 'success'),
+          line('✓ Opak audit cursor sayfalama', 'success'),
+          line('✓ Sınırlı outbox claim lease', 'success'),
+          line('CI içinde runStoreContract() ve backend yarış testlerini çalıştır.', 'info'),
+        ];
+  }
+  return [line(`${TEXT[locale].usage}: store list|contract`, 'error')];
+}
+
+function idempotencyReferenceOutput(locale, topic) {
+  if (topic !== 'reservation') return [line(`${TEXT[locale].usage}: idempotency reservation`, 'error')];
+  return locale === 'en'
+    ? [
+        line('Idempotency reservation ownership', 'heading'),
+        line('✓ Every inflight record has a reservationId owner token', 'success'),
+        line('✓ renew, complete and fail compare the same owner', 'success'),
+        line('✓ A stale worker cannot overwrite or remove a newer reservation', 'success'),
+        line('Use an idempotency TTL longer than the deadline and late-settlement bound.', 'info'),
+      ]
+    : [
+        line('Idempotency reservation sahipliği', 'heading'),
+        line('✓ Her inflight kayıt reservationId owner token taşır', 'success'),
+        line('✓ renew, complete ve fail aynı owner değerini karşılaştırır', 'success'),
+        line('✓ Eski worker yeni reservation kaydını ezemez veya silemez', 'success'),
+        line('Idempotency TTL değerini deadline ve geç tamamlanma sınırından uzun tut.', 'info'),
+      ];
+}
+
+function transactionReferenceOutput(locale, topic) {
+  if (topic !== 'finality') return [line(`${TEXT[locale].usage}: transaction finality`, 'error')];
+  return locale === 'en'
+    ? [
+        line('Transaction finality', 'heading'),
+        line('✓ COMMIT is separated from post-commit callback execution', 'success'),
+        line('✓ A callback failure does not issue rollback', 'success'),
+        line('✓ A committed domain write is not repeated', 'success'),
+        line('✓ Nested PostgreSQL work uses savepoints', 'success'),
+      ]
+    : [
+        line('Transaction kesinliği', 'heading'),
+        line('✓ COMMIT ile commit sonrası callback yürütmesi ayrıdır', 'success'),
+        line('✓ Callback hatası rollback komutu üretmez', 'success'),
+        line('✓ Commit edilmiş domain yazımı tekrar çalıştırılmaz', 'success'),
+        line('✓ İç içe PostgreSQL işlemleri savepoint kullanır', 'success'),
+      ];
+}
+
+function deadlineReferenceOutput(locale, topic) {
+  if (topic !== 'settlement') return [line(`${TEXT[locale].usage}: deadline settlement`, 'error')];
+  return locale === 'en'
+    ? [
+        line('Deadline and late settlement', 'heading'),
+        line('✓ The response returns at the configured deadline', 'success'),
+        line('✓ Late work remains observable through settlement', 'success'),
+        line('✓ Reservation and lease retention is bounded', 'success'),
+        line('Application I/O should still honor AbortSignal.', 'info'),
+      ]
+    : [
+        line('Deadline ve geç tamamlanma', 'heading'),
+        line('✓ Yanıt yapılandırılan deadline sınırında döner', 'success'),
+        line('✓ Geç iş settlement üzerinden gözlemlenir', 'success'),
+        line('✓ Reservation ve lease tutma süresi sınırlıdır', 'success'),
+        line('Uygulama I/O çağrıları yine AbortSignal değerini dinlemelidir.', 'info'),
+      ];
+}
+
+function realtimeReferenceOutput(locale, topic) {
+  const content = {
+    limits: locale === 'en'
+      ? ['Payload size', 'Message rate', 'Channel length', 'Subscriptions', 'Buffered bytes', 'Idle time', 'Connection lifetime']
+      : ['Payload boyutu', 'Mesaj hızı', 'Kanal uzunluğu', 'Abonelik sayısı', 'Buffered byte', 'Boşta kalma', 'Bağlantı ömrü'],
+    transports: locale === 'en'
+      ? ['WebSocket: inbound and outbound', 'Socket.IO: inbound, acknowledgements and replay', 'SSE: bounded server-to-client queue']
+      : ['WebSocket: inbound ve outbound', 'Socket.IO: inbound, acknowledgement ve replay', 'SSE: sınırlı server-to-client queue'],
+    replay: locale === 'en'
+      ? ['Per-channel sequence', 'Bounded replay batches', 'Authorization before subscription', 'Resume before live delivery']
+      : ['Kanal başına sequence', 'Sınırlı replay batch', 'Abonelik öncesi yetki', 'Canlı teslimden önce resume'],
+  };
+  const selected = content[topic];
+  if (!selected) return [line(`${TEXT[locale].usage}: realtime limits|transports|replay`, 'error')];
+  return [line(locale === 'en' ? `Realtime ${topic}` : `Realtime ${topic}`, 'heading'), ...selected.map((value) => line(`✓ ${value}`, 'success'))];
+}
+
+function cliReferenceOutput(locale, topic) {
+  const rows = {
+    doctor: ['guildgate-doctor [--json]', locale === 'en' ? 'Checks security, storage, analytics and production settings.' : 'Güvenlik, depolama, analitik ve production ayarlarını kontrol eder.'],
+    'writing-check': ['guildgate-writing-check [--root <path>]', locale === 'en' ? 'Checks documentation files in a project directory.' : 'Proje klasöründeki doküman dosyalarını kontrol eder.'],
+    migration: ['guildgate-migration [--prefix <name>]', locale === 'en' ? 'Prints PostgreSQL migration SQL.' : 'PostgreSQL migration SQL çıktısını üretir.'],
+  };
+  const selected = rows[topic];
+  if (!selected) return [line(`${TEXT[locale].usage}: cli doctor|writing-check|migration`, 'error')];
+  return [line(selected[0], 'heading'), line(selected[1], 'info'), line(locale === 'en' ? 'Use the installed package in a terminal for the actual help output.' : 'Gerçek yardım çıktısı için kurulu paketi terminalde çalıştır.', 'code')];
+}
+
 function commandResult(command, lines, extra = {}) {
   return {
     ok: !lines.some((item) => item.tone === 'error'),
@@ -554,7 +721,11 @@ export function executeCommand(rawInput, options = {}) {
       case 'examples':
         return commandResult(input, examplesOutput(locale));
       case 'version':
-        return commandResult(input, [line('@kavtuai/guildgate 1.0.0', 'success')]);
+        return commandResult(input, [line('@kavtuai/guildgate 1.1.0', 'success')]);
+      case 'contracts':
+        return commandResult(input, contractOutput(locale));
+      case 'exports':
+        return commandResult(input, exportOutput(locale));
       case 'doctor':
         return commandResult(input, doctorOutput(locale, parsedAfterCommand.flags.has('json')));
       case 'config':
@@ -567,8 +738,14 @@ export function executeCommand(rawInput, options = {}) {
         if (subcommand !== 'policy') return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: session policy --ttl 86400000 --idle 1800000 --rotate 900000 --max 5`, 'error')]};
         return commandResult(input, sessionPolicyOutput(locale, parsedAfterSubcommand.flags));
       case 'store':
-        if (subcommand !== 'check') return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: store check --session persistent --rate redis --lock redis`, 'error')]};
-        return commandResult(input, storeCheckOutput(locale, parsedAfterSubcommand.flags));
+        if (subcommand === 'check') return commandResult(input, storeCheckOutput(locale, parsedAfterSubcommand.flags));
+        return commandResult(input, storeReferenceOutput(locale, subcommand));
+      case 'idempotency':
+        return commandResult(input, idempotencyReferenceOutput(locale, subcommand));
+      case 'transaction':
+        return commandResult(input, transactionReferenceOutput(locale, subcommand));
+      case 'deadline':
+        return commandResult(input, deadlineReferenceOutput(locale, subcommand));
       case 'action':
         if (subcommand !== 'test' || !parsedAfterSubcommand.args[0]) return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: action test ACTION_NAME [flags]`, 'error')]};
         return commandResult(input, actionOutput(locale, parsedAfterSubcommand.args[0], parsedAfterSubcommand.flags));
@@ -576,8 +753,10 @@ export function executeCommand(rawInput, options = {}) {
         if (subcommand !== 'test') return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: rate-limit test --requests 8 --limit 5`, 'error')]};
         return commandResult(input, rateLimitOutput(locale, parsedAfterSubcommand.flags));
       case 'realtime':
-        if (subcommand !== 'check') return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: realtime check --transport websocket --sequence 42 --resume 40`, 'error')]};
-        return commandResult(input, realtimeOutput(locale, parsedAfterSubcommand.flags));
+        if (subcommand === 'check') return commandResult(input, realtimeOutput(locale, parsedAfterSubcommand.flags));
+        return commandResult(input, realtimeReferenceOutput(locale, subcommand));
+      case 'cli':
+        return commandResult(input, cliReferenceOutput(locale, subcommand));
       case 'security':
         if (subcommand !== 'explain' || !parsedAfterSubcommand.args[0]) return {ok: false, command: input, lines: [line(`${TEXT[locale].usage}: security explain csrf|origin|session|locks`, 'error')]};
         return commandResult(input, securityExplainOutput(locale, parsedAfterSubcommand.args[0].toLowerCase()));

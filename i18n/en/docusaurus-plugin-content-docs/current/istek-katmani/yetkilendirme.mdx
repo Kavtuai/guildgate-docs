@@ -1,34 +1,95 @@
 ---
-title: Discord authorization
-description: Check current user and bot permissions with BigInt.
+title: Authorization and resource boundary
+description: Verify Discord guild access, bot permissions, owner policy, and resource identity at the action boundary.
 ---
 
-# Discord authorization
+# Authorization and resource boundary
 
-Seeing a guild in the dashboard does not grant permission to change every setting. Each action should state the required user and bot permissions.
+Authentication identifies the user; authorization decides which guild or resource they may change. GuildGate leaves that decision to the application during action execution.
 
-## User permissions
+## Resolve the resource on the server
 
-Do not parse Discord permission bitfields with JavaScript `number`. Use `BigInt` to avoid precision loss.
+A `guildId` from route parameters or the request body is only a candidate. Verify on the server that the user belongs to the Discord guild and holds the required permission.
 
 ```ts
-const permissions = BigInt(discordGuild.permissions);
-const canManage = (permissions & MANAGE_GUILD) === MANAGE_GUILD;
+resource: (input) => ({ type: "guild", id: input.guildId }),
+
+authorize: async (context, input) => {
+  if (!context.userId) {
+    return { allowed: false, code: "session_required" };
+  }
+
+  const access = await discordAccess.resolveGuildAccess({
+    userId: context.userId,
+    guildId: input.guildId,
+  });
+
+  return access.canManage
+    ? { allowed: true }
+    : { allowed: false, code: "missing_manage_guild" };
+},
 ```
 
-## Bot permissions and role hierarchy
+Never treat client-provided `isAdmin`, `owner`, role, or permission fields as an authority source.
 
-A user may have `MANAGE_ROLES` while the bot remains below the target role. Keep two decisions separate:
+## Separate user and bot permissions
 
-- May the user request the action?
-- Can the bot complete the action on Discord?
+An action may have two distinct requirements:
 
-## Caching
+- the user may change the setting
+- the bot may perform the Discord operation
 
-Guild lists and permission data may use a short cache, but a protected write should not trust stale browser state. Resolve current Discord data or use a deliberately short cache window.
+Even when the user is authorized, do not start an operation when the bot role is below the target role. Evaluate Discord permission bits as `BigInt`.
 
-## Owner actions
+## Refresh authorization at write time
 
-The `owners` list unlocks operator actions. It does not bypass session, origin, CSRF, rate-limit or audit checks.
+The guild list collected during OAuth may be cached for fast UI rendering, but the security decision should use current data at action time. When caching access data, use a short TTL, explicit invalidation, and permission-loss tests.
 
-Discord.js projects can use the package authorization adapter. The source package includes `examples/discordjs/adapter.ts`.
+## Owner policy
+
+The configured `owners` may change maintenance state or write block policies. An owner still:
+
+- passes origin checks
+- satisfies session and CSRF requirements
+- is rate limited
+- creates audit records
+
+Owner status does not automatically inherit another user's normal action permissions. When such behavior is required, add an explicit and auditable rule to the action.
+
+## Maintenance and blocks
+
+```ts
+await gate.owner.setMaintenance({
+  enabled: true,
+  reason: "database migration",
+  allowOwners: true,
+});
+
+await gate.owner.block({
+  subjectType: "guild",
+  subjectId: guildId,
+  reason: "abuse investigation",
+});
+
+await gate.owner.unblock("guild", guildId);
+```
+
+A block subject may be `user`, `guild`, or `ip`. Hash or narrow IP data according to the audit and logging policy; avoid retaining unnecessary raw personal data.
+
+## Permission loss and realtime
+
+Channel access is checked when a realtime subscription is opened. Revalidate session and channel access periodically for long-lived connections. Broadcast session revocation across workers and close matching connections.
+
+## Test matrix
+
+Test at least these cases for every guarded action:
+
+- no session
+- expired session
+- invalid origin or CSRF
+- user is not a guild member
+- insufficient user permission
+- insufficient bot permission
+- permission removed immediately before the write
+- maintenance mode or active block
+- owner and normal-user paths

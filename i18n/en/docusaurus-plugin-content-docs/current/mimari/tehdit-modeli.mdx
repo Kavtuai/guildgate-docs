@@ -1,41 +1,73 @@
 ---
 title: Threat model
-description: Review the attacks GuildGate addresses and the risks left to the application.
+description: Review the server-side threats GuildGate addresses, its assumptions, and responsibilities left to the application.
 ---
 
 # Threat model
 
-This model assumes an internet-facing Discord dashboard API and a browser client using a session cookie.
+GuildGate is designed for controlled writes from an authenticated Discord dashboard user to a resource they are authorized to manage. The browser, client-side JavaScript, and every incoming request field are treated as untrusted.
 
-## Addressed risks
+## Addressed threats
 
-| Risk | Control |
+| Threat | Control |
 | --- | --- |
-| Stolen session token | No raw-token storage, rotation, idle/absolute expiry and revocation |
-| Login CSRF and OAuth replay | One-time state, browser nonce binding and expiry |
-| Cross-site write request | Exact origin matching and a session-bound CSRF token |
-| Stale Discord authorization | Re-resolve user and bot permissions on protected writes |
-| Duplicate delivery | Idempotency store with a resource-scoped key |
-| Concurrent writes | Renewable distributed lock and fencing token |
-| Temporary Discord/store failure | Timeout, bounded retry and circuit breaker |
-| Unauthorized realtime subscription | Session and guild checks at connection and subscription time |
-| Lost audit event | Transaction hook and outbox contract |
+| Forged origin or CSRF | Exact-origin allowlist and session-bound CSRF verification |
+| Stolen or stale session | Hashed opaque token, idle/absolute expiry, rotation, revocation, and cookie clearing |
+| OAuth state replay | Atomic single-use `consume()` |
+| Credential disclosure | Application key-ring encryption and audit redaction |
+| Writes after permission loss | Authorization repeated at action time |
+| Repeated request | Idempotency reservation, request hash, and replay |
+| Concurrent update | Optimistic revision, lease, and fencing token |
+| Old worker corrupting a new result | Reservation-owner compare-and-set |
+| Rate-limit race | Atomic store operation; advisory locks in PostgreSQL |
+| False rollback after commit | Commit finality and a separate `afterCommit` failure path |
+| Realtime channel disclosure | Session/channel authorization, periodic revalidation, and revocation |
+| Slow client or unbounded queue | Payload, queue, buffered-byte, subscription, and connection-lifetime limits |
+| Duplicate outbox delivery | At-least-once contract and consumer deduplication by event ID |
+| Local address in production | HTTPS requirement and loopback/unspecified address rejection |
 
-## Risks outside the package boundary
+## Trust boundaries
 
-- A compromised server
-- Secrets committed to source code
-- Incorrect reverse-proxy trust
-- Incorrect product authorization rules
-- Application services that skip transactions
-- A bot role below the target role
-- Weak key management or backups
+GuildGate assumes these components are configured correctly:
 
-## Assumptions
+- TLS termination and proxy-header policy
+- secret management and key rotation
+- PostgreSQL and Redis access control
+- Discord OAuth application settings
+- correct route-to-action mapping
+- fencing and unique constraints for domain writes
+- logs, traces, and error monitoring
 
-- TLS terminates at a trusted proxy or the application.
-- Store implementations keep the required atomic behavior.
-- The application forwards cancellation and timeout signals.
-- Operator actions use separate authorization and audit records.
+## Deliberately out of scope
 
-Use the [production checklist](../uretim/guvenlik-kontrol-listesi.mdx) to evaluate the whole deployment.
+The package does not automatically solve:
+
+- XSS in the dashboard HTML or React application
+- operating-system protection for the Discord bot token
+- database backup and disaster recovery
+- third-party API availability
+- application-specific role hierarchy and business rules
+- malicious dependencies or compromised CI accounts
+
+## Fail-open and fail-closed choices
+
+Not every dependency uses the same failure policy. Examples:
+
+- A write is denied when authorization cannot be resolved.
+- For an action in the fail-closed audit list, the transaction cannot commit if audit persistence fails.
+- If cache or realtime publishing fails after commit, the domain write remains successful; the issue goes to retry handling and telemetry.
+- Retry, timeout, and circuit-breaker bounds for Discord reads are selected per action.
+
+## Review checklist
+
+When adding an action, answer these questions:
+
+1. How is the resource identity parsed from untrusted input?
+2. When and with which Discord data is authorization checked?
+3. Can a repeated request safely return the same result?
+4. Which worker wins when two workers write the same resource?
+5. How is a failed post-commit side effect retried?
+6. Does the audit event contain secrets or unnecessary personal data?
+7. Does a realtime subscription close after permission loss?
+
+Keep those answers visible in the action definition, store contract, and tests.

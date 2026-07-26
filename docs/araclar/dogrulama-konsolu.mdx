@@ -1,38 +1,102 @@
 ---
 title: Doğrulama konsolu
-description: GuildGate kurallarını tarayıcıda güvenli komutlarla incele.
+description: GuildGate dokümantasyonundaki güvenli tarayıcı konsoluyla action, config, store ve sürüm davranışlarını incele.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
 # Doğrulama konsolu
 
-Konsol bir işletim sistemi kabuğu açmaz, JavaScript çalıştırmaz ve girdiyi sunucuya göndermez. Belgelenmiş GuildGate kararlarını sabit bir komut listesi üzerinden değerlendirir.
+Bu konsol doküman içindeki izinli komutları çalıştırır. Shell başlatmaz, ağ isteği yapmaz, dosya sistemi veya kalıcı tarayıcı depolaması kullanmaz.
 
 <CommandPlayground />
 
-## Kullanılabilir kontroller
+## Sürüm komutları
 
-| Komut | İncelediği konu |
-| --- | --- |
-| `doctor` | Örnek production profili |
-| `config check` | Development ve production farkları |
-| `origin check` | Tam origin eşleşmesi |
-| `session policy` | TTL, idle, rotasyon ve açık oturum sınırı |
-| `store check` | Kalıcı ve kısa ömürlü store yerleşimi |
-| `action test` | Korunan yazma sırası |
-| `rate-limit test` | Sabit pencere hesabı |
-| `realtime check` | Taşıma, sequence ve replay |
-| `security explain` | CSRF, origin, oturum ve kilit açıklaması |
+```text
+version
+contracts
+exports
+```
 
-## Güvenlik sınırları
+Beklenen çekirdek bilgileri:
 
-- Tek satır ve en fazla 240 karakter
-- Dakikada 20 değerlendirme
-- Kabuk operatörü, yönlendirme ve command substitution reddi
-- GitHub, API, MFA, JWT ve bot token biçimlerini engelleme
-- En fazla 60 geçmiş kaydı; yalnızca açık sekmenin belleğinde
-- Çıktıyı düz metin olarak render etme
-- Beklenmeyen hatada tek, güvenli kullanıcı mesajı
+```text
+Package: @kavtuai/guildgate@1.1.0
+Adapter contract: 1.1
+Action contract: 1.0
+Realtime contract: 1.0
+Public export paths: 16
+CLI commands: 3
+```
 
-Gerçek projenin ortamını kontrol etmek için tarayıcı konsolu yerine [`guildgate-doctor`](../cli/doctor.mdx) komutunu çalıştır.
+## Action kontrolü
+
+```text
+action test guild.settings.update
+action test guild.settings.update --origin deny
+action test guild.settings.update --session missing
+action test guild.settings.update --csrf invalid
+action test guild.settings.update --permission deny
+```
+
+Komutlar gerçek route veya Discord hesabına bağlanmaz. Kontrol sırasını ve üretilen kararlı sonucu belgelenmiş senaryolar üzerinden gösterir.
+
+## Store ve dayanıklılık
+
+```text
+store list
+store contract
+idempotency reservation
+transaction finality
+deadline settlement
+```
+
+`1.1.0` için şu davranışları inceleyebilirsin:
+
+- on store üyesi
+- reservation owner compare-and-set
+- atomik session cap
+- opak audit cursor
+- bounded outbox claim
+- commit sonrası callback ayrımı
+- bounded late settlement
+
+## Realtime
+
+```text
+realtime limits
+realtime transports
+realtime replay
+```
+
+WebSocket ve Socket.IO aynı inbound kontrol yolunu kullanır. SSE yalnızca server-to-client stream'dir ve bounded queue uygular.
+
+## CLI yardım özeti
+
+```text
+cli doctor
+cli writing-check
+cli migration
+```
+
+Kurulu paket üzerinde gerçek help çıktısını görmek için terminalde:
+
+```bash
+npx guildgate-doctor --help
+npx guildgate-writing-check --help
+npx guildgate-migration --help
+```
+
+## Güvenlik sınırı
+
+Konsol girdisi allowlist ile parse edilir. Şunlar desteklenmez:
+
+- keyfi JavaScript
+- `eval` veya dinamik fonksiyon
+- shell ve process komutu
+- HTTP/WebSocket bağlantısı
+- `localStorage` veya `sessionStorage`
+- secret/token girişi
+
+Gerçek config veya secret yapıştırma. Konsol yalnızca belge örnekleri içindir.

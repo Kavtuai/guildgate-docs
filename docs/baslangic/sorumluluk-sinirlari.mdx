@@ -1,35 +1,25 @@
 ---
 title: Sorumluluk sınırları
-description: GuildGate'in koruduğu alanları ve uygulamanın üstlenmesi gereken kararları ayır.
+description: GuildGate'in garanti ettiği davranışları uygulama ve altyapı sorumluluklarından ayır.
 ---
 
 # Sorumluluk sınırları
 
-GuildGate güvenlik kontrollerini düzenler; altyapının tamamına sahip olmaz. Üretim güvenliği iki tarafın da kendi sınırını korumasına bağlıdır.
+GuildGate ortak güvenlik ve dayanıklılık mekanizmalarını uygular; ürünün domain kararlarını devralmaz.
 
-## GuildGate'in sınırı
+## GuildGate'in sağladığı sınır
 
-- Opak oturum üretimi, rotasyonu ve iptali
-- OAuth `state` ve tarayıcı nonce bağlantısı
-- Origin ve CSRF doğrulaması
-- Discord izin bitlerinin `BigInt` ile çözülmesi
-- İstek sınırı, idempotency, kilit, retry, timeout ve circuit breaker sözleşmeleri
-- Audit, outbox ve realtime olay sözleşmeleri
-- Fastify, Express ve Hono bağlantı katmanları
+- Session token hashing, expiry, rotation ve revocation
+- Exact-origin ve session-bound CSRF doğrulaması
+- Action yaşam döngüsü, deadline, idempotency ve concurrency kontrolleri
+- Store, transaction, lock, realtime ve telemetry sözleşmeleri
+- Sabit kullanıcı hata kodları ve gizli server hata ayrıntıları
+- Production başlangıç kontrolleri
 
-## Uygulamanın sınırı
+## Uygulamanın sorumluluğu
 
-- Reverse proxy arkasında güvenilir istemci IP'sini doğru çözmek
-- Sırları kaynak kodu ve istemci paketinden uzak tutmak
-- Kalıcı değişiklikleri transaction içinde tamamlamak
-- Eski revision ile gelen güncellemeyi reddetmek
-- Discord rol hiyerarşisini ve ürün kuralını tanımlamak
-- Yedekleme, saklama süresi ve veri silme politikasını uygulamak
-- Abort/cancellation sinyalini veritabanı ve HTTP çağrılarına taşımak
-- Discord izin ve API değişikliklerini büyük sürüm öncesinde gözden geçirmek
+Kaynak erişimi, user/bot permission eşlemesi, domain validation, schema, migration, retention, backup, Discord API bütçesi, proxy/TLS ve incident response uygulamada kalır.
 
-## Güvenlik iddiasını doğru kur
+JavaScript keyfi bir Promise'ı zorla durduramaz. GuildGate deadline'da yanıt verir ve `AbortSignal` sağlar; fiziksel operation daha sonra bitebilir. Lease süresini aşabilen durable write fencing token ile stale worker'ı reddetmelidir.
 
-Bir action'ın `authorize` adımından geçmesi, veritabanı değişikliğinin otomatik olarak tutarlı olduğu anlamına gelmez. Kaynak kilidi eş zamanlı istekleri düzenler; transaction ve revision kontrolü kayıt düzeyindeki tutarlılığı korur.
-
-[Tehdit modeli](../mimari/tehdit-modeli.mdx), bu sınırların hangi saldırıları ele aldığını ayrıntılandırır.
+Transactional outbox at-least-once teslimat sağlar. Harici yan etki uygulayan consumer event ID ile deduplication yapmalıdır.

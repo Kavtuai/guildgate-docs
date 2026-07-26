@@ -1,11 +1,9 @@
 ---
 title: Initial configuration
-description: Configure createGuildGate for development and production.
+description: Configure createGuildGate, production guards, and the 1.1.0 reliability boundary.
 ---
 
 # Initial configuration
-
-`createGuildGate()` receives the application identity, security boundaries, locales and store bundle in one object.
 
 ```ts
 const gate = createGuildGate({
@@ -15,17 +13,7 @@ const gate = createGuildGate({
     baseUrl: "https://panel.example.com",
   },
   owners: ["123456789012345678"],
-  locale: {
-    default: "en",
-    messages: {
-      en: {
-        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
-      },
-      tr: {
-        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
-      },
-    },
-  },
+  locale: {default: "en"},
   security: {
     allowedOrigins: ["https://panel.example.com"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -38,35 +26,31 @@ const gate = createGuildGate({
     },
   },
   stores,
+  transactions,
+  telemetry,
+  audit: {
+    enabled: true,
+    redactKeys: ["token", "secret", "authorization"],
+    failClosedActions: ["guild.billing.update"],
+  },
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
 });
 ```
 
-## Application fields
+## Production startup guards
 
-| Field | Decision |
-| --- | --- |
-| `app.name` | Name used in operator and audit context |
-| `app.environment` | Environment boundary for security defaults and store namespaces |
-| `app.baseUrl` | Public dashboard URL |
-| `owners` | Discord user IDs allowed to use owner operations |
-| `locale.default` | Default error and status language |
-| `locale.messages` | Application-specific messages by error code |
+The production profile rejects non-HTTPS `baseUrl`, empty or wildcard origins, loopback/unspecified/mapped-loopback URLs, insecure session cookies, and weak secrets. Discord OAuth endpoints and callbacks must also use HTTPS.
 
-## Session policy
+## Session limit
 
-`ttlMs` sets the absolute limit, `idleTimeoutMs` closes inactive sessions, `rotateAfterMs` rotates the opaque value and `maximumSessionsPerUser` limits open sessions.
+Official memory, Redis, and PostgreSQL stores enforce `maximumSessionsPerUser` inside session creation. A shared custom store should implement atomic create-and-evict through `create(record, maximumSessionsPerUser)`.
 
-Treat these controls as a group. Rotation alone does not stop a stolen session; revocation must remain available.
+HTTP adapters return cookie-clearing metadata when they encounter an expired or revoked session.
 
-## Production guards
+## Reliability setting
 
-The production profile rejects:
+`maximumLateSettlementMs` bounds how long reservation and lease ownership may remain after the response deadline. Applications should pass `context.signal` to database and HTTP clients that support cancellation.
 
-- an HTTP `baseUrl`
-- an empty origin allowlist
-- HTTP or localhost origins
-- session cookies without `Secure`
-- an HTTP Discord callback
-- short CSRF or audit hashing secrets
+## Fail-closed audit
 
-See the [configuration reference](../referans/yapilandirma.mdx) for the complete overview.
+An action in `failClosedActions` must enable audit and idempotency, require a transaction, and enlist the audit store in that transaction.

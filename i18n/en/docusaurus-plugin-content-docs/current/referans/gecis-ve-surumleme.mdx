@@ -1,29 +1,77 @@
 ---
 title: Migration and versioning
-description: Manage semver, store changes, key rotation, and production rollbacks deliberately.
+description: Move from GuildGate 1.0.0 to 1.1.0 by updating custom store, transaction, and realtime contracts.
 ---
 
 # Migration and versioning
 
-GuildGate follows semver for its published export surface. Internal file paths are not part of that guarantee.
+GuildGate follows Semantic Versioning from `1.0.0`. Version `1.1.0` is a minor release because it adds public adapter capabilities.
 
-## Before an upgrade
+## Contract change
 
-- read the changelog and migration notes
-- run `npm run typecheck`
-- rerun store contract tests
-- review Discord permission and API changes
-- run the doctor command and one guarded mutation in a canary environment
-- verify realtime replay and session revocation
+| Area | 1.0.0 | 1.1.0 |
+| --- | --- | --- |
+| Adapter contract | `1.0` | `1.1` |
+| Action contract | `1.0` | `1.0` |
+| Realtime contract | `1.0` | `1.0` |
 
-## Store migration
+When only official PostgreSQL and Redis bundles are used, the upgrade is more direct. Custom stores and adapters need the following behaviors.
 
-When a release adds a store field, deploy the backward-compatible schema first and then upgrade the application. If old and new instances may run together, keep a record format both versions can read.
+## 1. Idempotency reservation
 
-## Key rotation
+Add `reservationId` to `IdempotencyRecord`. `renew`, `complete`, and `fail` must compare the same owner token.
 
-An OAuth token keyring can hold more than one key version. Encrypt new writes with the active key, then re-encrypt older records when they are read or through a controlled background task.
+Remove unconditional updates and deletes by key. Return `false` when ownership is lost.
+
+## 2. Atomic session cap
+
+Implement `SessionStore.create(record, maximumSessionsPerUser)` for shared stores. Session insertion and excess-record eviction must be one serialized operation.
+
+## 3. Cursor audit
+
+Add `AuditStore.listPage()`. Apply opaque `(createdAt DESC, id DESC)` paging in the database query.
+
+## 4. Transaction finality
+
+A callback failure after successful commit must not trigger rollback. Observe it with `onPostCommitError` or `TransactionPostCommitError`; do not repeat domain work.
+
+Use savepoints and callback-propagation rules for nested PostgreSQL transactions.
+
+## 5. Deadlines and late settlement
+
+Return an action timeout at the configured boundary. Add settlement observation and the `reliability.maximumLateSettlementMs` bound.
+
+Increase idempotency TTLs to cover the deadline and late-settlement period. Forward `AbortSignal` to external I/O.
+
+## 6. Fail-closed audit and rate limits
+
+Move fail-closed audit persistence into the domain transaction. Serialize PostgreSQL rate-limit bucket updates with advisory locks or an equivalent atomic path.
+
+## 7. OAuth refresh
+
+Use a distributed lock for single-flight refresh and reread the credential after acquiring the lease.
+
+## 8. Redis tag atomicity
+
+Update the cache entry, old and new tag memberships, and tag-index TTL in one Lua or equivalent operation.
+
+## 9. Realtime transports
+
+Route Socket.IO subscribe, unsubscribe, and heartbeat events through `hub.acceptMessage()`. Add acknowledgements, replay, and transport backpressure behavior.
+
+## Upgrade sequence
+
+1. Create a separate branch.
+2. Install `@kavtuai/guildgate@1.1.0`.
+3. Fix TypeScript errors.
+4. Implement adapter `1.1` rules in custom stores.
+5. Run `runStoreContract()`.
+6. Print and review PostgreSQL migration SQL.
+7. Test login, guarded writes, timeouts, permission loss, session revocation, and realtime replay.
+8. Make coverage and service-integration pipelines pass.
+9. Observe audit, outbox, and late-settlement metrics in staging.
+10. Perform a controlled production rollout.
 
 ## Rollback
 
-A rollback plan needs more than an older npm version. Include store schema compatibility, outbox workers, Redis prefixes, realtime sequence handling, and any keyring changes.
+A code rollback is not the same as a database migration rollback. Verify that older code tolerates added columns. Wait for inflight idempotency records before removing reservation fields.

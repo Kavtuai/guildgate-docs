@@ -1,49 +1,93 @@
 ---
-title: Persistent records and transactions
-description: Store sessions, OAuth, audit, outbox and policies consistently.
+title: Persistent PostgreSQL records
+description: Configure transactions, cursors, rate limits, and outbox behavior in the GuildGate 1.1.0 PostgreSQL adapter.
 ---
 
-# Persistent records and transactions
+# Persistent PostgreSQL records
 
-Persistent stores do more than survive restarts; they keep security decisions consistent across instances.
+`@kavtuai/guildgate/postgres` provides the official store bundle and transaction adapter over one connection pool.
 
-## Records that normally persist
+```ts
+import { Pool } from "pg";
+import { createPostgresAdapter } from "@kavtuai/guildgate/postgres";
 
-- session digest and revocation state
-- encrypted OAuth credentials
-- audit events
-- outbox delivery records
-- operator and maintenance policies
-- optimistic revision values where needed
+const postgres = createPostgresAdapter({
+  pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+  prefix: "guildgate",
+});
 
-## Transaction layout
+await postgres.migrate();
 
-```text
-BEGIN
-  read current revision
-  write new settings
-  insert audit row
-  insert outbox event
-COMMIT
+const gate = createGuildGate({
+  // app, security, owners
+  stores: postgres.stores,
+  transactions: postgres.transactions,
+});
 ```
 
-On a revision conflict, roll back and ask the client to reload current data. A resource lock does not replace this check.
+## Migration SQL
 
-## Audit record
+Review SQL without opening a connection:
 
-A useful record may include:
+```bash
+npx guildgate-migration --prefix guildgate
+```
 
-- action name
-- actor user ID
-- resource type and ID
-- request/correlation ID
-- result code
-- previous and new revision
-- hashed IP context
-- timestamp
+Before production execution, review transaction behavior, lock time, indexes, and rollback planning. Give the application user only the schema privileges it needs.
 
-Do not store tokens, cookies, OAuth codes, encryption keys or raw IP values.
+## Transaction finality
 
-## Retention
+In `1.1.0`, PostgreSQL `COMMIT` is separated from post-commit callbacks. After a successful `COMMIT`:
 
-Sessions and OAuth state expire with TTL. Define separate retention periods for audit and outbox data according to product, legal and operational needs.
+- the domain write is final
+- a callback failure does not issue rollback
+- a callback failure does not repeat domain work
+- the issue is observable through `TransactionPostCommitError` or action metadata
+
+## Nested transactions
+
+A new `run()` inside the same transaction context uses a savepoint:
+
+```text
+SAVEPOINT ...
+-- nested work
+RELEASE SAVEPOINT ...
+```
+
+A nested error runs `ROLLBACK TO SAVEPOINT`. The inner scope cannot change isolation or read-only mode. Its `afterCommit` callbacks join the parent only after savepoint release.
+
+## Rate limits
+
+The PostgreSQL rate-limit store takes a transaction-scoped advisory lock for each bucket. The first insert and later updates use the same serialized decision path, preventing two workers from accepting requests beyond the limit together.
+
+## Idempotency
+
+The reservation ID is stored in the table. Complete, renew, and fail queries include `reservation_id` and `state='inflight'` predicates. No affected row produces `idempotency_reservation_lost`.
+
+## Audit paging
+
+Audit ordering is `(created_at DESC, id DESC)`. The opaque cursor contains those two values and becomes the predicate for the next query. Avoid offset pagination because concurrent inserts can cause skipped or repeated records.
+
+## Outbox
+
+An outbox worker operates with:
+
+- bounded `limit`
+- worker identity
+- claim lease duration
+- bounded concurrency
+
+On success it calls `markPublished`; on failure it stores a sanitized, short error through `markFailed`. Delivery is at least once, so consumers must deduplicate by event ID.
+
+## Sessions and credentials
+
+The per-user session cap is applied inside the store transaction. OAuth credentials are ciphertext; keep encryption keys in a separate secret system so a database backup alone cannot reveal tokens.
+
+## Production settings
+
+- calculate connection-pool size with worker count
+- configure statement and lock timeouts
+- monitor slow queries and deadlocks
+- separate migration and runtime database users
+- plan retention and index maintenance for audit and outbox growth
+- practice restore procedures

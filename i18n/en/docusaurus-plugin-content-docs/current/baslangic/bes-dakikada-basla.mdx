@@ -1,26 +1,23 @@
 ---
 title: Start in five minutes
-description: Create the first GuildGate instance with memory stores.
+description: Run the first GuildGate 1.1.0 action with memory stores and a transaction adapter.
 ---
 
 # Start in five minutes
 
-This example creates a small development setup. Memory stores are cleared when the process stops; replace them before production.
-
-## 1. Prepare environment values
+This setup is for development and tests. Memory stores are cleared when the process exits.
 
 ```env
 BOT_OWNER_ID=123456789012345678
-GUILDGATE_CSRF_SECRET=a-random-value-longer-than-32-bytes
-GUILDGATE_AUDIT_IP_SALT=a-different-random-value
+GUILDGATE_CSRF_SECRET=a-long-random-csrf-secret
+GUILDGATE_AUDIT_IP_SALT=a-different-long-audit-salt
 ```
-
-## 2. Create the gate
 
 ```ts
 import {
   createGuildGate,
   createMemoryStoreBundle,
+  createMemoryTransactionAdapter,
 } from "@kavtuai/guildgate";
 
 const stores = createMemoryStoreBundle();
@@ -32,17 +29,7 @@ export const gate = createGuildGate({
     baseUrl: "http://localhost:3000",
   },
   owners: [process.env.BOT_OWNER_ID!],
-  locale: {
-    default: "en",
-    messages: {
-      en: {
-        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
-      },
-      tr: {
-        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
-      },
-    },
-  },
+  locale: {default: "en"},
   security: {
     allowedOrigins: ["http://localhost:3000"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -55,36 +42,56 @@ export const gate = createGuildGate({
     },
   },
   stores,
+  transactions: createMemoryTransactionAdapter(),
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
 });
 ```
 
-## 3. Define the first action
+## First action
 
 ```ts
+let revision = 1;
+
 export const updateGuildSettings = gate.action({
   name: "guild.settings.update",
-  parse: parseGuildSettings,
-  resource: ({guildId}) => ({type: "guild", id: guildId}),
-  authorize: ({userId}, input) => canManageGuild(userId, input.guildId),
-  execute: (context, input) => saveGuildSettings(context, input),
+  parse: (value) => value as {
+    guildId: string;
+    expectedRevision: number;
+    prefix: string;
+  },
+  resource: (input) => ({type: "guild", id: input.guildId}),
+  rateLimit: {limit: 20, windowMs: 60_000},
+  idempotency: {required: true, ttlMs: 10 * 60_000},
+  optimistic: {
+    expected: (input) => input.expectedRevision,
+    current: async () => revision,
+  },
+  transaction: {required: true, isolation: "serializable"},
+  timeoutMs: 5_000,
+  async execute(context, input) {
+    context.signal.throwIfAborted();
+    revision += 1;
+    return {...input, revision};
+  },
+  cache: {invalidateTags: (result) => [`guild:${result.guildId}`]},
+  audit: {enabled: true, changes: (result) => result},
 });
 ```
 
-`execute` does not run until the earlier checks pass. The HTTP adapter adds session, origin and CSRF context.
+Fastify connection:
 
-## 4. Run the doctor
+```ts
+import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
 
-```bash
-npx guildgate-doctor
+app.patch(
+  "/api/guilds/:guildId/settings",
+  fastifyActionHandler(gate, updateGuildSettings, {
+    input: (request) => ({
+      ...(request.body as object),
+      guildId: (request.params as {guildId: string}).guildId,
+    }),
+  }),
+);
 ```
 
-The development profile accepts localhost and memory stores. The production profile flags the same values as unsafe.
-
-## 5. Prepare production stores
-
-- Move sessions, OAuth credentials, audit, outbox and policies to persistent storage.
-- Move rate limits, idempotency, cache and distributed locks to Redis.
-- Use HTTPS for the base URL, callback and allowed origins.
-- Add the application-owned keyring for OAuth tokens.
-
-Read [store contracts](../depolama/depo-sozlesmeleri.mdx) and the [action lifecycle](../mimari/islem-yasam-dongusu.mdx) next.
+In production, replace memory stores with durable and shared adapters. Verify HTTPS, session revocation, deadlines, idempotent replay, and realtime reconnect in staging.

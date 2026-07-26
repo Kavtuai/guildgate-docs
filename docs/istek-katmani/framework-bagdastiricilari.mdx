@@ -1,48 +1,98 @@
 ---
 title: Framework bağdaştırıcıları
-description: GuildGate action'larını Fastify, Express ve Hono rotalarına bağla.
+description: Fastify, Express ve Hono isteklerini GuildGate action zarfına güvenli biçimde bağla.
 ---
 
 # Framework bağdaştırıcıları
 
-GuildGate çekirdeği framework nesnelerine doğrudan bağlı kalmaz. Bağdaştırıcılar istek, çerez, header, IP, abort sinyali ve yanıt biçimini çekirdek bağlamına çevirir.
+GuildGate'in HTTP bağdaştırıcıları framework isteğini `RequestEnvelope` biçimine dönüştürür, action sonucunu HTTP durumuna çevirir ve oturum metadata'sını yanıta uygular.
 
 ## Fastify
 
-`fastifyActionHandler` action'ı Fastify route handler olarak kullanır.
-
 ```ts
-import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
+import { fastifyActionHandler } from "@kavtuai/guildgate/fastify";
 
-fastify.patch(
+app.patch(
   "/api/guilds/:guildId/settings",
-  fastifyActionHandler(gate, updateGuildSettings),
+  fastifyActionHandler(gate, updateSettings, {
+    input: (request) => ({
+      ...(request.body as object),
+      guildId: (request.params as { guildId: string }).guildId,
+    }),
+  }),
 );
 ```
 
 ## Express
 
-`expressActionHandler` aynı action'ı Express middleware zincirine bağlar.
-
 ```ts
-import {expressActionHandler} from "@kavtuai/guildgate/express";
+import { expressActionHandler } from "@kavtuai/guildgate/express";
 
 app.patch(
   "/api/guilds/:guildId/settings",
-  expressActionHandler(gate, updateGuildSettings),
+  expressActionHandler(gate, updateSettings, {
+    input: (request) => ({
+      ...request.body,
+      guildId: request.params.guildId,
+    }),
+  }),
 );
 ```
 
 ## Hono
 
-Paket Hono için de bağdaştırıcı içerir. Kurulu sürümün `exports` alanı ve TypeScript otomatik tamamlaması üzerinden alt yol adını doğrula; dahili dosya yoluna bağlanma.
+```ts
+import { honoActionHandler } from "@kavtuai/guildgate/hono";
 
-## Uygulamanın vermesi gerekenler
+app.patch(
+  "/api/guilds/:guildId/settings",
+  honoActionHandler(gate, updateSettings, {
+    input: async (context) => ({
+      ...(await context.req.json()),
+      guildId: context.req.param("guildId"),
+    }),
+  }),
+);
+```
 
-- Güvenilir istemci IP çözümü
-- Oturum ve CSRF header/çerez eşlemesi
-- Abort sinyalinin aşağı katmanlara aktarılması
-- Hata kodunun kullanıcı mesajına çevrilmesi
-- Framework log'una sır veya iç hata ayrıntısı yazmama
+## Proxy ve IP bilgisi
 
-Bağdaştırıcıyı ince tut. Ürün kuralını route dosyasına geri taşıma; action ve servis katmanında tut.
+Bağdaştırıcıya güvenilir istemci IP'si sağlamak uygulamanın proxy politikasına bağlıdır. Her `X-Forwarded-For` değerine doğrudan güvenme. Cloudflare, Nginx veya load balancer katmanında hangi proxy'nin güvenilir olduğunu açıkça yapılandır.
+
+## Origin ve cookie
+
+Bağdaştırıcı şu metadata alanlarını işlemelidir:
+
+- `replacementSessionToken`
+- `replacementCsrfToken`
+- `clearSessionCookie`
+
+`1.1.0`, süresi dolmuş veya iptal edilmiş oturumda Fastify, Express ve Hono yanıtlarına cookie temizleme bilgisini taşır. Custom adapter yazıyorsan aynı davranışı koru.
+
+## Input birleştirme
+
+Route parametresi, query ve body alanlarını birleştirirken önceliği açıkça belirle. Güvenlik açısından önemli kimliği body'nin route parametresini ezmesine izin verme.
+
+```ts
+input: (request) => ({
+  ...request.body,
+  guildId: request.params.guildId,
+})
+```
+
+Burada `guildId` en son yazıldığı için body değeri route kimliğini değiştiremez.
+
+## Hata yanıtı
+
+İstemciye `ActionExecutionResult.error` içindeki kararlı kodu ve yerelleştirilmiş mesajı gönder. Stack trace, SQL metni, Discord token'ı veya dahili exception nesnesini yanıta ekleme. `requestId` değerini log ve destek kaydı için koru.
+
+## Custom adapter kontrolü
+
+Yeni framework bağdaştırıcısında şunları test et:
+
+- method ve path doğru aktarılıyor
+- origin/cookie/header çoklu değerleri daraltılıyor
+- abort sinyali bağlantı kapanmasına bağlanıyor
+- replacement ve clear cookie metadata'sı uygulanıyor
+- hata durum kodu iki kez yazılmıyor
+- response tamamlandıktan sonra domain action tekrar çağrılmıyor

@@ -1,69 +1,168 @@
 ---
 title: action() işlem tanımı
-description: Korunan bir dashboard yazmasını tek işlem yaşam döngüsünde tanımla.
+description: GuildGate 1.1.0 ile bir dashboard yazmasını doğrulama, dayanıklılık ve commit kurallarıyla tanımla.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
 # `action()` işlem tanımı
 
-`gate.action()` bir yazma isteğinin girdi, kaynak, yetki, dayanıklılık ve kayıt kararlarını aynı tanımda tutar.
+`gate.action()` bir yazma isteğinin güvenlik ve dayanıklılık kararlarını tek nesnede tutar. Action tanımı immutable bir `DefinedAction` üretir; gerçek yürütme `gate.execute()` veya HTTP bağdaştırıcısı tarafından yapılır.
 
-```ts
+```ts title="guild-settings.ts"
 const updateSettings = gate.action({
   name: "guild.settings.update",
+  authentication: "required",
+  csrf: "required",
+  timeoutMs: 5_000,
+
   parse(value) {
-    const body = parseBody(value);
-    return {
-      guildId: body.guildId,
-      revision: body.revision,
-      settings: body.settings,
-    };
+    return parseSettingsInput(value);
   },
+
   resource: (input) => ({
     type: "guild",
     id: input.guildId,
   }),
+
+  authorize: async (context, input) => {
+    const allowed = await canManageGuild(context.userId!, input.guildId);
+    return allowed ? { allowed: true } : { allowed: false, code: "missing_permission" };
+  },
+
   rateLimit: {
     limit: 20,
     windowMs: 60_000,
     key: (context, input) => `${context.userId}:${input.guildId}`,
   },
+
   idempotency: {
+    required: true,
     ttlMs: 10 * 60_000,
     scope: (context, input) => `${context.userId}:${input.guildId}`,
   },
+
+  optimistic: {
+    expected: (input) => input.expectedRevision,
+    current: (input) => readRevision(input.guildId),
+    resource: (input) => `guild:${input.guildId}`,
+  },
+
   concurrency: {
     key: (_context, input) => `guild-settings:${input.guildId}`,
     ttlMs: 8_000,
-    waitMs: 500,
+    renewEveryMs: 2_000,
+    waitMs: 250,
   },
-  timeoutMs: 5_000,
-  authorize: (context, input) =>
-    canManageGuild(context.userId, input.guildId),
-  execute: (context, input) =>
-    saveGuildSettings(context, input),
+
+  transaction: {
+    required: true,
+    isolation: "serializable",
+  },
+
+  async execute(context, input) {
+    context.signal.throwIfAborted();
+    return saveGuildSettings({
+      transaction: context.transaction,
+      fencingToken: context.fencingToken,
+      input,
+    });
+  },
+
+  cache: {
+    invalidateTags: (result) => [`guild:${result.guildId}`],
+  },
+
+  realtime: {
+    delivery: "outbox",
+    events: (result) => [{
+      event: "guild.settings.updated",
+      channel: `guild:${result.guildId}`,
+      data: result,
+    }],
+  },
+
+  audit: {
+    enabled: true,
+    changes: (result) => ({ revision: result.revision }),
+  },
 });
 ```
 
-## `parse`
+## Kimlik ve CSRF
 
-Ham gövdeyi dar bir tipe çevir. Bilinmeyen alanları at, uzunluk ve enum sınırlarını burada uygula. Yetki kontrolünden önce veri doğrulaması yapman, gereksiz Discord ve store çağrılarını azaltır.
+`authentication` değeri `required`, `optional` veya `none` olabilir. Varsayılan korumalı davranışı bozacağın her action için sebebi route incelemesinde açıkça yaz.
 
-## `resource`
+Güvensiz HTTP yöntemlerinde `csrf: "required"` kullan. CSRF'yi yalnızca oturum kullanmayan, başka bir imza mekanizmasıyla doğrulanan endpoint'te kapat.
 
-Rate limit, idempotency, kilit, audit ve realtime olayları aynı kaynağı kullanır. Kaynak kimliğini kullanıcı girdisinden olduğu gibi loglama; önce doğrula.
+## `parse` ve `resource`
+
+`parse`, bilinmeyen girdiyi dar bir tipe çevirir. Uzunluk, enum, sayı aralığı ve izin verilen alanlar burada doğrulanmalıdır.
+
+`resource`, aynı doğrulanmış kimliği yetkilendirme, optimistic revision, audit, kilit ve realtime kanalı için yeniden kullanmayı kolaylaştırır.
 
 ## `authorize`
 
-Kullanıcının Discord sunucusuna erişimini ve gerekli izin bitini yazma anında yeniden çöz. Botun aynı işlem için gereken iznini ayrıca kontrol et.
+Callback hiçbir şey döndürmezse izin verilmiş kabul edilir. Açık karar üretmek daha okunaklıdır:
 
-## `execute`
+```ts
+return {
+  allowed: false,
+  code: "missing_manage_guild",
+  details: { guildId: input.guildId },
+};
+```
 
-Uygulama değişikliği burada çalışır. Transaction, optimistic revision ve Discord rol hiyerarşisi uygulama servisinin sorumluluğunda kalır.
+Discord permission değerlerini JavaScript `number` tipine daraltma; `BigInt` veya discord.js permission yardımcılarını kullan.
 
-## Denetim sırası
+## Idempotency reservation
+
+`1.1.0` her inflight kayıt için `reservationId` üretir. Store şu kurala uymalıdır:
+
+- aynı key ve aynı request hash tamamlandıysa saklanan yanıtı döndür
+- aynı key farklı hash taşıyorsa conflict üret
+- aktif reservation varsa ikinci yürütmeyi başlatma
+- `renew`, `complete` ve `fail` sırasında owner token'ı karşılaştır
+
+Action timeout'tan sonra commit ederse çekirdek sonucu aynı reservation altında tamamlayıp sonraki isteğe replay edebilir.
+
+## Concurrency ve fencing
+
+`ttlMs`, lease'in geçerlilik süresidir; `renewEveryMs` bundan kısa olmalıdır. `waitMs`, kilit alınamadığında ne kadar bekleneceğini belirler.
+
+Lease store `acquireLease()` destekliyorsa `context.fencingToken` üretilir. Veritabanındaki güncelleme, önceki token'dan büyük olmayan bir değeri reddetmelidir; yalnızca kilit sahibine güvenme.
+
+## Transaction hook'ları
+
+```ts
+transaction: {
+  required: true,
+  isolation: "serializable",
+  hooks: {
+    before: async (scope, input) => {},
+    beforeCommit: async (scope, result, input) => {},
+    afterCommit: async (result, input) => {},
+    afterRollback: async (error, input) => {},
+  },
+}
+```
+
+`afterCommit` domain yazımından sonra çalışır. Buradaki hata commit'i geri almaz ve action'ı ikinci kez yürütmek için gerekçe değildir.
+
+## Retry ve circuit breaker
+
+Retry yalnızca güvenli biçimde tekrarlanabilen işlemde açılmalıdır. Harici yazma idempotent değilse action düzeyindeki idempotency tek başına üçüncü taraf yan etkisini güvenli yapmaz.
+
+Circuit breaker, belirlenen hata eşiğinden sonra çağrıyı geçici olarak keser. Adı verilmezse action kimliğinden türetilir.
+
+## Cache, realtime ve audit
+
+`cache.invalidateTags` commit edilmiş sonuçtan tag listesi üretir. `realtime.delivery: "outbox"`, olayın transaction sınırında kuyruğa yazılmasını sağlar. Audit `changes` çıktısında secret, token ve gereksiz tam nesne bulundurma.
+
+## Sonuç metadata'sı
+
+HTTP katmanı `ActionExecutionResult.meta` alanını işlemelidir. Özellikle yenilenmiş cookie, cookie temizleme ve `postCommitIssues` bilgilerini kaybetme.
 
 <CommandPlayground compact />
 
-Konsolda `action test guild.settings.update` komutunu kullanarak origin, oturum, CSRF ve izin kararlarını değiştirebilirsin.
+Konsolda `action test guild.settings.update` komutuyla kontrol sırasını inceleyebilirsin.

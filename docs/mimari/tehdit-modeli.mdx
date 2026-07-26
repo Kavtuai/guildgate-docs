@@ -1,41 +1,73 @@
 ---
 title: Tehdit modeli
-description: GuildGate'in ele aldığı saldırıları ve dışarıda bıraktığı riskleri incele.
+description: GuildGate'in ele aldığı sunucu tarafı tehditleri, varsayımları ve uygulamaya kalan sorumlulukları incele.
 ---
 
 # Tehdit modeli
 
-Bu model, internete açık bir Discord dashboard API'sini ve oturum çerezini kullanan tarayıcı istemcisini temel alır.
+GuildGate, Discord dashboard sunucusunda kimliği doğrulanmış bir kullanıcının yetkili olduğu kaynağa kontrollü yazma yapmasını hedefler. Tarayıcı, istemci JavaScript'i ve gelen tüm istek alanları güvenilmez kabul edilir.
 
-## Ele alınan riskler
+## Ele alınan tehditler
 
-| Risk | Karşılık |
+| Tehdit | Uygulanan kontrol |
 | --- | --- |
-| Çalınan oturum belirteci | Ham belirteci depolamama, rotasyon, idle/mutlak süre, kullanıcı oturumlarını iptal etme |
-| Login CSRF ve OAuth replay | Tek kullanımlık `state`, tarayıcı nonce bağı, süre sınırı |
-| Cross-site yazma isteği | Tam origin eşleşmesi ve oturuma bağlı CSRF belirteci |
-| Eski Discord yetkisi | Yazma anında kullanıcı ve bot iznini yeniden çözme |
-| Aynı isteğin tekrar gönderilmesi | Idempotency store ve kaynak kapsamlı anahtar |
-| Aynı kaynağa eş zamanlı yazma | Yenilenebilir dağıtık kilit ve fencing token |
-| Discord veya store geçici hatası | Timeout, sınırlı retry ve circuit breaker |
-| Yetkisiz realtime aboneliği | Bağlantı ve abonelik başında oturum/sunucu yetkisi |
-| Denetim kaydının kaybolması | Transaction kancası ve outbox sözleşmesi |
+| Sahte origin veya CSRF | Exact-origin allowlist ve oturuma bağlı CSRF doğrulaması |
+| Çalınmış/eskimiş oturum | Hashlenmiş opak token, idle/absolute expiry, rotation, revocation ve cookie temizleme |
+| OAuth state tekrar kullanımı | Atomik tek kullanımlık `consume()` |
+| Token verisi sızıntısı | Uygulama anahtar halkasıyla şifreli credential kaydı ve audit redaction |
+| Yetki kaybından sonra yazma | Action anında yeniden yetkilendirme |
+| Tekrarlanan istek | Idempotency reservation, request hash ve replay |
+| Eşzamanlı güncelleme | Optimistic revision, lease ve fencing token |
+| Eski worker'ın yeni sonucu bozması | Reservation owner compare-and-set |
+| Rate limit yarış koşulu | Atomik store işlemi; PostgreSQL'de advisory lock |
+| Commit sonrası sahte rollback | Commit kesinliği ve ayrılmış `afterCommit` hata yolu |
+| Realtime kanal sızıntısı | Oturum ve kanal yetkisi, periyodik yeniden doğrulama, revocation |
+| Yavaş istemci/kuyruk büyümesi | Payload, queue, buffered byte, abonelik ve bağlantı ömrü sınırları |
+| Outbox olayının iki kez teslimi | At-least-once sözleşmesi ve event ID ile consumer deduplication |
+| Üretimde yerel adres kullanımı | HTTPS ve loopback/unspecified adres reddi |
 
-## Paketin tek başına durduramayacağı riskler
+## Güven sınırları
 
-- Sunucunun ele geçirilmesi
-- Kaynak koduna yazılmış sırlar
-- Yanlış reverse proxy veya istemci IP ayarı
-- Hatalı ürün yetki kuralı
-- Transaction kullanmayan uygulama servisi
-- Discord bot rolünün hedef rolün altında kalması
-- Zayıf anahtar yönetimi veya yedekleme politikası
+GuildGate aşağıdaki bileşenlerin doğru yapılandırıldığını varsayar:
 
-## Varsayımlar
+- TLS sonlandırma ve doğru proxy header politikası
+- güvenli secret yönetimi ve anahtar rotasyonu
+- PostgreSQL/Redis erişim kontrolü
+- Discord OAuth uygulama ayarları
+- route seviyesinde doğru action eşlemesi
+- domain yazımlarında fencing ve unique constraint kullanımı
+- log, trace ve hata izleme altyapısı
 
-- TLS bağlantısını güvenilir proxy veya uygulama sonlandırır.
-- Store uygulamaları sözleşmedeki atomiklik koşullarını korur.
-- Uygulama, iptal ve timeout sinyalini alt katmanlara taşır.
-- Operatör işlemleri ayrı yetki ve audit kaydı kullanır.
+## Bilerek kapsam dışında kalanlar
 
-Üretim öncesinde [kontrol listesini](../uretim/guvenlik-kontrol-listesi.mdx) kendi altyapınla birlikte değerlendir.
+Paket şunları otomatik çözmez:
+
+- dashboard HTML/React arayüzündeki XSS açıkları
+- Discord bot token'ının işletim sistemi seviyesinde korunması
+- veritabanı yedekleme ve felaket kurtarma
+- üçüncü taraf API'nin erişilebilirliği
+- uygulamaya özel rol hiyerarşisi ve iş kuralları
+- kötü amaçlı dependency veya CI hesabı ele geçirilmesi
+
+## Fail-open ve fail-closed kararları
+
+Her bağımlılık aynı hata politikasını kullanmaz. Örnekler:
+
+- Yetkilendirme çözülemiyorsa yazma reddedilir.
+- Fail-closed listesinde olan action için audit yazılamıyorsa transaction commit edilmez.
+- Commit sonrasında cache veya realtime yayınlanamazsa domain yazımı başarılı kalır; sorun tekrar kuyruğuna ve telemetriye gider.
+- Harici Discord okuması için retry, timeout ve circuit breaker sınırları action'a göre seçilir.
+
+## İnceleme kontrolü
+
+Bir action eklerken şu soruları cevapla:
+
+1. Kaynak kimliği kullanıcı girdisinden nasıl ayrıştırılıyor?
+2. Yetki hangi anda ve hangi Discord verisiyle doğrulanıyor?
+3. İstek tekrar edilirse aynı sonuç güvenli biçimde dönebiliyor mu?
+4. İki worker aynı kaynağı yazarsa hangisi kazanıyor?
+5. Commit sonrası yan etki başarısız olursa nasıl tekrar deneniyor?
+6. Audit kaydı secret veya gereksiz kişisel veri içeriyor mu?
+7. Realtime aboneliği yetki kaybında kapanıyor mu?
+
+Bu cevapları action tanımında, store sözleşmesinde ve testlerde görünür tut.

@@ -1,39 +1,75 @@
 ---
 title: Architecture overview
-description: Learn how identity, actions, stores and realtime delivery fit together.
+description: Understand the action, store, transaction, realtime, and observability layers in GuildGate 1.1.0.
 ---
 
 # Architecture overview
 
-GuildGate connects four parts: identity, protected actions, store contracts and event delivery.
+GuildGate centralizes security decisions and write operations for a Discord dashboard server. It does not render a UI, own application data, or require a specific HTTP framework.
 
-## Identity layer
+## Kernel
 
-It starts Discord OAuth, binds a one-time state record to a browser nonce, encrypts OAuth tokens with the application-owned keyring and creates an opaque session.
+`createGuildGate()` validates configuration at startup and creates these surfaces:
+
+- `gate.action()` for guarded operation definitions
+- `gate.execute()` for request execution
+- `gate.sessions` for session management
+- `gate.cache` for tag-based caching
+- `gate.owner` for maintenance and block policies
+- `gate.revokeSession()` and `gate.revokeUserSessions()` for revocation
+
+The kernel applies origin, session, CSRF, policy, rate limit, idempotency, lock, transaction, audit, and realtime decisions under one request ID.
 
 ## Action layer
 
-`gate.action()` keeps this order visible:
+An action combines these parts in one definition:
 
-1. Parse input.
-2. Resolve the target resource.
-3. Check method, origin, session and CSRF.
-4. Check user and bot permissions.
-5. Apply rate limits, idempotency and the resource lock.
-6. Open the transaction hook.
-7. Run the application write.
-8. Record audit/outbox data and invalidate caches.
+1. Parse input
+2. Resolve the resource
+3. Check identity and CSRF
+4. Authorize access
+5. Apply rate limits and idempotency
+6. Check optimistic revision and acquire a distributed lock
+7. Perform the domain write in a transaction
+8. Process cache, realtime, and audit results after commit
+
+In `1.1.0`, an action returns at its configured deadline even when the underlying operation ignores `AbortSignal`. Reservation and lease ownership for a late idempotent result are retained only for a configured bounded period.
 
 ## Store layer
 
-`GuildGateStores` defines a small interface for each data type. `composeStores()` combines implementations. Sessions may live in PostgreSQL while rate limits and locks use Redis and audit records use an existing ORM.
+`GuildGateStores` consists of ten small contracts:
+
+| Member | Responsibility |
+| --- | --- |
+| `sessions` | Session lifecycle and per-user cap |
+| `oauthStates` | Single-use OAuth state consumption |
+| `credentials` | Encrypted OAuth credentials |
+| `rateLimits` | Atomic counters and windows |
+| `cache` | TTL, stale windows, and tag invalidation |
+| `idempotency` | Reservation ownership and replay results |
+| `locks` | Leases, renewal, and fencing tokens |
+| `audit` | Immutable events and cursor paging |
+| `outbox` | Event delivery with claim leases |
+| `policies` | Maintenance, blocks, and policy version |
+
+`composeStores()` combines different backend bundles. For example, persistent records can live in PostgreSQL while short-lived counters and leases use Redis.
+
+## Transaction layer
+
+`TransactionAdapter` lets a domain write and required audit or outbox records share one commit boundary. The PostgreSQL adapter uses savepoints for nested transactions.
+
+A callback failure after a successful `COMMIT` does not make the domain write look rolled back. The committed result remains final and the issue is exposed through `TransactionPostCommitError` or `postCommitIssues` in action metadata; the write is not repeated.
 
 ## Realtime layer
 
-`createRealtimeHub()` manages authorized subscriptions. `RealtimeConnection` separates session, guild access, sequence, replay and backpressure decisions from the transport.
+`createRealtimeHub()` separates connection authorization and delivery limits from the transport. WebSocket and Socket.IO messages pass through the same payload, rate, subscription, activity, and backpressure controls. SSE output can use the same session and channel authorization model.
 
-## Adapters
+Sequence and replay support lets clients resume after a disconnect. In multi-worker deployments, events can be claimed and delivered through the outbox.
 
-An HTTP adapter converts framework objects into GuildGate context. The core does not own route structure or response shape.
+## HTTP and Discord adapters
 
-Read the [action lifecycle](./islem-yasam-dongusu.mdx) for the full write path.
+The package publishes action handlers for Fastify, Express, and Hono. The `discord.js` adapter maps guild and permission data into the narrow interface expected by the kernel.
+
+The kernel does not own route structure, database schema, or the Discord client's lifecycle. Those decisions stay in the application.
+
+See the [operation lifecycle](./islem-yasam-dongusu.mdx) for the detailed request order.

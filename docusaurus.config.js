@@ -1,5 +1,6 @@
-const lightCodeTheme = require('prism-react-renderer').themes.github;
-const darkCodeTheme = require('prism-react-renderer').themes.dracula;
+const {themes} = require('prism-react-renderer');
+const lightCodeTheme = themes.vsLight ?? themes.github;
+const darkCodeTheme = themes.vsDark ?? themes.dracula;
 const {execFileSync} = require('node:child_process');
 
 function hasGitHistory() {
@@ -68,7 +69,7 @@ const config = {
   themeConfig: {
     image: 'img/guildgate-social-card.png',
     metadata: [
-      {name: 'description', content: 'Turkish and English documentation for GuildGate 1.0.0: setup, security, storage, realtime access and public API.'},
+      {name: 'description', content: 'Turkish and English documentation for GuildGate 1.1.0: setup, security, storage, realtime access and public API.'},
       {name: 'keywords', content: 'GuildGate, Discord dashboard, Node.js, TypeScript, OAuth, CSRF, session security, Fastify, Express, Redis'},
     ],
     navbar: {
@@ -111,7 +112,7 @@ const config = {
     prism: {
       theme: lightCodeTheme,
       darkTheme: darkCodeTheme,
-      additionalLanguages: ['bash', 'json', 'typescript'],
+      additionalLanguages: ['bash', 'diff', 'json', 'typescript', 'yaml'],
     },
     colorMode: {defaultMode: 'dark', disableSwitch: false, respectPrefersColorScheme: true},
   },

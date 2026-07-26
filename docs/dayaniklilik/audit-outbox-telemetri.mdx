@@ -1,28 +1,127 @@
 ---
 title: Audit, outbox ve telemetri
-description: Güvenlik kararlarını kaydet, olay teslimini ayır ve ölçümleri sır sızdırmadan üret.
+description: Commit sınırı, cursor sayfalama, at-least-once teslimat ve OpenTelemetry hook'larını birlikte işlet.
 ---
 
 # Audit, outbox ve telemetri
 
-Bu üç kanal farklı sorulara cevap verir:
+Audit neyin değiştiğini kaydeder, outbox commit edilmiş olayı güvenilir biçimde taşır, telemetri ise istek süresi ve hata bağlamını gözlem sistemine aktarır. Bu üçü aynı veri değildir ve farklı retention politikaları kullanabilir.
 
-- **Audit:** Kim, hangi kaynakta, hangi sonucu aldı?
-- **Outbox:** Başarılı değişiklikten sonra hangi olay teslim edilmeli?
-- **Telemetri:** Sistem nerede yavaşlıyor veya hata veriyor?
+## Audit olayı
 
-## Audit
+`AuditEvent` şu ana alanları taşır:
 
-Audit satırı değiştirilemez bir olay kaydı gibi ele alınmalı. Kullanıcıya dönen hata metnini değil, sabit hata kodunu ve action adını sakla.
+- `id` ve `requestId`
+- action adı
+- actor tipi ve isteğe bağlı user/session hash'i
+- resource
+- `success`, `denied` veya `failed` sonucu
+- reason code ve policy version
+- sınırlı changes/metadata
+- oluşturulma zamanı
 
-## Outbox
+Token, cookie, authorization header, client secret ve tam OAuth response nesnesi audit'e yazılmamalıdır. `audit.redactKeys` ile uygulamaya özel alanları ekle.
 
-Dashboard ayarı kaydedildiğinde realtime, webhook veya iş kuyruğu olayı göndermek isteyebilirsin. Harici teslimi transaction içinde bekletme. Uygulama değişikliğiyle outbox satırını birlikte commit et; ayrı worker teslimi tamamlasın.
+## Fail-closed audit
 
-## OpenTelemetry
+```ts
+audit: {
+  enabled: true,
+  failClosedActions: ["guild.billing.update"],
+}
+```
 
-GuildGate hook'ları action süresini, retry sayısını, store gecikmesini ve breaker durumunu mevcut OpenTelemetry altyapına aktarabilir. Span attribute alanlarına token, cookie, request body veya ham IP yazma.
+Fail-closed listesinde action için üç koşul gerekir:
 
-## Analytics ve status izleme
+1. Action audit'i açık olmalı.
+2. Idempotency açık olmalı.
+3. Transaction `required` olmalı.
 
-`examples/analytics/status-monitor.ts`, güvenlik kontrollerini devre dışı bırakmadan durum ve toplu ölçüm üretme biçimini gösterir. Grafik veya status endpoint'i kişisel veri taşımamalı.
+Audit store domain yazımıyla aynı transaction'a katılır. Audit insert başarısızsa commit yapılmaz. Sıradan action'larda commit sonrası audit sorunu `postCommitIssues` ile gözlemlenebilir.
+
+## Audit sayfalama
+
+`AuditStore.listPage()` opak cursor kullanır:
+
+```ts
+const page = await stores.audit.listPage?.({
+  userId,
+  action: "guild.settings.update",
+  cursor,
+  limit: 50,
+});
+```
+
+Cursor düzeni `(createdAt, id)` sıralamasına dayanır. Aynı timestamp'e sahip kayıtlar ID ile kararlı biçimde ayrılır. Bozuk cursor kullanıcı girdisi hatasıdır.
+
+## Transactional outbox
+
+Action:
+
+```ts
+realtime: {
+  delivery: "outbox",
+  events: (result) => [{
+    event: "guild.settings.updated",
+    channel: `guild:${result.guildId}`,
+    data: result,
+  }],
+}
+```
+
+Outbox kaydı domain transaction içinde yazılır. Worker daha sonra kaydı claim eder ve publisher'a gönderir.
+
+Teslimat at-least-once'dur. Publisher veya consumer event ID üzerinden deduplication uygulamalıdır. “Gönderildi” işareti ile harici yan etkinin tam atomik olması genel durumda mümkün değildir.
+
+## Claim sınırları
+
+`1.1.0` worker için batch, lease ve concurrency değerlerini sınırlar. Bir worker kaydı sonsuza kadar tutamaz; lease bitince başka worker tekrar claim edebilir.
+
+Publisher hata metni store'a yazılmadan önce:
+
+- secret redaction
+- satır/uzunluk sınırı
+- kararlı hata kodu
+
+uygulanmalıdır.
+
+## OpenTelemetry hook'ları
+
+```ts
+import * as otelApi from "@opentelemetry/api";
+import {
+  createOpenTelemetryHooks,
+} from "@kavtuai/guildgate/telemetry";
+
+const telemetry = createOpenTelemetryHooks(otelApi, {
+  name: "fieldbot-dashboard",
+  version: "1.0.0",
+});
+
+const gate = createGuildGate({
+  // ...
+  telemetry,
+});
+```
+
+Paket belirli exporter veya collector zorunlu kılmaz. `noopTelemetry` test ve telemetrisiz kurulum için kullanılabilir.
+
+Önerilen düşük cardinality alanlar:
+
+- action adı
+- sonuç kodu
+- HTTP status sınıfı
+- retry count
+- post-commit stage
+- store/backend tipi
+
+User ID, guild ID ve request ID değerlerini metric label olarak kullanma. Bunları gerektiğinde trace/log alanında kontrollü taşı.
+
+## Retention
+
+- Audit: güvenlik ve operasyon gereksinimine göre uzun süreli
+- Outbox: published kayıtları kısa retention ile temizle
+- Trace: sampling ve gözlem platformu politikasına göre
+- Application log: secret redaction ve erişim kontrolü ile
+
+Retention temizliği cursor traversal ve aktif claim lease'leri bozmamalıdır.

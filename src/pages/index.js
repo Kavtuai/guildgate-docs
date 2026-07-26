@@ -10,8 +10,8 @@ import styles from './index.module.css';
 const CONTENT = {
   tr: {
     layoutTitle: 'Discord dashboard güvenlik çekirdeği',
-    layoutDescription: 'GuildGate 1.0.0 için Türkçe ve İngilizce kurulum, güvenlik, depolama, gerçek zamanlı erişim ve API belgeleri.',
-    eyebrow: '@kavtuai/guildgate · 1.0.0',
+    layoutDescription: 'GuildGate 1.1.0 için Türkçe ve İngilizce kurulum, güvenlik, depolama, gerçek zamanlı erişim ve API belgeleri.',
+    eyebrow: '@kavtuai/guildgate · 1.1.0',
     title: 'Discord dashboard güvenliğini tek yerde yönet.',
     subtitle: 'GuildGate; OAuth, oturum, CSRF, yetki, istek sınırı, denetim kaydı ve realtime kontrollerini sunucuda toplar. Arayüzüne ve veritabanına karışmaz.',
     start: 'Beş dakikada başla',
@@ -52,7 +52,7 @@ const CONTENT = {
       {
         icon: 'bi-broadcast-pin',
         title: 'Realtime aboneliği de yetki ister',
-        text: 'WebSocket ve SSE bağlantıları oturum, sunucu erişimi, sıra numarası, yeniden oynatma ve geri basınç kurallarıyla çalışır.',
+        text: 'WebSocket, Socket.IO ve SSE bağlantıları oturum, sunucu erişimi, sıra numarası, yeniden oynatma ve geri basınç kurallarıyla çalışır.',
       },
     ],
     codeKicker: 'İlk korunan işlem',
@@ -72,8 +72,8 @@ const CONTENT = {
   },
   en: {
     layoutTitle: 'Security core for Discord dashboards',
-    layoutDescription: 'English and Turkish documentation for GuildGate 1.0.0, covering setup, security, storage, realtime access and the public API.',
-    eyebrow: '@kavtuai/guildgate · 1.0.0',
+    layoutDescription: 'English and Turkish documentation for GuildGate 1.1.0, covering setup, security, storage, realtime access and the public API.',
+    eyebrow: '@kavtuai/guildgate · 1.1.0',
     title: 'Keep Discord dashboard security in one place.',
     subtitle: 'GuildGate keeps OAuth, sessions, CSRF, authorization, rate limits, audit records and realtime checks together on the server. Your UI and database stay under your control.',
     start: 'Start in five minutes',
@@ -114,7 +114,7 @@ const CONTENT = {
       {
         icon: 'bi-broadcast-pin',
         title: 'Realtime subscriptions require authorization',
-        text: 'WebSocket and SSE connections apply session, guild access, sequencing, replay and backpressure rules.',
+        text: 'WebSocket, Socket.IO and SSE connections apply session, guild access, sequencing, replay and backpressure rules.',
       },
     ],
     codeKicker: 'First protected action',
@@ -265,7 +265,7 @@ function CodeSection({content}) {
     id: guildId,
   }),
   authorize: canManageGuild,
-  transaction: "required",
+  transaction: { required: true, isolation: "serializable" },
   execute: saveSettings,
   invalidate: ({ guildId }) => [\`guild:\${guildId}:settings\`],
 });`}</code></pre>

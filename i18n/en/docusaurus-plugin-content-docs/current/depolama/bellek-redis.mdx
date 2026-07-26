@@ -1,23 +1,30 @@
 ---
-title: Memory and Redis
-description: Use development stores and short-lived Redis records in the right place.
+title: Memory and Redis stores
+description: Use memory for local tests and the Redis ephemeral store bundle for multi-worker deployments with correct bounds.
 ---
 
-# Memory and Redis
+# Memory and Redis stores
 
-## Memory stores
+Memory and Redis may implement the same store contracts, but their durability and lifecycle differ.
 
-`createMemoryStoreBundle()` is useful for local development, examples and unit tests.
+## Memory store
 
 ```ts
+import { createMemoryStoreBundle } from "@kavtuai/guildgate";
+
 const stores = createMemoryStoreBundle();
 ```
 
-All records disappear when the process stops, and multiple instances do not share data. Do not use memory stores for production sessions, OAuth records, audit, outbox or distributed locks.
+The memory bundle is intended for:
 
-## Redis stores
+- local development
+- unit tests
+- documentation examples
+- a single-process test harness
 
-`createRedisEphemeralStores()` connects short-lived records such as rate limits, cache, idempotency, OAuth state and locks to shared Redis.
+Session, idempotency, audit, outbox, and policy records disappear when the process stops. They are not shared across workers.
+
+## Redis ephemeral store bundle
 
 ```ts
 import {
@@ -25,16 +32,68 @@ import {
   fromNodeRedis,
 } from "@kavtuai/guildgate/redis";
 
-const ephemeral = createRedisEphemeralStores(
-  fromNodeRedis(redis),
-  {prefix: "guildgate:production"},
-);
+const redis = fromNodeRedis(redisClient);
+const ephemeral = createRedisEphemeralStores(redis, {
+  prefix: "guildgate:prod",
+});
+
+const stores = composeStores(postgres.stores, ephemeral);
 ```
 
-## Namespaces
+`fromIoRedis()` adapts an ioredis-compatible client to the same narrow interface.
 
-Use separate prefixes for production, staging and tests. Prefer application and environment identity over a package version so upgrades do not orphan valid records.
+The Redis bundle is suitable for shared short-lived behavior:
 
-## Lock safety
+- sessions
+- OAuth state
+- rate limits
+- cache
+- idempotency reservations
+- distributed leases
 
-A Redis lock needs renewal and fencing support. A simple key that expires silently cannot stop a stale owner from writing after a new owner acquires the lock.
+Use PostgreSQL or another durable store for persistent audit, outbox, and policy requirements.
+
+## Prefix
+
+Separate applications and environments in the same Redis cluster:
+
+```text
+guildgate:production:fieldbot
+guildgate:staging:fieldbot
+```
+
+Changing the prefix makes existing sessions and idempotency records invisible. Account for migration or forced logout during deployment.
+
+## Atomic cache retagging
+
+When a cache entry changes in `1.1.0`, the adapter:
+
+1. removes old tag memberships
+2. writes the new entry
+3. adds new tag memberships
+4. applies bounded TTLs to tag indexes that cover the entry lifetime
+
+These steps are atomic. Otherwise, a key may remain in an old tag set or active entries may be missed during invalidation.
+
+## Reservation and lease
+
+Idempotency-owner checks and lease release or renewal should use Lua compare-and-set operations. An unconditional `DEL key` can remove a newer owner's lease.
+
+A Redis connectivity failure during renewal should be treated as ownership loss. When the domain store verifies fencing tokens, it also rejects stale-worker writes.
+
+## Session cap
+
+The Redis session store inserts the record and evicts excess per-user sessions atomically. Apply TTLs to session-index keys as well so orphaned sets do not accumulate.
+
+## Cache stampede
+
+The cache manager uses renewable leases. When the lock is busy, a fallback loader result may be used while load stays bounded. The loader itself should follow the deadline and cancellation policy.
+
+## Operations
+
+- verify the eviction policy does not unexpectedly remove security records
+- use TLS and ACLs
+- collect latency and timeout metrics
+- do not depend on keyspace notifications for correctness
+- test session and idempotency behavior under maxmemory pressure
+- separate production and staging prefixes

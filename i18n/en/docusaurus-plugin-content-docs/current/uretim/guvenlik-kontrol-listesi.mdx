@@ -1,46 +1,105 @@
 ---
 title: Production security checklist
-description: Verify identity, stores, proxy boundaries, errors, and observability before launch.
+description: Verify URL, secret, store, transaction, realtime, and operations boundaries for a GuildGate 1.1.0 deployment.
 ---
 
 # Production security checklist
 
-## Identity and secrets
+Use this list before release. Attach a configuration, test, dashboard, or runbook reference to each item.
 
-- [ ] `baseUrl` and the Discord callback use HTTPS.
-- [ ] The origin list contains no HTTP, localhost, or wildcard entries.
-- [ ] The CSRF secret and audit salt are different and sufficiently long.
-- [ ] The OAuth token keyring is stored outside source control.
-- [ ] Bot tokens, client secrets, and store credentials never enter the browser bundle.
+## Network and URLs
 
-## Sessions
+- [ ] `app.environment` is production.
+- [ ] `app.baseUrl` uses HTTPS and a public host.
+- [ ] `allowedOrigins` is an exact-origin list without wildcards.
+- [ ] No localhost, unspecified, or IPv4-mapped loopback values.
+- [ ] Discord authorize and token endpoints use HTTPS and official or public hosts.
+- [ ] Reverse-proxy trust and client-IP settings are narrow.
+- [ ] HTTP redirects permanently to HTTPS.
 
-- [ ] The cookie is `HttpOnly` and `Secure`.
-- [ ] Absolute TTL, idle timeout, rotation, and per-user session limit are configured.
-- [ ] Bulk session revocation has been tested.
-- [ ] Revocation closes active WebSocket and SSE connections.
+## Secrets and cookies
 
-## Stores
+- [ ] CSRF secret contains at least 32 bytes and is dedicated to that purpose.
+- [ ] Audit IP salt is generated separately.
+- [ ] OAuth credential key ring is in a secret manager.
+- [ ] Session cookie is `HttpOnly`, `Secure`, and uses an appropriate `SameSite` value.
+- [ ] A `__Host-` cookie uses `Path=/` and no domain attribute.
+- [ ] Tokens, cookies, and authorization headers are in the log-redaction list.
 
-- [ ] Sessions, OAuth credentials, audit, outbox, and policy use persistent stores.
-- [ ] Rate limits, idempotency, cache, and locks are shared by all instances.
-- [ ] OAuth state consumption is atomic.
-- [ ] Lock renewal and fencing tests pass.
-- [ ] Audit and outbox rows can commit with the application change.
+## Sessions and OAuth
 
-## Application
+- [ ] TTL, idle, and rotation bounds are defined.
+- [ ] The per-user session cap is atomic inside the store.
+- [ ] Logout and owner revocation close realtime connections.
+- [ ] OAuth state is consumed in one operation.
+- [ ] Return paths use an allowlist.
+- [ ] OAuth refresh uses distributed single-flight and credential reread.
 
+## Action security
+
+- [ ] Every write uses POST, PUT, PATCH, or DELETE.
+- [ ] Origin and CSRF may be disabled only with a recorded reason.
+- [ ] Input parsing limits unknown fields and sizes.
+- [ ] Resource and Discord authorization are checked on the server.
 - [ ] User and bot permissions are checked separately.
-- [ ] An old optimistic revision cannot overwrite a newer value.
-- [ ] Abort signals reach Discord, Redis, and database calls.
-- [ ] User responses contain no stack traces or internal dependency errors.
-- [ ] The reverse-proxy trust boundary is explicit.
+- [ ] Optimistic revision or a domain unique constraint exists.
+- [ ] Idempotency keys and reservation ownership are implemented.
+- [ ] Durable writes protected by leases validate fencing tokens.
 
-## Release checks
+## Transactions and audit
 
-```bash
-npm run typecheck
-npm test
-npm run pack:check
-npx guildgate-doctor --json
-```
+- [ ] Domain writes and transactional outbox share one transaction.
+- [ ] Fail-closed actions use audit, idempotency, and required transactions.
+- [ ] A post-commit callback failure does not repeat domain work.
+- [ ] Nested PostgreSQL work has savepoint tests.
+- [ ] Audit changes contain no secrets or unnecessary personal data.
+- [ ] Cursor paging traverses all audit records.
+
+## Deadlines and retries
+
+- [ ] Every external I/O operation has a timeout.
+- [ ] Action `timeoutMs` matches the service objective.
+- [ ] `maximumLateSettlementMs` is positive and bounded.
+- [ ] Idempotency TTL covers deadline and late settlement.
+- [ ] I/O honors `AbortSignal`.
+- [ ] Retry is limited to safe failure classes.
+- [ ] Circuit-breaker and backoff metrics are monitored.
+
+## Redis and PostgreSQL
+
+- [ ] Redis TLS, ACLs, and environment prefix are configured.
+- [ ] Redis eviction impact has been tested.
+- [ ] Cache retagging and tag TTL updates are atomic.
+- [ ] PostgreSQL runtime and migration roles are separate.
+- [ ] Statement/lock timeouts and pool size are defined.
+- [ ] PostgreSQL advisory-lock rate limiting is tested.
+- [ ] Audit and outbox retention and index maintenance are planned.
+- [ ] Backup restore has been practiced.
+
+## Realtime
+
+- [ ] Handshake verifies origin and session.
+- [ ] WebSocket and Socket.IO messages pass through hub controls.
+- [ ] Payload, rate, channel, subscription, queue, and buffered-byte limits exist.
+- [ ] Sessions are revalidated periodically.
+- [ ] Replay batches are bounded.
+- [ ] Slow clients and send failures remove the connection.
+- [ ] Outbox consumers deduplicate by event ID.
+
+## CI and release
+
+- [ ] Node.js 22 and 24 CI tests pass.
+- [ ] `npm run release:verify` passes.
+- [ ] Coverage thresholds pass.
+- [ ] PostgreSQL 17 and Redis 8 service tests pass.
+- [ ] Consumer tests verify 16 public imports and 3 CLI help targets.
+- [ ] `npm pack --dry-run` content has been reviewed.
+- [ ] Worktree and lockfile are clean.
+
+## Operations
+
+- [ ] Health probes and heartbeat monitors are separate.
+- [ ] Request ID is preserved through log, trace, and audit.
+- [ ] Alerts cover post-commit issues, reservation loss, and lease-renewal failure.
+- [ ] Incident response and secret-rotation runbooks exist.
+- [ ] Rollback planning includes database migration impact.

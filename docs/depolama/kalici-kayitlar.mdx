@@ -1,49 +1,93 @@
 ---
-title: Kalıcı kayıtlar ve transaction
-description: Oturum, OAuth, audit, outbox ve policy verisini tutarlı biçimde sakla.
+title: PostgreSQL kalıcı kayıtları
+description: GuildGate 1.1.0 PostgreSQL adapter'ında transaction, cursor, rate limit ve outbox davranışını kur.
 ---
 
-# Kalıcı kayıtlar ve transaction
+# PostgreSQL kalıcı kayıtları
 
-Kalıcı store'lar yalnızca süreç yeniden başlayınca veriyi korumaz; güvenlik kararlarının birden fazla instance arasında aynı kalmasını da sağlar.
+`@kavtuai/guildgate/postgres`, resmi store paketi ve transaction adapter'ını tek bağlantı havuzu üzerinden sağlar.
 
-## Kalıcı tutulacak başlıca kayıtlar
+```ts
+import { Pool } from "pg";
+import { createPostgresAdapter } from "@kavtuai/guildgate/postgres";
 
-- oturum özeti ve iptal durumu
-- şifreli OAuth credential kaydı
-- audit olayı
-- outbox teslim kaydı
-- operatör ve bakım politikası
-- gerektiğinde optimistic revision
+const postgres = createPostgresAdapter({
+  pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+  prefix: "guildgate",
+});
 
-## Transaction düzeni
+await postgres.migrate();
 
-```text
-BEGIN
-  mevcut revision oku
-  yeni ayarı yaz
-  audit satırını ekle
-  outbox olayını ekle
-COMMIT
+const gate = createGuildGate({
+  // app, security, owners
+  stores: postgres.stores,
+  transactions: postgres.transactions,
+});
 ```
 
-Revision uyuşmazsa transaction'ı kapat ve kullanıcıya güncel veriyi yeniden yüklemesini söyle. Kaynak kilidi bu kontrolü kaldırmaz.
+## Migration SQL
 
-## Audit kaydı
+Bağlantı açmadan SQL'i incelemek için:
 
-Audit satırı şu bağlamı taşıyabilir:
+```bash
+npx guildgate-migration --prefix guildgate
+```
 
-- action adı
-- aktör kullanıcı kimliği
-- kaynak türü ve kimliği
-- istek/correlation kimliği
-- sonuç kodu
-- önceki ve yeni revision
-- hashlenmiş IP bağlamı
-- zaman
+Migration'ı production'da uygulamadan önce transaction, lock süresi, index ve geri dönüş planını incele. Uygulama kullanıcısına yalnızca gereken şema yetkilerini ver.
 
-Token, çerez, OAuth code, şifreleme anahtarı ve ham IP kayda girmemeli.
+## Transaction kesinliği
 
-## Retention
+`1.1.0`, PostgreSQL `COMMIT` adımını commit sonrası callback'lerden ayırır. `COMMIT` başarılıysa:
 
-Oturum ve OAuth state TTL ile temizlenir. Audit ve outbox için ürün, hukuk ve operasyon gereksinimine göre ayrı saklama süreleri tanımla.
+- domain yazımı kesindir
+- callback hatası rollback komutu üretmez
+- callback hatası domain işini tekrar çalıştırmaz
+- sonuç `TransactionPostCommitError` veya action metadata ile gözlemlenir
+
+## İç içe transaction
+
+Aynı transaction context içinde yeni `run()` çağrısı savepoint kullanır:
+
+```text
+SAVEPOINT ...
+-- iç çalışma
+RELEASE SAVEPOINT ...
+```
+
+İç çalışma hata verirse `ROLLBACK TO SAVEPOINT` uygulanır. İç scope isolation ve read-only modunu değiştiremez. `afterCommit` callback'leri savepoint release sonrasında üst scope'a aktarılır.
+
+## Rate limit
+
+PostgreSQL rate-limit store aynı bucket için transaction-scoped advisory lock alır. İlk insert ve sonraki update aynı serialized karar yolundan geçer; iki worker'ın limiti aşan isteği birlikte kabul etmesi önlenir.
+
+## Idempotency
+
+Reservation kimliği tabloya yazılır. Complete, renew ve fail sorguları `reservation_id` ve `state='inflight'` predicate'i kullanır. Etkilenen satır yoksa `idempotency_reservation_lost` üretilir.
+
+## Audit sayfalama
+
+Audit sırası `(created_at DESC, id DESC)` biçimindedir. Opaque cursor bu iki değeri içerir ve sonraki sorgunun predicate'ine uygulanır. Offset pagination kullanma; eşzamanlı eklemelerde kayıt atlayabilir veya tekrar gösterebilir.
+
+## Outbox
+
+Outbox worker:
+
+- sınırlı `limit`
+- worker kimliği
+- claim lease süresi
+- sınırlı concurrency
+
+ile çalışır. Publisher başarılı olunca `markPublished`, hata verince temizlenmiş kısa hata ile `markFailed` çağrılır. Teslimat at-least-once olduğu için consumer event ID ile deduplication yapmalıdır.
+
+## Session ve credential
+
+Session cap store transaction'ı içinde uygulanır. OAuth credential ciphertext olarak saklanır; veritabanı yedeğinin tek başına token'ı açamaması için şifreleme anahtarı ayrı secret sisteminde tutulur.
+
+## Production ayarları
+
+- connection pool boyutunu worker sayısıyla birlikte hesapla
+- statement ve lock timeout belirle
+- slow query ve deadlock loglarını izle
+- migration kullanıcısını runtime kullanıcısından ayır
+- audit/outbox büyümesi için retention ve index bakımı planla
+- restore tatbikatı yap

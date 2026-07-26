@@ -1,43 +1,40 @@
 ---
 title: Örnek projeler
-description: GuildGate bağdaştırıcılarını, store sözleşmelerini ve realtime katmanını küçük örneklerle incele.
+description: GuildGate 1.1.0 adapter, store, realtime ve test örneklerini doğru sınırlarla kullan.
 ---
 
 # Örnek projeler
 
-Paket deposundaki `examples/` klasörü her konuyu küçük bir entegrasyon üzerinden gösterir. Örneği kopyalamadan önce kullandığı store ve güvenlik varsayımlarını oku.
+Paketin `examples/` klasörü küçük entegrasyon örnekleri içerir. Örneği kendi authorization, storage ve deployment koşullarına göre uyarlamalısın.
 
-## HTTP bağdaştırıcıları
+## Adapter'lar
 
-- `examples/fastify/`: Fastify route ve action handler bağlantısı
-- `examples/hono/server.ts`: Hono üzerinde sunucu kurulumu
-- Express bağdaştırıcısı: `@kavtuai/guildgate/express` export'u ile aynı action tanımını kullanır
+- Fastify: `@kavtuai/guildgate/fastify`
+- Express: `@kavtuai/guildgate/express`
+- Hono: `@kavtuai/guildgate/hono`
+- discord.js: `@kavtuai/guildgate/discordjs`
 
-Framework yalnızca HTTP taşımasını üstlenir. Parse, resource çözümü, authorization, idempotency, kilit, transaction ve audit kararı action tanımında kalır.
+HTTP adapter'ı response sınırını kurar; parse, resource, authorization, idempotency, transaction ve audit kararı action tanımında kalır.
 
-## Discord.js
+## PostgreSQL ve Redis
 
-`examples/discordjs/adapter.ts`, Discord kullanıcı ve bot izinlerini GuildGate yetkilendirme bağlamına çevirir. Dashboard'da görülen kullanıcı yetkisi ile botun gerçekten uygulayabileceği yetkiyi ayrı tut.
+```ts
+const postgres = createPostgresAdapter({pool});
+await postgres.migrate();
 
-## PostgreSQL ve özel store
+const stores = composeStores(
+  postgres.stores,
+  createRedisEphemeralStores(redis),
+);
+```
 
-- `examples/postgres/setup.ts`: kalıcı store kurulumu
-- `examples/custom-store/postgres-audit-store.ts`: yalnızca bir store sözleşmesini özel olarak uygulama
+## Realtime ve test
 
-Özel store eklerken önce sözleşme testlerini çalıştır. Atomik consume, compare-and-set, TTL ve fencing davranışlarını sürücü varsayımı olarak bırakma.
+`createRealtimeHub()`, `attachWebSocket()`, `attachSocketIo()` ve `createServerSentEventStream()` aynı session ve authorization çekirdeğini kullanır. Custom transport, client mesajını işlemeden önce `hub.acceptMessage()` çağırmalıdır.
 
-## Realtime
+```ts
+const harness = createGuildGateTestHarness();
+const login = await harness.login("user-1", "tr");
+```
 
-`examples/realtime/ws.ts`, WebSocket taşımasını `createRealtimeHub()` ile bağlar. Bağlantı açılışında oturum ve guild erişimi çözülür; sequence ve replay canlı teslimden önce tamamlanır.
-
-## Status ve ölçüm
-
-`examples/analytics/status-monitor.ts`, toplu durum verisi üretirken kullanıcı veya sır bilgisini dışarı taşımayan bir örnek sunar.
-
-## Örneği projene alırken
-
-1. Paket sürümünü sabitle.
-2. Bellek store'larını production store'larıyla değiştir.
-3. `baseUrl`, origin ve Discord callback değerlerini kendi ortamınla eşleştir.
-4. Kullanıcı ve bot izinlerini gerçek action adına göre tanımla.
-5. Doctor, test ve canary adımlarını çalıştır.
+Memory store'u production'da bırakma; custom store'ları `runStoreContract()` ve driver'a özel race testleriyle doğrula.

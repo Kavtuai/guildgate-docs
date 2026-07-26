@@ -1,41 +1,119 @@
 ---
 title: Yazı standardı
-description: GuildGate belgelerinde kısa, doğrulanabilir ve doğal teknik metin yaz.
+description: GuildGate belgelerinde doğrulanabilir, sade ve bakım yapılabilir teknik içerik yaz.
 ---
 
 # Yazı standardı
 
-Doküman kullanıcıya bir işi tamamlatmalı. Cümle, gerçek bir karar veya sonuç taşımıyorsa çıkar.
+GuildGate belgesi okuyucuya bir işlemi doğru biçimde tamamlatmalı veya bir davranışın sınırını açıkça anlatmalıdır. Metin, kaynak kod ve yayımlanan paket yüzeyiyle çelişmemelidir.
 
-## Tercih edilen dil
+## Kaynak sırası
 
-- Etken fiil kullan: “Origin değerini karşılaştır.”
-- Sınırı doğrudan yaz: “Production profilinde localhost reddedilir.”
-- Soyut övgü yerine davranış belirt: “State kaydı bir kez tüketilir.”
-- Bir paragrafta tek ana fikir tut.
-- Aynı terim için sürekli eş anlamlı değiştirme.
+Bir iddia yazmadan önce şu sırayı kullan:
 
-## Kaçınılan kalıplar
+1. Yayımlanan TypeScript bildirimi
+2. İlgili kaynak uygulaması
+3. Test ve contract dosyası
+4. Migration veya operating-limits belgesi
+5. Release doğrulama kaydı
 
-- konuya gereksiz önem yükleyen girişler
-- “kritik rol”, “dönüm noktası”, “geniş ekosistem” gibi kanıtsız önem cümleleri
-- tanıtım broşürü tonu
-- yüzeysel “böylece güvenliği artırır” sonuçları
-- belirsiz “uzmanlar”, “kaynaklar” ve “genel görüş” atıfları
-- her paragrafı üçlü listeye zorlama
-- gereksiz kalın yazı, emoji ve başlık yığını
-- kullanıcıya hitap eden sohbet artıkları
-- placeholder, araç citation ve model işaretleri
+README örneği ile declaration farklıysa declaration ve çalışan test esas alınır. Belge ile kod arasında uyuşmazlık bulursan önce davranışı doğrula, sonra metni güncelle.
 
-## Kaynak doğrulama
+## Cümle yapısı
 
-Kaynak bağlantısını aç. Başlık, yazar, tarih ve ilgili iddiayı gerçekten desteklediğini kontrol et. UTM parametresini kaldır. Var olmayan DOI, ISBN veya sayfa numarası üretme.
+- Etken fiil kullan: “Origin değerini allowlist ile karşılaştır.”
+- Koşulu doğrudan yaz: “Production profilinde HTTP origin reddedilir.”
+- Davranışı ölçülebilir biçimde belirt: “Replay en fazla 500 olay döndürür.”
+- Bir paragrafta tek ana karar tut.
+- Aynı kavram için aynı terimi kullan.
+- Gereksiz övgü ve tanıtım cümlesi ekleme.
 
-## Otomatik kontrol
+## Sınırları görünür tut
 
-```bash
-npm run editorial:check
-npx guildgate-writing-check
+Örnek, hangi ortamda geçerli olduğunu söylemelidir:
+
+- memory store yalnızca geliştirme ve test için
+- load sonucu production kapasite taahhüdü değil
+- outbox at-least-once teslimat yapar
+- timeout underlying promise'i zorla durdurmaz
+- custom store için atomiklik uygulama sorumluluğudur
+
+Başarı koşulunu yazarken hata ve geri dönüş yolunu da belirt.
+
+## Kod örnekleri
+
+- Public import yolu kullan.
+- Gerçek API adını ve doğru option yapısını yaz.
+- Secret için environment değişkeni kullan.
+- `any` veya sahte helper ile güvenlik kararını gizleme.
+- Kod çitine uygun dil ve gerekirse dosya başlığı ekle.
+- Örneği mümkünse typecheck veya en azından syntax kontrolünden geçir.
+
+```ts title="config.ts"
+const gate = createGuildGate({
+  app: {
+    name: "Dashboard",
+    environment: "production",
+    baseUrl: "https://dashboard.example.com",
+  },
+  // ...
+});
 ```
 
-Bu kontroller yazar tespiti yapmaz. Yayıma girmemesi gereken kalıp ve artıkları bulur; teknik doğruluk için kod, test ve kaynak incelemesi yine gerekir.
+## Türkçe ve İngilizce eşitliği
+
+İki dilde:
+
+- belge kimliği aynı olmalı
+- başlık yapısı karşılık gelmeli
+- kod örneği aynı davranışı göstermeli
+- sürüm, sayı ve limitler eşleşmeli
+- bir dilde eklenen güvenlik uyarısı diğerinde de bulunmalı
+
+Kelime kelime çeviri yerine aynı teknik anlamı koru.
+
+## Başlık ve vurgu
+
+Başlıklar okuyucunun aradığı kararı tarif etsin. Çok kısa bir metni fazla alt başlığa bölme. Kalın yazıyı her cümlede kullanma; tabloyu yalnızca karşılaştırma okunabilirliği artırıyorsa ekle.
+
+## Bağlantılar ve referanslar
+
+- Dahili belge bağlantısının build sırasında çözüldüğünü kontrol et.
+- Harici bağlantının iddiayı gerçekten desteklediğini açıp doğrula.
+- Geçici takip parametrelerini kaldır.
+- Var olmayan sayfa, sürüm veya kaynak kimliği üretme.
+- Değişebilecek sayısal sonucu tarih ve sürümle birlikte ver.
+
+## Sürüm notu kuralı
+
+Sürüm notu:
+
+- değişen davranışı
+- kullanıcı veya adapter etkisini
+- gerekli geçiş adımını
+- doğrulama sonucunu
+
+ayrı ve kısa maddelerle açıklamalıdır. Dahili çalışma günlüğünü veya başarısız deneme komutlarını yayımlanan sürüm notuna taşıma.
+
+## Kontrol komutları
+
+```bash
+npm run search:index
+npm run editorial:check
+npm run source:check
+npm run command:check
+npm run site:check
+npm run build
+```
+
+Bir kontrolü susturmak yerine hatalı dosyayı düzelt. İstisna gerekiyorsa nedeni dar bir dosya ve dar bir işaret için kaynak kodda belgelenmelidir.
+
+## İnceleme listesi
+
+- API adı kurulu sürümde var mı?
+- Örnek public export yolunu mu kullanıyor?
+- Sürüm ve contract işaretleri doğru mu?
+- Güvenlik sınırı net mi?
+- Başarı ve hata davranışı ayrılıyor mu?
+- Türkçe ve İngilizce metin aynı bilgiyi taşıyor mu?
+- Arama başlığı ve açıklaması kullanıcı sorgusuna uygun mu?

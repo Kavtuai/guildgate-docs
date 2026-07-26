@@ -1,35 +1,25 @@
 ---
 title: Responsibility boundaries
-description: Separate GuildGate controls from application-owned decisions.
+description: Separate GuildGate guarantees from application and infrastructure responsibilities.
 ---
 
 # Responsibility boundaries
 
-GuildGate organizes security checks; it does not own the whole infrastructure. Production security depends on both sides keeping their boundary clear.
+GuildGate implements shared security and reliability mechanisms; it does not take over product-domain decisions.
 
-## GuildGate owns
+## GuildGate boundary
 
-- Opaque session creation, rotation and revocation
-- OAuth state and browser nonce binding
-- Origin and CSRF validation
-- Discord permission parsing with `BigInt`
-- Rate-limit, idempotency, lock, retry, timeout and circuit-breaker contracts
-- Audit, outbox and realtime event contracts
-- Fastify, Express and Hono integration layers
+- Session token hashing, expiry, rotation, and revocation
+- Exact-origin and session-bound CSRF verification
+- Action lifecycle, deadlines, idempotency, and concurrency controls
+- Store, transaction, lock, realtime, and telemetry contracts
+- Stable user error codes with hidden server error details
+- Production startup guards
 
-## The application owns
+## Application responsibility
 
-- Reliable client IP resolution behind trusted proxies
-- Secret storage outside source control and client bundles
-- Transactional persistent writes
-- Optimistic revision checks
-- Discord role hierarchy and product policy
-- Retention, backups and deletion policy
-- Cancellation propagation to database and HTTP calls
-- Review of Discord permission and API changes before major releases
+Resource access, user/bot permission mapping, domain validation, schemas, migrations, retention, backups, Discord request budgets, proxy/TLS, and incident response remain in the application.
 
-## State the guarantee accurately
+JavaScript cannot forcibly stop an arbitrary promise. GuildGate returns at the deadline and supplies an `AbortSignal`, but the physical operation may finish later. A durable write that can outlive a lease should reject stale workers through fencing tokens.
 
-Passing `authorize` does not make the database write automatically consistent. A resource lock controls concurrent work; transactions and revision checks protect record-level consistency.
-
-The [threat model](../mimari/tehdit-modeli.mdx) maps these boundaries to concrete risks.
+The transactional outbox provides at-least-once delivery. Consumers that apply external side effects must deduplicate by event ID.

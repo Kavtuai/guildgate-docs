@@ -1,60 +1,170 @@
 ---
 title: Public API
-description: Find the main GuildGate 1.0.0 exports, store contracts, adapters, and gate methods.
+description: Find the GuildGate 1.1.0 core, adapter, realtime, testing, and operations export paths.
 ---
 
 # Public API
 
-This page summarizes the verified public surface in `1.0.0`. Use the TypeScript declarations shipped with the installed package for exact parameter and return types.
+This page summarizes the published surface of `@kavtuai/guildgate@1.1.0`. Use the installed package declarations and IDE completion for complete parameter and return types.
 
-## Core
+## Contract markers
 
-| Export | Purpose |
+```ts
+import {
+  adapterContractVersion,
+  actionContractVersion,
+  realtimeContractVersion,
+} from "@kavtuai/guildgate/contracts";
+```
+
+| Contract | Version |
 | --- | --- |
-| `createGuildGate` | Creates the configured gate instance |
-| `createMemoryStoreBundle` | Creates an in-memory store bundle for development and tests |
-| `composeStores` | Combines store implementations into one `GuildGateStores` object |
-| `createRealtimeHub` | Creates the transport-neutral realtime hub |
-| `RealtimeConnection` | Represents connection identity and delivery state |
+| Adapter | `1.1` |
+| Action | `1.0` |
+| Realtime | `1.0` |
 
-## Store contracts
+## 16 public export paths
 
-- `GuildGateStores`
-- `SessionStore`
-- `OAuthStateStore`
-- `OAuthCredentialStore`
-- `RateLimitStore`
-- `CacheStore`
-- `IdempotencyStore`
-- `LockStore`
-- `AuditStore`
-- `OutboxStore`
-- `PolicyStore`
+| Import path | Main use |
+| --- | --- |
+| `@kavtuai/guildgate` | Kernel, actions, store types, memory, cache, sessions, transactions, locks, operator, and telemetry helpers |
+| `@kavtuai/guildgate/discord` | Discord OAuth, permissions, and authorization helpers |
+| `@kavtuai/guildgate/fastify` | `fastifyActionHandler` |
+| `@kavtuai/guildgate/express` | `expressActionHandler` |
+| `@kavtuai/guildgate/redis` | Redis ephemeral stores and client adapters |
+| `@kavtuai/guildgate/realtime` | Hub, WebSocket, Socket.IO, SSE, sequence, replay, revocation, and outbox worker |
+| `@kavtuai/guildgate/testing` | `createGuildGateTestHarness` |
+| `@kavtuai/guildgate/analytics` | Store, monitor, collector, query, and SVG chart helpers |
+| `@kavtuai/guildgate/contracts` | Contract versions and `runStoreContract` |
+| `@kavtuai/guildgate/discordjs` | `createDiscordJsGuildAdapter` |
+| `@kavtuai/guildgate/hono` | `honoActionHandler` |
+| `@kavtuai/guildgate/operator` | Operator service/actions and `RatePolicyRegistry` |
+| `@kavtuai/guildgate/postgres` | `createPostgresAdapter`, `buildPostgresMigration` |
+| `@kavtuai/guildgate/telemetry` | `createOpenTelemetryHooks`, `noopTelemetry` |
+| `@kavtuai/guildgate/transactions` | Adapter, scope, hook, revision, and post-commit types |
+| `@kavtuai/guildgate/locks` | `DistributedLockManager`, lease types, and `isLeaseLockStore` |
+
+Do not import internal `dist/...` or `src/...` paths. Semver guarantees apply only to paths in the package `exports` field.
+
+## Kernel
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+  composeStores,
+  createMemoryTransactionAdapter,
+} from "@kavtuai/guildgate";
+```
+
+Main `GuildGateKernel` members:
+
+| Member | Purpose |
+| --- | --- |
+| `config` | Validated configuration |
+| `sessions` | `SessionManager` |
+| `cache` | `CacheManager` |
+| `cookie` | Resolved cookie settings |
+| `csrf.issue/verify` | Session-bound token creation and verification |
+| `action` | Create an action definition |
+| `execute` | Execute a request envelope |
+| `createSession` | Create session, token, CSRF, and cookie |
+| `revokeSession` | Revoke one session |
+| `revokeUserSessions` | Revoke all sessions for a user |
+| `owner` | Maintenance and block policies |
+
+## Store surface
+
+`GuildGateStores` has ten members:
+
+```ts
+interface GuildGateStores {
+  sessions: SessionStore;
+  oauthStates: OAuthStateStore;
+  credentials: OAuthCredentialStore;
+  rateLimits: RateLimitStore;
+  cache: CacheStore;
+  idempotency: IdempotencyStore;
+  locks: LockStore;
+  audit: AuditStore;
+  outbox: OutboxStore;
+  policies: PolicyStore;
+}
+```
+
+Important `1.1.0` capabilities:
+
+- `SessionStore.create(record, maximumSessionsPerUser)`
+- reservation ownership and idempotency `renew/complete/fail` results
+- `AuditStore.listPage()`
+- `OutboxStore.claim()`
+- leases and fencing tokens
+
+## PostgreSQL
+
+```ts
+import {
+  createPostgresAdapter,
+  buildPostgresMigration,
+} from "@kavtuai/guildgate/postgres";
+```
+
+The adapter bundle provides `stores`, `transactions`, migration functions, and backend-specific helpers.
 
 ## Redis
 
-| Export | Import path | Purpose |
-| --- | --- | --- |
-| `createRedisEphemeralStores` | `@kavtuai/guildgate/redis` | Creates the short-lived store set |
-| `fromNodeRedis` | `@kavtuai/guildgate/redis` | Adapts a Node Redis client to the required contract |
+```ts
+import {
+  createRedisEphemeralStores,
+  fromNodeRedis,
+  fromIoRedis,
+} from "@kavtuai/guildgate/redis";
+```
 
-## HTTP adapters
+`createRedisEphemeralStores` accepts a Redis command adapter directly and an optional `{ prefix }` object.
 
-| Export | Import path |
-| --- | --- |
-| `fastifyActionHandler` | `@kavtuai/guildgate/fastify` |
-| `expressActionHandler` | `@kavtuai/guildgate/express` |
+## Realtime
 
-The package also includes Hono and discord.js adapters. Confirm exact export names through the installed package's `exports` field and your IDE completion.
+```ts
+import {
+  createRealtimeHub,
+  attachWebSocket,
+  attachSocketIo,
+  createServerSentEventStream,
+  createSequencedPublisher,
+  createOutboxWorker,
+  MemoryRealtimeEventLog,
+  MemorySessionRevocationBus,
+} from "@kavtuai/guildgate/realtime";
+```
 
-## Gate methods
+## Operator and analytics
 
-The verified surface includes:
+```ts
+import {
+  createOperatorService,
+  createOperatorActions,
+  RatePolicyRegistry,
+} from "@kavtuai/guildgate/operator";
+```
 
-- `gate.action(...)`
-- `gate.owner.setMaintenance(...)`
-- `gate.owner.block(...)`
-- `gate.owner.unblock(...)`
-- `gate.revokeUserSessions(...)`
+The analytics module includes process and Discord collectors, health probes, bucket queries, table models, and safe SVG chart renderers.
 
-Do not import internal file paths. Semver guarantees apply to published exports.
+## Testing helpers
+
+```ts
+import { createGuildGateTestHarness } from "@kavtuai/guildgate/testing";
+import { runStoreContract } from "@kavtuai/guildgate/contracts";
+```
+
+The test harness creates a kernel with memory stores and safe defaults. Real adapter service tests are still required to verify production behavior.
+
+## CLI commands
+
+The package publishes three bins:
+
+```text
+guildgate-doctor
+guildgate-writing-check
+guildgate-migration
+```

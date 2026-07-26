@@ -1,45 +1,120 @@
 ---
-title: Test ve yayın
-description: GuildGate entegrasyonunu test et ve paket yükseltmesini güvenli biçimde dağıt.
+title: Test ve yayın doğrulaması
+description: GuildGate 1.1.0 release:verify zincirini, coverage eşiklerini, service testlerini ve package consumer kontrolünü uygula.
 ---
 
-# Test ve yayın
+# Test ve yayın doğrulaması
 
-## Asgari testler
+GuildGate `1.1.0` final kaynak paketi `npm run release:verify` ile doğrulandı. Aynı zinciri uygulama veya custom adapter release'inde de temel al.
 
-- Korunan mutation oturum ve CSRF olmadan reddedilir.
-- OAuth state yalnızca bağlı tarayıcıda ve bir kez tüketilir.
-- Oturum rotasyonu eski belirteci geçersiz kılar.
-- Kullanıcı ve bot izni ayrı ayrı hata üretebilir.
-- Transaction hook, retry ve fencing token action context'e ulaşır.
-- Operator işlemleri session, policy ve owner rate reset kayıtlarını yönetir.
-- WebSocket aboneliği yetki ister ve kaçırılan olayları yeniden oynatır.
-- SSE geri basınç sınırında bağlantıyı kapatır.
-- Hatalı realtime JSON invalid-data koduyla kapanır.
-
-## Paket kontrolleri
+## Release zinciri
 
 ```bash
-npm run typecheck
-npm test
-npm run pack:check
+npm run release:verify
 ```
 
-`pack:check`, yayımlanan tarball içinde gerekli export, tip, CLI, docs ve örneklerin bulunduğunu doğrulamalı.
+Paket script sırası:
 
-## Canary
+```text
+typecheck
+npm test
+coverage
+security verification
+load harness
+npm pack --dry-run
+```
 
-Önce tek instance veya staging ortamında şu akışı dene:
+`npm test` kendi içinde temiz build, doküman kontrolü ve deterministik testleri çalıştırır.
 
-1. Discord login
-2. session rotasyonu
-3. korunan settings mutation
-4. idempotent tekrar
-5. eş zamanlı iki yazma
-6. audit/outbox kaydı
-7. realtime replay
-8. session revocation
+## Final test sonucu
 
-## Trusted publishing
+| Sonuç | Adet |
+| --- | ---: |
+| Geçen | 76 |
+| Başarısız | 0 |
+| Yerelde atlanan live-service tanımı | 2 |
+| İptal | 0 |
 
-npm trusted publisher kullanıyorsan workflow kimliğini ve tag kuralını sınırlı tut. Uzun ömürlü npm token'ını CI sırlarına ekleme.
+İki live-service tanımı gerçek PostgreSQL ve Redis daemon gerektirir. GitHub Actions disposable PostgreSQL 17 ve Redis 8 servisleriyle bu testleri etkinleştirir.
+
+Final deterministik suite, son düzeltmeden sonra beş kez art arda aynı sonuçla çalıştırıldı: 76 geçen, 0 başarısız, aynı iki live-service tanımı yerelde atlandı.
+
+## Coverage
+
+| Ölçüm | Sonuç | Eşik |
+| --- | ---: | ---: |
+| Satırlar | 86.56% | 80% |
+| Dallar | 77.15% | 70% |
+| Fonksiyonlar | 78.08% | 70% |
+
+Coverage düşüşü release'i durdurur. Yalnızca oranı yükseltmek için davranışsız test yazma; yarış, rollback, reservation ve transport sınırlarını test et.
+
+## Load regression
+
+Default release harness:
+
+| İşlem | Eşzamanlılık | Hata | Throughput | p50 | p95 | p99 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5.000 | 10 | 0 | 14,690.15/s | 0.60 ms | 1.29 ms | 2.37 ms |
+
+Ek referanslar 10.000/20 ve 20.000/32 koşullarında sıfır hata verdi. Bunlar memory regression ölçümleridir; network, PostgreSQL, Redis veya Discord latency içermez ve production kapasite sözü değildir.
+
+## Package consumer testi
+
+Final tarball boş bir projeye lifecycle scriptleri kapalı olarak kuruldu. Kontroller:
+
+- 16 public export yolu import edildi
+- 3 CLI help komutu başarıyla çıktı
+- test harness session oluşturdu
+- idempotent action bir kez çalıştı ve saklanan sonucu replay etti
+
+Consumer sonucu `CONSUMER_TEST_PASSED` oldu.
+
+## Service integration
+
+CI şu yolları gerçek servislerle doğrulamalıdır:
+
+- PostgreSQL migration ve store contract
+- nested transaction/savepoint
+- advisory-lock rate limit
+- idempotency reservation compare-and-set
+- atomik session cap
+- Redis cache retag ve tag TTL
+- lease renew/release owner kontrolü
+- outbox claim recovery
+
+## Kaynak bütünlüğü
+
+Final kaynak arşivinde:
+
+- 318 kaynak dosyası
+- 318 manifest kaydı
+- checksum dosyası hariç 317 SHA-256 kaydı
+- nested ZIP/TGZ yok
+- `.env` yok
+- `node_modules` yok
+- bitmemiş kaynak işareti yok
+
+Her checksum ayrı klasöre çıkarılan ağaçta eşleşti. Typecheck, test, security verify ve pack dry-run çıkarılan ağaçta tekrarlandı.
+
+## Uygulama release kapısı
+
+```bash
+npm ci
+npm run typecheck
+npm test
+npm run test:coverage
+npm run test:services
+npx guildgate-doctor --json
+npm pack --dry-run
+```
+
+Bunlara uygulama için login, permission loss, session revoke, timeout, late settlement, realtime replay ve backup/restore testlerini ekle.
+
+## Yayın sonrası
+
+- npm sürümü ve dist integrity değerini doğrula
+- Git tag ile package commit'ini eşleştir
+- production health endpoint ve heartbeat'i kontrol et
+- post-commit issue ve reservation-loss oranını izle
+- ilk rollout'ta audit/outbox backlog ve Redis latency'yi takip et

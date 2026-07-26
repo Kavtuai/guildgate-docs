@@ -1,38 +1,77 @@
 ---
-title: Custom stores
-description: Connect an existing ORM or database layer to GuildGate store contracts.
+title: Custom store adapter
+description: Implement the GuildGate 1.1 contract on another database or ORM with correct atomic behavior.
 ---
 
-# Custom stores
+# Custom store adapter
 
-GuildGate does not choose a database. Connect an existing repository or ORM through the small store interfaces.
+When the official PostgreSQL or Redis adapters are not used, `GuildGateStores` can be mapped to the application's data layer. The goal is not only to satisfy TypeScript signatures but also to preserve behavior under races.
 
-## Classify the data first
+## Starting approach
 
-For each store, answer:
+1. Inventory the ten `GuildGateStores` members.
+2. Record atomicity and TTL requirements for every operation.
+3. Choose transaction, compare-and-set, and lease primitives from the backend.
+4. Run `runStoreContract()` for shared behavior.
+5. Add multi-worker race tests.
 
-- How long does the record live?
-- Does it need atomic consume or compare-and-set?
-- Must it commit with another record in the same transaction?
-- Must every application instance see it?
-- Does it have a retention or deletion rule?
+## Prefer 1.1 behavior over compatibility fallback
 
-## Audit-store example
+Several methods are optional:
 
-The source package includes `examples/custom-store/postgres-audit-store.ts`. It adapts an application database client to the GuildGate audit contract.
+- `SessionStore.create`
+- `IdempotencyStore.renew`
+- `LockStore.acquireLease`
+- `LockStore.renew`
+- `AuditStore.listPage`
+- `OutboxStore.claim`
 
-## Transaction hook
+They are optional so older stores still compile. A production custom store should implement them to provide the `1.1.0` reliability behavior.
 
-When the application write, audit row and outbox row share a database, open one transaction and pass the transaction client through action context.
+## ORM boundary
 
-## Test matrix
+An ORM `upsert` does not always provide the compare-and-set guarantee you need. Inspect generated SQL. If idempotency completion lacks reservation and state predicates, an old worker can corrupt a newer record.
 
-- The same OAuth state cannot be consumed twice.
-- Expired sessions cannot be found.
-- Rotation invalidates the previous token digest.
-- Idempotency returns the same result for the same scope and key.
-- Only the lock owner can renew.
-- A stale fencing token cannot commit a write.
-- Outbox rows roll back with the application write.
+## TTL cleanup
 
-See the [public API](../referans/public-api.mdx) for the store interface names.
+Separate these behaviors:
+
+- treat an expired record as invalid during reads
+- physically remove records through retention or cleanup
+
+A delayed cleanup job must not change security decisions; those must use the expiry value.
+
+## Serialization
+
+Bound `unknown` fields such as audit `changes`, cache values, and idempotency responses. Reject or safely serialize circular objects, oversized payloads, and prototype-specific values before they reach the backend.
+
+## Transaction participation
+
+For fail-closed audit and transactional outbox, a custom store must enlist in the action's transaction scope. Audit written on another connection is not atomic with the domain commit.
+
+## Contract test setup
+
+```ts
+import {
+  adapterContractVersion,
+  runStoreContract,
+} from "@kavtuai/guildgate/contracts";
+
+console.log(adapterContractVersion); // 1.1
+const report = await runStoreContract(() => createIsolatedStores());
+if (!report.passed) throw new Error("Store contract failed");
+```
+
+Application-specific tests:
+
+- 50 concurrent rate-limit hits
+- concurrent session creation for one user
+- two lease owners at the expiry boundary
+- late completion after reservation TTL
+- audit records with the same timestamp at a cursor boundary
+- outbox worker crash and claim recovery
+- invalidation while a cache entry changes tags
+
+## Versioning
+
+When publishing the store adapter separately, state its supported GuildGate adapter-contract version in package metadata and documentation. Do not mark it as 1.1 compatible before implementing the contract changes.

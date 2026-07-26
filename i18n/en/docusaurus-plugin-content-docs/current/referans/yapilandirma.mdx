@@ -1,45 +1,134 @@
 ---
 title: Configuration reference
-description: Review the main createGuildGate options and production requirements.
+description: Configure GuildGate 1.1.0 GuildGateConfig fields with safe production assumptions.
 ---
 
 # Configuration reference
 
+`createGuildGate()` validates configuration at startup. It refuses to continue with invalid origins, cookies, secrets, or production URLs.
+
+```ts
+const gate = createGuildGate({
+  app: {
+    name: "Fieldbot Dashboard",
+    environment: "production",
+    baseUrl: "https://dashboard.example.com",
+  },
+  owners: ["123456789012345678"],
+  locale: {
+    default: "tr",
+  },
+  security: {
+    allowedOrigins: ["https://dashboard.example.com"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 7 * 24 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+  transactions,
+  realtime,
+  telemetry,
+  audit: {
+    enabled: true,
+    redactKeys: ["webhookUrl"],
+    failClosedActions: ["guild.billing.update"],
+  },
+  reliability: {
+    maximumLateSettlementMs: 5 * 60_000,
+  },
+});
+```
+
 ## `app`
 
-| Field | Meaning |
+| Field | Description |
 | --- | --- |
-| `name` | Application name used in audit and operational context |
-| `environment` | Development, staging, or production profile |
-| `baseUrl` | Public dashboard URL |
+| `name` | Application name used in logs, traces, and error context |
+| `environment` | `development`, `test`, or `production` |
+| `baseUrl` | Public application root URL |
+
+A production `baseUrl` must use HTTPS and cannot target a loopback or unspecified host.
 
 ## `owners`
 
-Discord user IDs allowed to perform owner operations. Owner status does not bypass session, origin, CSRF, rate-limit, policy, or audit checks.
+A list of Discord user IDs. Owner status grants operator capabilities but does not bypass the action security chain.
 
 ## `locale`
 
-| Field | Meaning |
-| --- | --- |
-| `default` | Default message locale |
-| `messages` | Error-code-based Turkish, English, or custom locale copy |
+- `default`: `tr` or `en`
+- `messages`: application-specific overrides for stable error codes
 
-## `security`
+Do not include secrets or internal exception details in translations.
 
-| Field | Meaning |
+## `security.allowedOrigins`
+
+An exact-origin list. Production requires at least one origin, and every entry must use HTTPS and a public host.
+
+## Secret fields
+
+- `csrfSecret`: at least 32 bytes
+- `auditIpSalt`: a separate secret for IP hashing or pseudonymization
+
+Do not reuse one secret for both purposes. Generate sufficient entropy in the environment.
+
+## Session
+
+| Field | Requirement |
 | --- | --- |
-| `allowedOrigins` | Exact origins accepted for browser requests |
-| `csrfSecret` | Separate secret for CSRF signing |
-| `auditIpSalt` | Separate salt for IP-derived audit context |
-| `session.ttlMs` | Absolute session lifetime |
-| `session.idleTimeoutMs` | Idle timeout |
-| `session.rotateAfterMs` | Opaque token rotation interval |
-| `session.maximumSessionsPerUser` | Maximum open sessions per user |
+| `ttlMs` | Positive absolute TTL |
+| `idleTimeoutMs` | Positive idle bound |
+| `rotateAfterMs` | Rotation before TTL expiry |
+| `maximumSessionsPerUser` | Positive cap applied atomically by the store |
+
+## Cookie
+
+Optional `security.cookie`:
+
+```ts
+cookie: {
+  name: "__Host-guildgate.sid",
+  path: "/",
+  secure: true,
+  sameSite: "Lax",
+  maxAgeSeconds: 604800,
+}
+```
+
+A `__Host-` name requires `Secure` and `Path=/`. The production default uses this name.
 
 ## `stores`
 
-A bundle implementing `GuildGateStores`. `createMemoryStoreBundle()` is suitable for development and tests, not a multi-instance production deployment. See [store contracts](../depolama/depo-sozlesmeleri.mdx).
+All ten stores are required. Combine official bundles with `composeStores()`.
 
-## Advanced action options
+## `transactions`
 
-The `1.0.0` action surface supports transaction hooks, cache invalidation, retries, timeouts, circuit breakers, distributed locks, and fencing behavior. Read the installed TypeScript declarations for the complete typed shape.
+`TransactionAdapter` is optional at the type level but required for transactional actions and fail-closed audit. For production writes, it should enlist the domain store in the same backend and connection boundary.
+
+## `realtime`
+
+A `RealtimePublisher` for immediate action events. Outbox delivery also requires the store and worker path.
+
+## `telemetry`
+
+`TelemetryHooks` or the result of `createOpenTelemetryHooks()`. Exporter selection belongs to the application.
+
+## `audit`
+
+- `enabled`: global audit default
+- `redactKeys`: extra sensitive field names
+- `failClosedActions`: action names whose audit write is required for commit
+
+A fail-closed action must use idempotency and a required transaction.
+
+## `reliability.maximumLateSettlementMs`
+
+Maximum time reservation and lease ownership may remain after the response deadline. Use a positive, bounded value and plan it together with idempotency TTL.
+
+## `clock`
+
+A `Clock` override for deterministic tests. The default `systemClock` is suitable for production; keep process time synchronized at the operating-system layer.

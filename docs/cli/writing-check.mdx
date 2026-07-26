@@ -1,22 +1,75 @@
 ---
 title: guildgate-writing-check
-description: Paket ve doküman metinlerinde placeholder, araç artığı ve tanıtım kalıplarını tara.
+description: Dokümanlarda bozuk atıf, geçici araç artığı ve yayımlanmaması gereken şablon alanlarını tara.
 ---
 
 # `guildgate-writing-check`
 
-Bu komut kullanıcıya açık metinlerde unutulan placeholder, model aracı artığı, bozuk atıf biçimi ve proje tarafından yasaklanan tanıtım kalıplarını tarar.
+Writing check, proje dokümanlarında yayıma girmemesi gereken teknik artık ve şablon alanlarını bulur. Metnin doğruluğuna, üslubuna veya yazarına karar vermez.
+
+## Yardım
+
+```bash
+npx guildgate-writing-check --help
+```
+
+```text
+Usage: guildgate-writing-check [options]
+
+Checks documentation files in the current project directory.
+
+Options:
+  --root <path>  Check another project directory.
+  -h, --help     Show this help message.
+```
+
+## Çalıştırma
 
 ```bash
 npx guildgate-writing-check
 ```
 
-## Ne arar?
+Başka bir proje kökü:
 
-- `<link>`, `TODO_CONTENT` ve geçici metinler
-- `contentReference`, `oaicite`, `turn...` gibi araç işaretleri
-- bozuk sağlayıcı citation kalıpları
-- teslim cümleleri ve kaynakta kalmış sohbet notları
-- boş önem iddiaları ve reklam dili
+```bash
+npx guildgate-writing-check --root ./docs-site
+```
 
-Bu tarama bir “AI dedektörü” değildir. Metnin doğruluğunu, kaynağını veya yazarını belirlemez. Ama yayıma girmemesi gereken kalıntıları CI aşamasında yakalar.
+Kontrol başarısızsa komut non-zero exit code döndürür.
+
+## Bulduğu sorun sınıfları
+
+- kapanmamış veya geçici şablon alanları
+- bozuk citation işaretleri
+- araç oturumuna ait geçici kimlikler
+- dosya yükleme placeholder'ları
+- yayıma ait olmayan writing block işaretleri
+- kopyalama sırasında kalan büyük TODO alanları
+
+CLI sayfası bu örnekleri açıklamak için bazı işaretleri adlandırabilir; normal dokümanlarda bulunmaları hata kabul edilir.
+
+## Bulmadığı sorunlar
+
+Komut şunların yerine geçmez:
+
+- API adını kaynak koddan doğrulama
+- örnek kodu typecheck etme
+- bağlantıyı açıp kaynağı inceleme
+- çevirinin anlam eşitliğini değerlendirme
+- güvenlik veya hukuk incelemesi
+
+## CI
+
+```json title="package.json"
+{
+  "scripts": {
+    "docs:check": "guildgate-writing-check --root ."
+  }
+}
+```
+
+```bash
+npm run docs:check
+```
+
+Kontrolü Docusaurus build'den önce çalıştır. Hata çıktısındaki dosya ve işaret türünü düzelt; genel ignore ekleyerek gerçek sorunu gizleme.

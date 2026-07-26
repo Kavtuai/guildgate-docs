@@ -1,29 +1,77 @@
 ---
 title: Geçiş ve sürümleme
-description: Semver, store değişiklikleri ve üretim geçişlerini kontrollü biçimde yönet.
+description: GuildGate 1.0.0 sürümünden 1.1.0'a custom store, transaction ve realtime sözleşmelerini güncelleyerek geç.
 ---
 
 # Geçiş ve sürümleme
 
-GuildGate yayımlanan export yüzeyinde semver kullanır. Dahili dosyalar bu güvenceye dahil değildir.
+GuildGate `1.0.0` sürümünden itibaren Semantic Versioning uygular. `1.1.0`, public adapter yetenekleri ekleyen minor sürümdür.
 
-## Sürüm yükseltmeden önce
+## Contract değişimi
 
-- changelog ve migration notlarını oku
-- `npm run typecheck` çalıştır
-- store sözleşme testlerini yeniden çalıştır
-- Discord izin ve API değişikliklerini kontrol et
-- canary ortamında doctor ve korunan mutation testini çalıştır
-- realtime replay ve session revocation senaryolarını doğrula
+| Alan | 1.0.0 | 1.1.0 |
+| --- | --- | --- |
+| Adapter contract | `1.0` | `1.1` |
+| Action contract | `1.0` | `1.0` |
+| Realtime contract | `1.0` | `1.0` |
 
-## Store geçişi
+Custom store veya adapter kullanmıyorsan resmi PostgreSQL/Redis paketleriyle yükseltme daha doğrudandır. Custom uygulamalarda aşağıdaki davranışları ekle.
 
-Yeni store alanı eklendiğinde önce şemayı geriye uyumlu biçimde dağıt, ardından uygulamayı yükselt. Eski ve yeni instance aynı anda çalışacaksa iki sürümün okuyabileceği kayıt biçimini koru.
+## 1. Idempotency reservation
 
-## Anahtar rotasyonu
+`IdempotencyRecord` içine `reservationId` eklenir. `renew`, `complete` ve `fail` aynı owner token'ını karşılaştırmalıdır.
 
-OAuth token keyring birden fazla anahtar sürümü taşıyabilir. Yeni yazmaları aktif anahtarla şifrele; eski kayıtları okunduğunda veya arka plan göreviyle yeniden şifrele.
+Koşulsuz key update/delete kullanımını kaldır. Sahiplik kaybında `false` döndür.
+
+## 2. Atomik session cap
+
+Paylaşımlı store'da `SessionStore.create(record, maximumSessionsPerUser)` uygula. Session insert ve fazla kayıt silme tek serialized işlem olmalıdır.
+
+## 3. Cursor audit
+
+`AuditStore.listPage()` ekle. Opaque cursor ile `(createdAt DESC, id DESC)` sırasını database sorgusunda uygula.
+
+## 4. Transaction kesinliği
+
+Başarılı commit sonrasında callback hatası rollback oluşturmamalı. `onPostCommitError` veya `TransactionPostCommitError` ile gözlemle. Domain work tekrar yürütülmemelidir.
+
+Nested PostgreSQL işlemlerinde savepoint ve callback propagation kurallarını uygula.
+
+## 5. Deadline ve late settlement
+
+Action timeout'u belirlenen sınırda yanıt dönmelidir. Alttaki iş için settlement gözlemi ve `reliability.maximumLateSettlementMs` sınırı ekle.
+
+İdempotency TTL'lerini yeni deadline + late-settlement süresine göre büyüt. External I/O'ya `AbortSignal` aktar.
+
+## 6. Fail-closed audit ve rate limit
+
+Fail-closed audit kaydını domain transaction içine taşı. PostgreSQL rate-limit bucket update'lerini advisory lock veya eşdeğer atomik yol ile serialize et.
+
+## 7. OAuth refresh
+
+Distributed lock ile single-flight kur ve lease alındıktan sonra credential'ı yeniden oku.
+
+## 8. Redis tag atomikliği
+
+Cache entry, eski/yeni tag üyelikleri ve tag-index TTL güncellemesini tek Lua/eşdeğer işlemde yap.
+
+## 9. Realtime taşıyıcıları
+
+Socket.IO subscribe, unsubscribe ve heartbeat event'lerini `hub.acceptMessage()` kontrolünden geçir. Ack, replay ve transport backpressure davranışını ekle.
+
+## Yükseltme sırası
+
+1. Ayrı branch aç.
+2. `@kavtuai/guildgate@1.1.0` kur.
+3. TypeScript hatalarını düzelt.
+4. Custom store'larda adapter `1.1` kurallarını uygula.
+5. `runStoreContract()` çalıştır.
+6. PostgreSQL migration SQL'ini yazdır ve incele.
+7. Login, guarded write, timeout, permission loss, session revoke ve realtime replay testlerini çalıştır.
+8. Coverage ve service integration pipeline'ını yeşil yap.
+9. Staging'de audit/outbox ve late-settlement metriklerini izle.
+10. Kontrollü production rollout yap.
 
 ## Geri dönüş
 
-Rollback planı yalnızca npm sürümünü düşürmekten ibaret olmamalı. Store şeması, outbox worker'ı, Redis prefix'i ve realtime sequence uyumluluğunu da kapsamalı.
+Code rollback ile database migration rollback aynı şey değildir. Eklenen alanları eski kodun tolere edip etmediğini kontrol et. Idempotency reservation alanını kaldırmadan önce inflight kayıtların bitmesini bekle.

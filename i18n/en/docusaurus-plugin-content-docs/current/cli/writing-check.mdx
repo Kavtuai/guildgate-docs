@@ -1,22 +1,75 @@
 ---
 title: guildgate-writing-check
-description: Scan package and documentation copy for placeholders, tool artifacts, and banned promotional patterns.
+description: Scan documentation for broken citations, temporary tool residue, and unfinished template fields.
 ---
 
 # `guildgate-writing-check`
 
-This command scans user-facing text for forgotten placeholders, model-tool artifacts, malformed citation syntax, and promotional phrases that the project does not accept.
+Writing check finds technical residue and unfinished template fields that should not be published. It does not decide whether prose is correct, well written, or authored by a particular person.
+
+## Help
+
+```bash
+npx guildgate-writing-check --help
+```
+
+```text
+Usage: guildgate-writing-check [options]
+
+Checks documentation files in the current project directory.
+
+Options:
+  --root <path>  Check another project directory.
+  -h, --help     Show this help message.
+```
+
+## Running the check
 
 ```bash
 npx guildgate-writing-check
 ```
 
-## What it catches
+Another project root:
 
-- `<link>`, `TODO_CONTENT`, and temporary copy
-- artifacts such as `contentReference`, `oaicite`, and `turn...`
-- malformed provider citation patterns
-- chat remnants left in source files
-- empty claims of importance and brochure-style language
+```bash
+npx guildgate-writing-check --root ./docs-site
+```
 
-This is not an authorship detector. It cannot establish who wrote a text or whether its claims are correct. It catches publishing residue; code review, source checking, and technical tests remain separate work.
+The command returns a non-zero exit code when a check fails.
+
+## Issue classes it finds
+
+- unfinished or temporary template fields
+- broken citation markers
+- temporary identifiers from a tool session
+- file-upload placeholders
+- writing-block markers that do not belong in published content
+- large TODO fields left during copying
+
+This CLI page may name some markers to explain them; their presence in normal documentation is treated as an error.
+
+## Issues it does not find
+
+The command does not replace:
+
+- verifying API names against source code
+- typechecking example code
+- opening and reviewing source links
+- evaluating translation equivalence
+- security or legal review
+
+## CI
+
+```json title="package.json"
+{
+  "scripts": {
+    "docs:check": "guildgate-writing-check --root ."
+  }
+}
+```
+
+```bash
+npm run docs:check
+```
+
+Run it before the Docusaurus build. Fix the file and marker type reported by the command instead of adding a broad ignore that hides the issue.

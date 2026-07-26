@@ -1,8 +1,8 @@
 {
   "name": "guildgate-docs",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "private": true,
-  "description": "GuildGate 1.0.0 için Türkçe ve İngilizce dokümantasyon sitesi",
+  "description": "GuildGate 1.1.0 için Türkçe ve İngilizce dokümantasyon sitesi",
   "scripts": {
     "start": "docusaurus start",
     "dev": "docusaurus start",

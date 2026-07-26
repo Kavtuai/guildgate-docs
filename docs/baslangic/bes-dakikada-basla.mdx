@@ -1,48 +1,35 @@
 ---
 title: Beş dakikada başla
-description: Bellek store'larıyla çalışan ilk GuildGate örneğini kur.
+description: Memory store ve transaction adapter ile ilk GuildGate 1.1.0 action'ını çalıştır.
 ---
 
 # Beş dakikada başla
 
-Bu örnek geliştirme ortamında çalışan küçük bir çekirdek kurar. Bellek store'ları süreç kapanınca temizlenir; üretimde bunları değiştireceksin.
-
-## 1. Ortam değerlerini hazırla
+Bu örnek geliştirme ve test içindir. Memory store'lar süreç kapanınca temizlenir.
 
 ```env
 BOT_OWNER_ID=123456789012345678
-GUILDGATE_CSRF_SECRET=32-bayttan-uzun-rastgele-bir-deger
-GUILDGATE_AUDIT_IP_SALT=csrf-sirrindan-farkli-bir-deger
+GUILDGATE_CSRF_SECRET=uzun-rastgele-csrf-sirri
+GUILDGATE_AUDIT_IP_SALT=csrf-sirrindan-farkli-uzun-salt
 ```
-
-## 2. Gate oluştur
 
 ```ts
 import {
   createGuildGate,
   createMemoryStoreBundle,
+  createMemoryTransactionAdapter,
 } from "@kavtuai/guildgate";
 
 const stores = createMemoryStoreBundle();
 
 export const gate = createGuildGate({
   app: {
-    name: "My Discord Dashboard",
+    name: "Discord Panelim",
     environment: "development",
     baseUrl: "http://localhost:3000",
   },
   owners: [process.env.BOT_OWNER_ID!],
-  locale: {
-    default: "tr",
-    messages: {
-      tr: {
-        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
-      },
-      en: {
-        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
-      },
-    },
-  },
+  locale: {default: "tr"},
   security: {
     allowedOrigins: ["http://localhost:3000"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -55,36 +42,56 @@ export const gate = createGuildGate({
     },
   },
   stores,
+  transactions: createMemoryTransactionAdapter(),
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
 });
 ```
 
-## 3. İlk işlemi tanımla
+## İlk action
 
 ```ts
+let revision = 1;
+
 export const updateGuildSettings = gate.action({
   name: "guild.settings.update",
-  parse: parseGuildSettings,
-  resource: ({guildId}) => ({type: "guild", id: guildId}),
-  authorize: ({userId}, input) => canManageGuild(userId, input.guildId),
-  execute: (context, input) => saveGuildSettings(context, input),
+  parse: (value) => value as {
+    guildId: string;
+    expectedRevision: number;
+    prefix: string;
+  },
+  resource: (input) => ({type: "guild", id: input.guildId}),
+  rateLimit: {limit: 20, windowMs: 60_000},
+  idempotency: {required: true, ttlMs: 10 * 60_000},
+  optimistic: {
+    expected: (input) => input.expectedRevision,
+    current: async () => revision,
+  },
+  transaction: {required: true, isolation: "serializable"},
+  timeoutMs: 5_000,
+  async execute(context, input) {
+    context.signal.throwIfAborted();
+    revision += 1;
+    return {...input, revision};
+  },
+  cache: {invalidateTags: (result) => [`guild:${result.guildId}`]},
+  audit: {enabled: true, changes: (result) => result},
 });
 ```
 
-`execute`, önceki kontroller geçmeden çağrılmaz. HTTP bağdaştırıcısı oturum, origin ve CSRF bağlamını işleme aktarır.
+Fastify bağlantısı:
 
-## 4. Doctor çalıştır
+```ts
+import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
 
-```bash
-npx guildgate-doctor
+app.patch(
+  "/api/guilds/:guildId/settings",
+  fastifyActionHandler(gate, updateGuildSettings, {
+    input: (request) => ({
+      ...(request.body as object),
+      guildId: (request.params as {guildId: string}).guildId,
+    }),
+  }),
+);
 ```
 
-Geliştirme profili localhost ve bellek store'ları için uyarı vermez. Aynı değerleri production ortamıyla çalıştırırsan doctor bunları risk olarak işaretler.
-
-## 5. Üretime hazırlık
-
-- Oturum, OAuth kimlik bilgisi, audit, outbox ve politika store'larını kalıcı depoya bağla.
-- Rate limit, idempotency, cache ve dağıtık kilitleri Redis'e taşı.
-- `baseUrl`, callback ve origin değerlerinde HTTPS kullan.
-- OAuth token'ları için uygulama tarafından sağlanan anahtar halkasını ekle.
-
-Store ayrımı için [depo sözleşmelerine](../depolama/depo-sozlesmeleri.mdx), yazma sırası için [işlem yaşam döngüsüne](../mimari/islem-yasam-dongusu.mdx) geç.
+Üretimde memory store'ları kalıcı ve paylaşılan adapter'larla değiştir; HTTPS, session revoke, deadline, idempotent replay ve realtime reconnect senaryolarını staging ortamında doğrula.

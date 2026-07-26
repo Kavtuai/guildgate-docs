@@ -1,38 +1,102 @@
 ---
 title: Verification console
-description: Inspect GuildGate decisions through a constrained command set in the browser.
+description: Inspect GuildGate action, configuration, store, and version behavior in the documentation's safe browser console.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
 # Verification console
 
-The console does not open an operating-system shell, execute arbitrary JavaScript, or send input to a server. It evaluates documented GuildGate rules through a fixed command set.
+This console runs an allowlisted set of documentation commands. It does not start a shell, make network requests, access the file system, or use persistent browser storage.
 
 <CommandPlayground />
 
-## Available checks
+## Version commands
 
-| Command | What it inspects |
-| --- | --- |
-| `doctor` | A sample production profile |
-| `config check` | Development and production differences |
-| `origin check` | Exact origin matching |
-| `session policy` | TTL, idle timeout, rotation, and open-session limits |
-| `store check` | Persistent and short-lived store placement |
-| `action test` | The guarded write order |
-| `rate-limit test` | A fixed-window calculation |
-| `realtime check` | Transport, sequence, and replay choices |
-| `security explain` | CSRF, origin, sessions, and locks |
+```text
+version
+contracts
+exports
+```
 
-## Safety boundaries
+Expected core information:
 
-- one line, up to 240 characters
-- 20 evaluations per minute
-- shell operators, redirection, and command substitution are rejected
-- common GitHub, API, MFA, JWT, and bot-token formats are blocked
-- up to 60 history entries, kept only in the current tab's memory
-- output is rendered as text
-- unexpected failures return one safe user-facing message
+```text
+Package: @kavtuai/guildgate@1.1.0
+Adapter contract: 1.1
+Action contract: 1.0
+Realtime contract: 1.0
+Public export paths: 16
+CLI commands: 3
+```
 
-Use [`guildgate-doctor`](../cli/doctor.mdx) when you need to inspect a real project environment.
+## Action checks
+
+```text
+action test guild.settings.update
+action test guild.settings.update --origin deny
+action test guild.settings.update --session missing
+action test guild.settings.update --csrf invalid
+action test guild.settings.update --permission deny
+```
+
+Commands do not connect to a real route or Discord account. They show the control order and stable result for documented scenarios.
+
+## Stores and reliability
+
+```text
+store list
+store contract
+idempotency reservation
+transaction finality
+deadline settlement
+```
+
+For `1.1.0`, review:
+
+- ten store members
+- reservation-owner compare-and-set
+- atomic session caps
+- opaque audit cursors
+- bounded outbox claims
+- post-commit callback separation
+- bounded late settlement
+
+## Realtime
+
+```text
+realtime limits
+realtime transports
+realtime replay
+```
+
+WebSocket and Socket.IO share the same inbound control path. SSE is a server-to-client stream with a bounded queue.
+
+## CLI help summary
+
+```text
+cli doctor
+cli writing-check
+cli migration
+```
+
+For actual installed-package help, use a terminal:
+
+```bash
+npx guildgate-doctor --help
+npx guildgate-writing-check --help
+npx guildgate-migration --help
+```
+
+## Security boundary
+
+Console input is parsed through an allowlist. It does not support:
+
+- arbitrary JavaScript
+- `eval` or dynamic functions
+- shell or process commands
+- HTTP or WebSocket connections
+- `localStorage` or `sessionStorage`
+- secret or token input
+
+Do not paste real configuration or secrets. The console is only for documentation examples.

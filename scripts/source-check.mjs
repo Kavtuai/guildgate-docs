@@ -49,7 +49,7 @@ for (const removed of [
 
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 if (!packageJson.dependencies?.['bootstrap-icons']) errors.push('Bootstrap Icons bağımlılığı eksik.');
-if (packageJson.version !== '0.3.1') errors.push('Dokümantasyon sürümü 0.3.1 değil.');
+if (packageJson.version !== '0.3.3') errors.push('Dokümantasyon sürümü 0.3.3 değil.');
 if (!String(packageJson.engines?.node ?? '').includes('22')) errors.push('Node.js 22 motor şartı eksik.');
 
 const config = fs.readFileSync('docusaurus.config.js', 'utf8');
@@ -61,6 +61,8 @@ for (const expected of [
   'img/favicon.png',
   'img/guildgate-social-card.png',
   'https://mxyouone.me/contact?category=website&website=GuildGate',
+  'themes.vsLight',
+  'themes.vsDark',
 ]) {
   if (!config.includes(expected)) errors.push(`Docusaurus yapılandırmasında beklenen değer yok: ${expected}`);
 }
@@ -83,6 +85,38 @@ if (!searchComponent.includes("event.key.toLowerCase() === 'k'")) errors.push('C
 if (!searchComponent.includes("language === 'all'")) errors.push('Arama dil filtresi eksik.');
 const searchStyles = fs.readFileSync('src/components/DocSearch/styles.module.css', 'utf8');
 if (!searchStyles.includes('left:50%') || !searchStyles.includes('translateX(-50%)')) errors.push('Header arama düğmesi ortalanmamış.');
+if (!searchStyles.includes("background: rgba(255, 255, 255, .94)") || !searchStyles.includes("color: #334155")) errors.push('Açık tema arama düğmesi kontrastı eksik.');
+if (!searchStyles.includes(":global([data-theme='dark']) .trigger")) errors.push('Koyu tema arama düğmesi ayrımı eksik.');
+
+const customCss = fs.readFileSync('src/css/custom.css', 'utf8');
+for (const expected of ['Cascadia Code', 'JetBrains Mono', '.prism-code']) {
+  if (!customCss.includes(expected)) errors.push(`Kod bloğu IDE görünümünde beklenen değer yok: ${expected}`);
+}
+
+const visiblePolicyPages = [
+  'docs/katki/yazi-standardi.mdx',
+  'docs/surum-notlari.mdx',
+  `${englishDocsRoot}/katki/yazi-standardi.mdx`,
+  `${englishDocsRoot}/surum-notlari.mdx`,
+];
+const forbiddenVisiblePolicyTerms = /(?:yapay zek[âa]|AI yaz|AI writing|artificial intelligence|OpenAI|Gemini|author detection|writer detection)/iu;
+for (const file of visiblePolicyPages) {
+  const text = fs.readFileSync(file, 'utf8');
+  if (forbiddenVisiblePolicyTerms.test(text)) errors.push(`${file}: yazı standardı veya sürüm notunda istenmeyen üretim aracı anlatımı var.`);
+}
+
+const releaseDocs = [
+  'docs/surum-notlari.mdx',
+  'docs/uretim/test-ve-yayin.mdx',
+  'docs/referans/public-api.mdx',
+  `${englishDocsRoot}/surum-notlari.mdx`,
+  `${englishDocsRoot}/uretim/test-ve-yayin.mdx`,
+  `${englishDocsRoot}/referans/public-api.mdx`,
+];
+for (const file of releaseDocs) {
+  const text = fs.readFileSync(file, 'utf8');
+  if (!text.includes('1.1.0')) errors.push(`${file}: GuildGate 1.1.0 sürüm işareti eksik.`);
+}
 
 const playground = fs.readFileSync('src/components/CommandPlayground/index.js', 'utf8');
 for (const forbidden of ['dangerouslySetInnerHTML', 'eval(', 'new Function', 'fetch(', 'WebSocket(', 'localStorage', 'sessionStorage']) {
@@ -111,7 +145,7 @@ const textExtensions = new Set(['.md', '.mdx', '.js', '.jsx', '.css', '.yml', '.
 const bannedVisibleResidue = [
   ['eski konsol etiketi', /yerel simülasyon|local simulation/iu],
   ['geçici içerik', /example\.com\/TODO|TODO_CONTENT|LOREM IPSUM|<link>/iu],
-  ['model aracı artığı', /contentReference|oaicite|oai_citation|turn\d+(?:search|view|fetch|file)\d+/iu],
+  ['geçersiz araç artığı', /contentReference|oaicite|oai_citation|turn\d+(?:search|view|fetch|file)\d+/iu],
 ];
 
 const residueReferencePages = new Set([

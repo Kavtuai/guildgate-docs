@@ -1,45 +1,120 @@
 ---
-title: Testing and release
-description: Test a GuildGate integration and roll out package upgrades with a controlled canary.
+title: Test and release verification
+description: Apply the GuildGate 1.1.0 release:verify chain, coverage thresholds, service tests, and package-consumer checks.
 ---
 
-# Testing and release
+# Test and release verification
 
-## Minimum scenarios
+The final GuildGate `1.1.0` source package passed `npm run release:verify`. Use the same chain as a baseline for application and custom-adapter releases.
 
-- A guarded mutation is rejected without a session or CSRF proof.
-- OAuth state can be consumed once and only by the bound browser context.
-- Session rotation invalidates the previous opaque token.
-- User and bot permission failures are distinguishable.
-- Transaction hooks, retries, and fencing data reach the action context.
-- Operator actions manage session, policy, and owner-rate-reset records.
-- A WebSocket subscription requires authorization and replays missed events.
-- SSE closes when the backpressure limit is reached.
-- Invalid realtime JSON closes with an invalid-data code.
-
-## Package checks
+## Release chain
 
 ```bash
-npm run typecheck
-npm test
-npm run pack:check
+npm run release:verify
 ```
 
-`pack:check` should verify that the tarball contains the expected exports, declarations, CLI binaries, documentation, and examples.
+Package script order:
 
-## Canary sequence
+```text
+typecheck
+npm test
+coverage
+security verification
+load harness
+npm pack --dry-run
+```
 
-Run the upgrade first on one instance or in staging:
+`npm test` runs a clean build, documentation checks, and the deterministic suite.
 
-1. Discord login
-2. session rotation
-3. guarded settings mutation
-4. idempotent repeat
-5. two concurrent writes
-6. audit and outbox commit
-7. realtime replay
-8. session revocation
+## Final test result
 
-## Trusted publishing
+| Result | Count |
+| --- | ---: |
+| Passed | 76 |
+| Failed | 0 |
+| Live-service definitions skipped locally | 2 |
+| Cancelled | 0 |
 
-When using npm trusted publishing, keep the workflow identity and tag rule narrow. Do not add a long-lived npm token to CI secrets.
+The two live-service definitions require real PostgreSQL and Redis daemons. GitHub Actions enables them with disposable PostgreSQL 17 and Redis 8 services.
+
+After the final correction, the deterministic suite ran five consecutive times with the same result: 76 passed, 0 failed, and the same two live-service definitions skipped locally.
+
+## Coverage
+
+| Metric | Result | Threshold |
+| --- | ---: | ---: |
+| Lines | 86.56% | 80% |
+| Branches | 77.15% | 70% |
+| Functions | 78.08% | 70% |
+
+A coverage regression blocks release. Do not add behavior-free tests only to raise the ratio; cover races, rollback, reservations, and transport bounds.
+
+## Load regression
+
+Default release harness:
+
+| Operations | Concurrency | Failures | Throughput | p50 | p95 | p99 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5,000 | 10 | 0 | 14,690.15/s | 0.60 ms | 1.29 ms | 2.37 ms |
+
+Additional 10,000/20 and 20,000/32 references completed with zero failures. These are in-memory regression measurements; they exclude network, PostgreSQL, Redis, and Discord latency and are not production-capacity promises.
+
+## Package-consumer test
+
+The final tarball was installed into an empty project with lifecycle scripts disabled. Checks included:
+
+- all 16 public export paths imported
+- all 3 CLI help targets exited successfully
+- the test harness created a session
+- an idempotent action ran once and replayed its stored result
+
+The consumer result was `CONSUMER_TEST_PASSED`.
+
+## Service integration
+
+CI should verify these paths against real services:
+
+- PostgreSQL migration and store contract
+- nested transactions and savepoints
+- advisory-lock rate limits
+- idempotency reservation compare-and-set
+- atomic session caps
+- Redis cache retagging and tag TTL
+- lease renew and release ownership
+- outbox claim recovery
+
+## Source integrity
+
+The final source archive contained:
+
+- 318 source files
+- 318 manifest entries
+- 317 SHA-256 records excluding the checksum file
+- no nested ZIP or TGZ files
+- no `.env` files
+- no `node_modules`
+- no unfinished source markers
+
+Every checksum matched in a separately extracted tree. Typecheck, tests, security verification, and package dry-run were repeated from that tree.
+
+## Application release gate
+
+```bash
+npm ci
+npm run typecheck
+npm test
+npm run test:coverage
+npm run test:services
+npx guildgate-doctor --json
+npm pack --dry-run
+```
+
+Add application tests for login, permission loss, session revocation, timeout, late settlement, realtime replay, and backup restore.
+
+## After publishing
+
+- verify the npm version and dist integrity
+- match the Git tag to the package commit
+- check the production health endpoint and heartbeat
+- monitor post-commit issues and reservation-loss rate
+- observe audit and outbox backlog and Redis latency during initial rollout

@@ -1,69 +1,168 @@
 ---
-title: action() definitions
-description: Define a protected dashboard write in one lifecycle.
+title: action() operation definition
+description: Define a GuildGate 1.1.0 dashboard write with validation, reliability, and commit rules.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
-# `action()` definitions
+# `action()` operation definition
 
-`gate.action()` keeps input, resource, authorization, resilience and persistence decisions in one definition.
+`gate.action()` keeps the security and reliability decisions for a write in one object. The definition produces an immutable `DefinedAction`; execution is performed by `gate.execute()` or an HTTP adapter.
 
-```ts
+```ts title="guild-settings.ts"
 const updateSettings = gate.action({
   name: "guild.settings.update",
+  authentication: "required",
+  csrf: "required",
+  timeoutMs: 5_000,
+
   parse(value) {
-    const body = parseBody(value);
-    return {
-      guildId: body.guildId,
-      revision: body.revision,
-      settings: body.settings,
-    };
+    return parseSettingsInput(value);
   },
+
   resource: (input) => ({
     type: "guild",
     id: input.guildId,
   }),
+
+  authorize: async (context, input) => {
+    const allowed = await canManageGuild(context.userId!, input.guildId);
+    return allowed ? { allowed: true } : { allowed: false, code: "missing_permission" };
+  },
+
   rateLimit: {
     limit: 20,
     windowMs: 60_000,
     key: (context, input) => `${context.userId}:${input.guildId}`,
   },
+
   idempotency: {
+    required: true,
     ttlMs: 10 * 60_000,
     scope: (context, input) => `${context.userId}:${input.guildId}`,
   },
+
+  optimistic: {
+    expected: (input) => input.expectedRevision,
+    current: (input) => readRevision(input.guildId),
+    resource: (input) => `guild:${input.guildId}`,
+  },
+
   concurrency: {
     key: (_context, input) => `guild-settings:${input.guildId}`,
     ttlMs: 8_000,
-    waitMs: 500,
+    renewEveryMs: 2_000,
+    waitMs: 250,
   },
-  timeoutMs: 5_000,
-  authorize: (context, input) =>
-    canManageGuild(context.userId, input.guildId),
-  execute: (context, input) =>
-    saveGuildSettings(context, input),
+
+  transaction: {
+    required: true,
+    isolation: "serializable",
+  },
+
+  async execute(context, input) {
+    context.signal.throwIfAborted();
+    return saveGuildSettings({
+      transaction: context.transaction,
+      fencingToken: context.fencingToken,
+      input,
+    });
+  },
+
+  cache: {
+    invalidateTags: (result) => [`guild:${result.guildId}`],
+  },
+
+  realtime: {
+    delivery: "outbox",
+    events: (result) => [{
+      event: "guild.settings.updated",
+      channel: `guild:${result.guildId}`,
+      data: result,
+    }],
+  },
+
+  audit: {
+    enabled: true,
+    changes: (result) => ({ revision: result.revision }),
+  },
 });
 ```
 
-## `parse`
+## Authentication and CSRF
 
-Reduce the raw body to a narrow type. Reject unknown fields and apply length and enum limits before authorization.
+`authentication` may be `required`, `optional`, or `none`. When an action weakens the default guarded behavior, record the reason in route review.
 
-## `resource`
+Use `csrf: "required"` for unsafe HTTP methods. Disable CSRF only for an endpoint without a browser session that is authenticated by another signature mechanism.
 
-Rate limits, idempotency, locks, audit records and realtime events can use the same resource identity. Validate it before logging.
+## `parse` and `resource`
+
+`parse` narrows unknown input into an application type. Validate lengths, enums, numeric ranges, and allowed fields here.
+
+`resource` makes it easier to reuse one verified identity for authorization, optimistic revision, audit, locking, and realtime channels.
 
 ## `authorize`
 
-Resolve the user's guild access and required permission at write time. Check the bot permission separately.
+Returning nothing means access is allowed. An explicit decision is easier to review:
 
-## `execute`
+```ts
+return {
+  allowed: false,
+  code: "missing_manage_guild",
+  details: { guildId: input.guildId },
+};
+```
 
-Application persistence happens here. Transactions, optimistic revisions and Discord role hierarchy remain application responsibilities.
+Do not narrow Discord permission values to JavaScript `number`; use `BigInt` or discord.js permission helpers.
 
-## Try the validation order
+## Idempotency reservation
+
+`1.1.0` creates a `reservationId` for every inflight record. A store must enforce these rules:
+
+- return the stored response when the same key and request hash completed
+- report a conflict when the same key has a different hash
+- do not start a second execution while an active reservation exists
+- compare the owner token during `renew`, `complete`, and `fail`
+
+When an action commits after its HTTP deadline, the kernel can complete the result under the same reservation and replay it to a later request.
+
+## Concurrency and fencing
+
+`ttlMs` is the lease lifetime; `renewEveryMs` must be shorter. `waitMs` controls how long acquisition may wait.
+
+When the store supports `acquireLease()`, `context.fencingToken` is available. The database update should reject a token that is not newer than the stored token; do not rely only on lock ownership.
+
+## Transaction hooks
+
+```ts
+transaction: {
+  required: true,
+  isolation: "serializable",
+  hooks: {
+    before: async (scope, input) => {},
+    beforeCommit: async (scope, result, input) => {},
+    afterCommit: async (result, input) => {},
+    afterRollback: async (error, input) => {},
+  },
+}
+```
+
+`afterCommit` runs after the domain write is final. A failure there does not roll back the commit and is not a reason to execute the action twice.
+
+## Retry and circuit breaker
+
+Enable retries only for work that can safely repeat. If an external write is not idempotent, action-level idempotency alone does not make the third-party side effect safe.
+
+The circuit breaker temporarily stops calls after the configured failure threshold. Its name is derived from the action when one is not supplied.
+
+## Cache, realtime, and audit
+
+`cache.invalidateTags` derives tags from the committed result. `realtime.delivery: "outbox"` queues events at the transaction boundary. Do not include secrets, tokens, or unnecessary full objects in audit `changes`.
+
+## Result metadata
+
+The HTTP layer must process `ActionExecutionResult.meta`. In particular, preserve replacement cookies, cookie-clearing instructions, and `postCommitIssues`.
 
 <CommandPlayground compact />
 
-Run `action test guild.settings.update` and change the origin, session, CSRF or permission flags.
+Use `action test guild.settings.update` in the console to inspect the control order.

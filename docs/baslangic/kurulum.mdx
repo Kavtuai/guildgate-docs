@@ -1,56 +1,59 @@
 ---
 title: Kurulum
-description: GuildGate 1.0.0'ı projeye ekle ve paket koşullarını kontrol et.
+description: GuildGate 1.1.0'ı projeye ekle, çalışma ortamını ve public export yollarını doğrula.
 ---
 
 # Kurulum
 
 ## Gereksinimler
 
-- Node.js `22.12.0` veya üzeri
-- Sunucu tarafında çalışan TypeScript ya da modern JavaScript projesi
+- Node.js `22` veya üzeri
+- ESM destekleyen sunucu taraflı TypeScript ya da JavaScript projesi
 - Discord OAuth uygulaması
-- Üretimde HTTPS
-
-## Paketi ekle
+- Üretim ortamında HTTPS
 
 ```bash
-npm install @kavtuai/guildgate
+npm install @kavtuai/guildgate@1.1.0
 ```
 
-Paket TypeScript bildirimlerini kendi içinde taşır. Fastify, Express, Hono, Redis istemcisi ve veritabanı sürücüsü proje seçimine bağlı kaldığı için bunları ayrıca kurarsın.
-
-## Kurulumu doğrula
+Fastify, Express, Hono, PostgreSQL, Redis, discord.js ve OpenTelemetry uygulamanın seçimine bağlıdır:
 
 ```bash
-node ./node_modules/@kavtuai/guildgate/bin/guildgate-doctor.mjs
+npm install pg redis fastify hono discord.js ws @opentelemetry/api
 ```
 
-Paket komutu `node_modules/.bin` üzerinden görünüyorsa kısa biçimi de kullanabilirsin:
+## Yayımlanan import yolları
 
-```bash
-npx guildgate-doctor
+Ana paket yanında şu alt yollar bulunur:
+
+```text
+discord · fastify · express · redis · realtime · testing
+analytics · contracts · discordjs · hono · operator · postgres
+telemetry · transactions · locks
 ```
 
-JSON çıktısı:
-
-```bash
-npx guildgate-doctor --json
-```
-
-Doctor komutu ortam değerlerini yerel süreçte okur. Sırları dışarı göndermez ve değerlerin kendisini rapora yazmaz.
-
-## Import kontrolü
+Örnek:
 
 ```ts
-import {
-  createGuildGate,
-  createMemoryStoreBundle,
-} from "@kavtuai/guildgate";
+import {createGuildGate} from "@kavtuai/guildgate";
+import {createPostgresAdapter} from "@kavtuai/guildgate/postgres";
+import {attachSocketIo} from "@kavtuai/guildgate/realtime";
 ```
 
-Dahili `src/` veya `dist/` yollarından import yapma. Yayımlanan ana paket ve alt yolları kullan.
+Dahili `src/` veya `dist/` dosyalarından import yapma. Semver güvencesi ana paket dahil 16 public export yolu için geçerlidir.
 
-## Sonraki adım
+## CLI kontrolü
 
-[Beş dakikalık kurulum](./bes-dakikada-basla.mdx), çalışan bir geliştirme örneği kurar. Üretim ayarları için [ilk yapılandırma](./ilk-yapilandirma.mdx) ve [güvenlik kontrol listesi](../uretim/guvenlik-kontrol-listesi.mdx) sayfalarını birlikte oku.
+```bash
+npx guildgate-doctor --help
+npx guildgate-writing-check --help
+npx guildgate-migration --help
+```
+
+## Sürümü doğrula
+
+```bash
+node -p "require('./node_modules/@kavtuai/guildgate/package.json').version"
+```
+
+Beklenen çıktı `1.1.0` değeridir. Ardından [beş dakikalık kuruluma](./bes-dakikada-basla.mdx) geç.

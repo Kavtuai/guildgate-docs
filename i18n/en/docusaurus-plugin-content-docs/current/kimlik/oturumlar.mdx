@@ -1,41 +1,105 @@
 ---
-title: Opaque sessions
-description: Configure session lifetime, rotation, per-user caps and revocation.
+title: Sessions
+description: Implement opaque session tokens, rotation, atomic per-user caps, and revocation with GuildGate 1.1.0.
 ---
 
-# Opaque sessions
+# Sessions
 
-The browser does not receive a readable token containing identity or authorization data. GuildGate generates a random session value and stores a comparison digest rather than the raw value.
+GuildGate sends an opaque session token to the browser and stores only its hash. The CSRF token is bound to the same session identity.
 
-## Session controls
+## Creating a session
 
-| Control | Purpose |
-| --- | --- |
-| `ttlMs` | Absolute session expiry |
-| `idleTimeoutMs` | Early expiry for inactive sessions |
-| `rotateAfterMs` | Regular opaque-value rotation |
-| `maximumSessionsPerUser` | Cap open sessions per user |
+```ts
+const created = await gate.createSession({
+  userId: discordUser.id,
+  locale: "tr",
+  metadata: {
+    loginMethod: "discord",
+  },
+});
+
+reply.header("Set-Cookie", created.setCookie);
+```
+
+The result contains:
+
+- `session`: the record written to the store
+- `sessionToken`: the opaque value sent only to the client
+- `csrfToken`: the token used by state-changing requests
+- `setCookie`: the secure cookie header
+
+## Time limits
+
+`security.session` contains four bounds:
+
+```ts
+session: {
+  ttlMs: 7 * 24 * 60 * 60_000,
+  idleTimeoutMs: 30 * 60_000,
+  rotateAfterMs: 15 * 60_000,
+  maximumSessionsPerUser: 5,
+}
+```
+
+- `ttlMs`: absolute expiry
+- `idleTimeoutMs`: expiry after inactivity
+- `rotateAfterMs`: token rotation point
+- `maximumSessionsPerUser`: active-session cap for one user
+
+Do not rely only on cookie expiry; validate the store record.
+
+## Atomic per-user cap
+
+In `1.1.0`, the official memory, Redis, and PostgreSQL stores insert a session and evict excess sessions inside one store operation.
+
+Implement this signature for a shared custom store:
+
+```ts
+interface SessionStore {
+  create?(record: SessionRecord, maximumSessionsPerUser: number): Promise<void>;
+}
+```
+
+Calling `listByUser()` followed by separate `delete()` operations creates a race in multi-instance deployments. The kernel keeps a compatibility path when `create()` is absent, but an atomic implementation is preferred for production stores.
 
 ## Rotation
 
-Rotation sends a new value to the browser and invalidates the old value after a short handover window. The store needs atomic updates so concurrent requests do not break an active session.
+When the session reaches its rotation threshold, action metadata may contain replacement session and CSRF tokens. The HTTP adapter must write the replacement cookie and the client must use the new CSRF value.
+
+Do not log the old token or persist it in frontend state. The session cookie should be `HttpOnly`.
 
 ## Revocation
 
-`gate.revokeUserSessions()` revokes open sessions for a user. Use it after account-link changes, suspected access, operator action or other security events.
-
-Revocation should also reach realtime connections. The hub can close affected connections or require fresh authentication.
-
-## Cookie settings
-
-A production cookie should include:
-
-```text
-HttpOnly
-Secure
-SameSite=Lax or a stricter value that fits the application
-Path=/
-A narrow Domain or a host-only cookie
+```ts
+await gate.revokeSession(sessionToken);
+const revokedCount = await gate.revokeUserSessions(userId);
 ```
 
-`SameSite` does not replace CSRF protection. Validate [origin and CSRF](./csrf-origin.mdx) on writes.
+Revoking all sessions for a user is useful after account-security events, owner intervention, or OAuth credential changes.
+
+Use a revocation bus for realtime transports so open connections for the same user close across workers.
+
+## Cookie configuration
+
+The production default uses `__Host-guildgate.sid`. A `__Host-` cookie requires:
+
+- `Secure`
+- `Path=/`
+- no domain attribute
+
+`SameSite` may be `Lax` or `Strict`. Test the OAuth return and application routes before selecting it.
+
+## Clearing an expired cookie
+
+In `1.1.0`, an invalid session resolution adds `clearSessionCookie` metadata. The official Fastify, Express, and Hono adapters send a cookie with `Max-Age=0`.
+
+A custom adapter that ignores this metadata causes the browser to keep sending an invalid cookie on every request.
+
+## Production checks
+
+- Is the session token transported only over HTTPS?
+- Does the store contain any raw token?
+- Is the Redis or PostgreSQL session cap atomic?
+- Is a rotation result written to the correct cookie?
+- Do logout, owner revocation, and expiry close realtime connections?
+- Does audit use `sessionIdHash` rather than the token?

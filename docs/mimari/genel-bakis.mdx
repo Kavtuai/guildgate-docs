@@ -1,39 +1,75 @@
 ---
 title: Mimariye genel bakış
-description: GuildGate çekirdeğini kimlik, action, store ve realtime katmanlarıyla tanı.
+description: GuildGate 1.1.0 çekirdeğinin action, store, transaction, realtime ve gözlem katmanlarını tanı.
 ---
 
 # Mimariye genel bakış
 
-GuildGate dört ana parçayı birbirine bağlar: kimlik, korunan işlemler, store sözleşmeleri ve olay dağıtımı.
+GuildGate, Discord dashboard sunucusunda güvenlik kararlarını ve yazma işlemlerini ortak bir çekirdekte toplar. Arayüz üretmez, uygulama verisini sahiplenmez ve kullandığın HTTP çatısını zorunlu kılmaz.
 
-## Kimlik katmanı
+## Çekirdek
 
-Discord OAuth girişini başlatır, tek kullanımlık `state` kaydını tarayıcı nonce değeriyle eşleştirir, OAuth token'larını uygulamanın anahtar halkasıyla şifreler ve opak oturum açar.
+`createGuildGate()` yapılandırmayı başlangıçta doğrular ve şu yüzeyleri oluşturur:
+
+- `gate.action()` ile korunan işlem tanımı
+- `gate.execute()` ile istek yürütme
+- `gate.sessions` ile oturum yönetimi
+- `gate.cache` ile etiket tabanlı önbellek
+- `gate.owner` ile bakım ve erişim engeli politikaları
+- `gate.revokeSession()` ve `gate.revokeUserSessions()` ile oturum iptali
+
+Çekirdek; origin, oturum, CSRF, politika, rate limit, idempotency, kilit, transaction, audit ve realtime kararlarını aynı istek kimliği altında yürütür.
 
 ## Action katmanı
 
-`gate.action()` şu sırayı görünür tutar:
+Bir action şu parçaları tek tanımda birleştirir:
 
-1. Girdiyi doğrula.
-2. Hedef kaynağı çöz.
-3. HTTP yöntemi, origin, oturum ve CSRF kontrolünü tamamla.
-4. Kullanıcı ve bot izinlerini doğrula.
-5. İstek sınırı, idempotency ve kaynak kilidini al.
-6. Transaction kancasını aç.
-7. Uygulama değişikliğini çalıştır.
-8. Audit/outbox kaydı yaz ve önbelleği temizle.
+1. Girdiyi ayrıştırma
+2. Kaynağı belirleme
+3. Kimlik ve CSRF denetimi
+4. Yetkilendirme
+5. Rate limit ve idempotency
+6. Optimistic revision ve dağıtık kilit
+7. Transaction içinde domain yazımı
+8. Commit sonrasında cache, realtime ve audit sonuçları
+
+`1.1.0` sürümünde yanıt süresi dolduğunda action, alttaki işlem `AbortSignal` değerini dinlemese bile yapılandırılan sınırda döner. Geç tamamlanan idempotent işlem için reservation ve lease sahipliği sınırlı bir süre korunur.
 
 ## Store katmanı
 
-`GuildGateStores`, her veri türü için küçük bir arayüz tanımlar. `composeStores()` farklı uygulamaları tek paket altında birleştirir. Bu sayede oturumu PostgreSQL'de, rate limit ve kilidi Redis'te, audit kaydını mevcut ORM katmanında tutabilirsin.
+`GuildGateStores` on küçük sözleşmeden oluşur:
+
+| Üye | Sorumluluk |
+| --- | --- |
+| `sessions` | Oturum yaşam döngüsü ve kullanıcı başına sınır |
+| `oauthStates` | Tek kullanımlık OAuth state tüketimi |
+| `credentials` | Şifreli OAuth kimlik bilgileri |
+| `rateLimits` | Atomik sayaç ve pencere hesabı |
+| `cache` | TTL, stale süre ve tag temizliği |
+| `idempotency` | Reservation sahipliği ve replay sonucu |
+| `locks` | Lease, yenileme ve fencing token |
+| `audit` | Değişmez olay kaydı ve cursor sayfalama |
+| `outbox` | Claim lease ile olay teslim kuyruğu |
+| `policies` | Bakım, blok ve politika sürümü |
+
+`composeStores()` farklı backend paketlerini bir araya getirir. Örneğin kalıcı kayıtları PostgreSQL'de, kısa ömürlü sayaç ve lease kayıtlarını Redis'te tutabilirsin.
+
+## Transaction katmanı
+
+`TransactionAdapter`, domain yazımı ile zorunlu audit/outbox kayıtlarının aynı commit sınırında çalışmasını sağlar. PostgreSQL bağdaştırıcısı iç içe işlemlerde savepoint kullanır.
+
+Başarılı `COMMIT` sonrasında çalışan bir callback hata verirse domain yazımı geri alınmış sayılmaz. Sonuç, `TransactionPostCommitError` veya action metadata içindeki `postCommitIssues` üzerinden gözlemlenir; yazma yeniden çalıştırılmaz.
 
 ## Realtime katmanı
 
-`createRealtimeHub()` yetkili abonelikleri yönetir. `RealtimeConnection` oturum, sunucu erişimi, sıra numarası, yeniden oynatma ve geri basınç kararlarını bağlantı taşıyıcısından ayırır.
+`createRealtimeHub()` bağlantı yetkisini ve teslim sınırlarını taşıyıcıdan ayırır. WebSocket ve Socket.IO mesajları aynı payload, hız, abonelik, etkinlik ve backpressure kontrollerinden geçer. SSE çıkışı da aynı oturum ve kanal yetkisi modeline bağlanabilir.
 
-## Bağdaştırıcılar
+Sequence ve replay desteği, istemcinin kopma sonrasında kaldığı yerden devam etmesini sağlar. Çoklu worker ortamında olaylar outbox üzerinden claim edilerek dağıtılır.
 
-HTTP bağdaştırıcısı framework nesnelerini GuildGate bağlamına çevirir. Çekirdek, Fastify veya Express'e ait route kararlarını sahiplenmez; uygulama rotayı ve yanıt biçimini seçer.
+## HTTP ve Discord bağdaştırıcıları
 
-Bir yazma isteğinin tam sırasını [işlem yaşam döngüsünde](./islem-yasam-dongusu.mdx) görebilirsin.
+Paket Fastify, Express ve Hono action handler'ları yayımlar. `discord.js` bağdaştırıcısı Discord sunucusu ve izin verisini çekirdeğin beklediği dar arayüze çevirir.
+
+Çekirdek route yapısını, veritabanı şemasını veya Discord istemcisinin yaşam döngüsünü yönetmez. Bu kararlar uygulamada kalır.
+
+Bir isteğin ayrıntılı sırası için [işlem yaşam döngüsüne](./islem-yasam-dongusu.mdx) bak.

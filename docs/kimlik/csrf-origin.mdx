@@ -1,37 +1,93 @@
 ---
-title: CSRF ve origin
-description: Yazma isteklerinde exact-origin ve oturuma bağlı CSRF kontrolünü uygula.
+title: CSRF ve origin denetimi
+description: Exact-origin allowlist, session-bound CSRF ve production URL korumalarını yapılandır.
 ---
 
-# CSRF ve origin
+# CSRF ve origin denetimi
 
-GuildGate iki ayrı kontrol kullanır: tam origin eşleşmesi ve oturuma bağlı CSRF belirteci. Biri diğerinin yerine geçmez.
+Origin kontrolü ve CSRF aynı tehdidin farklı parçalarını kapatır. Origin isteğin hangi web kaynağından geldiğini sınırlar; CSRF token isteğin aktif session tarafından üretildiğini doğrular.
 
-## Tam origin eşleşmesi
+## Exact-origin listesi
 
-`https://panel.example.com`, aşağıdaki adreslerle aynı origin değildir:
+```ts
+security: {
+  allowedOrigins: [
+    "https://dashboard.example.com",
+    "https://admin.example.com",
+  ],
+  // ...
+}
+```
 
-- `http://panel.example.com`
-- `https://admin.panel.example.com`
-- `https://panel.example.com:8443`
-- `https://panel.example.com.evil.test`
+Origin; protocol, hostname ve port ile normalize edilir. Path allowlist'e dahil değildir. Wildcard, substring veya `endsWith()` kontrolü kullanma.
 
-Origin değerini substring, suffix veya düzenli ifadeyle gevşetme. URL ayrıştırıcısından çıkan `origin` alanını izin kümesiyle birebir karşılaştır.
+Şunlar farklı origin'dir:
 
-## Oturuma bağlı CSRF
+- `https://dashboard.example.com`
+- `https://dashboard.example.com:8443`
+- `http://dashboard.example.com`
 
-CSRF belirteci oturum kimliğiyle kriptografik olarak bağlanır. Başka oturumdan alınan geçerli görünümlü değer kabul edilmez.
+## Production URL doğrulaması
 
-İstemci yazma isteğinde:
+`1.1.0` production profilinde şu adresleri reddeder:
 
-1. Oturum çerezini otomatik gönderir.
-2. CSRF değerini özel header ile ekler.
-3. Sunucu origin, session ve CSRF bağını doğrular.
+- HTTPS kullanmayan app URL ve origin
+- `localhost` ve `*.localhost`
+- `127.0.0.0/8`
+- `0.0.0.0`
+- `::` ve `::1`
+- loopback'e eşlenen IPv4-mapped IPv6 adresleri
 
-## Production retleri
+Aynı kontrol Discord OAuth authorize/token endpoint yapılandırmasına da uygulanır. Bu sayede yanlış environment değişkeniyle yerel endpoint'e production token gönderilmesi engellenir.
 
-GuildGate production profilinde boş origin listesi, HTTP origin, localhost origin ve kısa CSRF sırrını reddeder.
+## CSRF secret
+
+`csrfSecret` en az 32 byte olmalıdır. Token, session ID hash'i ve rastgele nonce üzerinden HMAC ile üretilir.
+
+```ts
+const token = gate.csrf.issue(session.idHash);
+const valid = gate.csrf.verify(session.idHash, tokenFromHeader);
+```
+
+Secret'ı source control'e koyma. Rotation yapacaksan mevcut session'ların etkisini planla; tek anahtar değişimi mevcut CSRF token'larını geçersiz kılar.
+
+## Güvensiz yöntemler
+
+`POST`, `PUT`, `PATCH` ve `DELETE` güvensiz yöntem kabul edilir. Action açıkça `csrf: "disabled"` demedikçe session-bound token gerekir.
+
+GET route içinde veri değiştirme. Cache veya crawler davranışı nedeniyle bu, CSRF korumasının dışında yazma oluşturur.
+
+## Header ve cookie düzeni
+
+Örnek istemci isteği:
+
+```ts
+await fetch("/api/guilds/123/settings", {
+  method: "PATCH",
+  credentials: "include",
+  headers: {
+    "content-type": "application/json",
+    "x-csrf-token": csrfToken,
+    "idempotency-key": crypto.randomUUID(),
+  },
+  body: JSON.stringify(payload),
+});
+```
+
+CSRF token'ı session cookie içinde aynı değer olarak tutma. Cookie `HttpOnly` kalırken token kontrollü bir bootstrap endpoint veya HTML payload ile istemciye verilebilir.
 
 ## Proxy notu
 
-Origin kontrolü istemci IP'sine bağlı değildir. IP tabanlı rate limit veya audit hashing kullanıyorsan yalnızca güvenilir proxy zincirinden gelen adresi kabul et.
+Origin kontrolü `Host`, `X-Forwarded-Host` veya referrer yerine gerçek `Origin` header'ını esas almalıdır. Reverse proxy'nin header'ları değiştirmediğini ve HTTPS yönlendirmesini doğru yaptığını test et.
+
+## Testler
+
+- izinli production origin
+- aynı host, farklı port
+- `http`/`https` farkı
+- origin header yok
+- bozuk URL
+- yanlış session'a ait CSRF token
+- eski rotation token'ı
+- safe ve unsafe yöntem farkı
+- loopback ve IPv4-mapped loopback yapılandırması

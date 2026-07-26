@@ -1,43 +1,40 @@
 ---
 title: Example projects
-description: Review GuildGate adapters, store contracts, and realtime integration through focused examples.
+description: Use GuildGate 1.1.0 adapter, store, realtime, and test examples with correct boundaries.
 ---
 
 # Example projects
 
-The package repository keeps focused integrations under `examples/`. Before copying one, read its store and security assumptions.
+The package `examples/` directory contains small integrations. Adapt each example to your own authorization, storage, and deployment conditions.
 
-## HTTP adapters
+## Adapters
 
-- `examples/fastify/`: Fastify routes connected to an action handler
-- `examples/hono/server.ts`: server setup with Hono
-- Express adapter: uses the same action definition through the `@kavtuai/guildgate/express` export
+- Fastify: `@kavtuai/guildgate/fastify`
+- Express: `@kavtuai/guildgate/express`
+- Hono: `@kavtuai/guildgate/hono`
+- discord.js: `@kavtuai/guildgate/discordjs`
 
-The framework owns HTTP transport. Parsing, resource lookup, authorization, idempotency, locking, transactions, and audit decisions stay in the action definition.
+An HTTP adapter establishes the response boundary; parsing, resource lookup, authorization, idempotency, transactions, and audit remain in the action definition.
 
-## Discord.js
+## PostgreSQL and Redis
 
-`examples/discordjs/adapter.ts` maps Discord user and bot permissions into the GuildGate authorization context. Keep the permission shown for the user separate from the permission the bot actually has.
+```ts
+const postgres = createPostgresAdapter({pool});
+await postgres.migrate();
 
-## PostgreSQL and custom stores
+const stores = composeStores(
+  postgres.stores,
+  createRedisEphemeralStores(redis),
+);
+```
 
-- `examples/postgres/setup.ts`: persistent store setup
-- `examples/custom-store/postgres-audit-store.ts`: implementing one store contract independently
+## Realtime and testing
 
-Run contract tests before using a custom store. Atomic consumption, compare-and-set, TTL, and fencing behavior should be explicit rather than assumed from the driver.
+`createRealtimeHub()`, `attachWebSocket()`, `attachSocketIo()`, and `createServerSentEventStream()` share the same session and authorization kernel. A custom transport must call `hub.acceptMessage()` before handling a client message.
 
-## Realtime
+```ts
+const harness = createGuildGateTestHarness();
+const login = await harness.login("user-1", "en");
+```
 
-`examples/realtime/ws.ts` connects a WebSocket transport to `createRealtimeHub()`. Session and guild access are resolved when the connection opens; sequence and replay finish before live delivery starts.
-
-## Status and metrics
-
-`examples/analytics/status-monitor.ts` shows aggregate status data without exposing user records or secrets.
-
-## Bringing an example into your project
-
-1. Pin the package version.
-2. Replace memory stores with production stores.
-3. Match `baseUrl`, origins, and the Discord callback to your environment.
-4. Define user and bot permissions for the real action name.
-5. Run the doctor command, tests, and canary sequence.
+Do not leave memory stores in production. Verify custom stores through `runStoreContract()` and driver-specific race tests.

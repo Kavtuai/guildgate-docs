@@ -1,31 +1,19 @@
 ---
 title: İlk yapılandırma
-description: createGuildGate seçeneklerini geliştirme ve üretim için düzenle.
+description: createGuildGate seçeneklerini, production korumalarını ve 1.1.0 reliability sınırlarını ayarla.
 ---
 
 # İlk yapılandırma
 
-`createGuildGate()` uygulama kimliğini, güvenlik sınırlarını, dilleri ve store paketini tek nesnede alır.
-
 ```ts
 const gate = createGuildGate({
   app: {
-    name: "My Discord Dashboard",
+    name: "Discord Panelim",
     environment: "production",
     baseUrl: "https://panel.example.com",
   },
   owners: ["123456789012345678"],
-  locale: {
-    default: "en",
-    messages: {
-      en: {
-        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
-      },
-      tr: {
-        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
-      },
-    },
-  },
+  locale: {default: "tr"},
   security: {
     allowedOrigins: ["https://panel.example.com"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -38,35 +26,31 @@ const gate = createGuildGate({
     },
   },
   stores,
+  transactions,
+  telemetry,
+  audit: {
+    enabled: true,
+    redactKeys: ["token", "secret", "authorization"],
+    failClosedActions: ["guild.billing.update"],
+  },
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
 });
 ```
 
-## Uygulama alanları
+## Production başlangıç korumaları
 
-| Alan | Karar |
-| --- | --- |
-| `app.name` | Log ve operatör ekranlarında görünen uygulama adı |
-| `app.environment` | Güvenlik varsayımlarını ve store ad alanlarını ayıran ortam |
-| `app.baseUrl` | Dashboard'un dışarıdan erişilen temel adresi |
-| `owners` | Sahip işlemlerini kullanabilen Discord kullanıcı kimlikleri |
-| `locale.default` | Varsayılan hata ve durum dili |
-| `locale.messages` | Uygulamaya ait hata kodu metinleri |
+Production profili HTTPS olmayan `baseUrl`, boş veya wildcard origin, loopback/unspecified/mapped-loopback URL, insecure session cookie ve yetersiz secret değerini reddeder. Discord OAuth endpoint ve callback adresleri de HTTPS olmalıdır.
 
-## Oturum politikası
+## Session sınırı
 
-`ttlMs` mutlak sınırı, `idleTimeoutMs` kullanılmayan oturumun kapanma süresini, `rotateAfterMs` belirteç yenileme aralığını, `maximumSessionsPerUser` ise açık oturum üst sınırını belirler.
+Resmi memory, Redis ve PostgreSQL store'ları `maximumSessionsPerUser` değerini session oluşturma işlemi içinde uygular. Özel paylaşımlı store, `create(record, maximumSessionsPerUser)` ile atomik create-and-evict davranışı sağlamalıdır.
 
-Süreleri birbirinden bağımsız düşünme. Çok uzun mutlak süre ve çok kısa yenileme, ele geçirilen oturumu tek başına durdurmaz; iptal store'u da çalışır durumda olmalı.
+HTTP adapter'ları süresi dolmuş veya iptal edilmiş session gördüğünde cookie temizleme metadata'sı döndürür.
 
-## Üretim korumaları
+## Reliability ayarı
 
-GuildGate production profilinde şunları reddeder:
+`maximumLateSettlementMs`, response deadline sonrasında reservation ve lease sahipliğinin en fazla ne kadar tutulacağını belirler. Uygulama, destekleyen database ve HTTP istemcilerine `context.signal` aktarmalıdır.
 
-- HTTP `baseUrl`
-- boş origin listesi
-- HTTP veya localhost origin
-- Secure özelliği kapalı oturum çerezi
-- HTTP Discord callback adresi
-- kısa CSRF veya audit hashing sırrı
+## Fail-closed audit
 
-Tüm seçenekler için [yapılandırma referansını](../referans/yapilandirma.mdx) aç.
+`failClosedActions` içindeki action için audit ve idempotency etkin, transaction gerekli olmalı; audit store aynı transaction'a katılmalıdır.

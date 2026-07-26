@@ -1,42 +1,119 @@
 ---
-title: Kilit, retry ve circuit breaker
-description: Eş zamanlı yazmaları ve geçici bağımlılık hatalarını kontrollü biçimde ele al.
+title: Kilit, deadline, retry ve circuit breaker
+description: GuildGate 1.1.0 dayanıklılık araçlarını reservation, lease ve geç tamamlanma sınırlarıyla kullan.
 ---
 
-# Kilit, retry ve circuit breaker
+# Kilit, deadline, retry ve circuit breaker
 
-Dayanıklılık ayarları her hatayı tekrar denemek için değil, hangi hatanın güvenle tekrar denenebileceğini açıkça tanımlamak için vardır.
+Dayanıklılık ayarları hatayı gizlemek için değil, işlemin hangi sınırlar içinde tekrar edilebileceğini ve ne zaman duracağını belirlemek için kullanılır.
 
-## Kaynak kilidi
+## Dağıtık lease
 
-Aynı sunucu ayarına gelen eş zamanlı yazmaları tek anahtar altında sırala:
+Action içindeki `concurrency` alanı aynı kaynağa eşzamanlı yazmayı sınırlar:
 
 ```ts
 concurrency: {
   key: (_context, input) => `guild-settings:${input.guildId}`,
   ttlMs: 8_000,
-  waitMs: 500,
+  renewEveryMs: 2_000,
+  waitMs: 250,
 }
 ```
 
-Kilit süresi action timeout değerinden uzun olmalı. Uzun işlemlerde lock renewal kullan. Store, fencing token ile eski kilit sahibinin geç kalan yazısını reddetmeli.
+`LockStore.acquireLease()` destekleniyorsa çekirdek bir fencing token üretir. Lease yenilemesi başarısız olduğunda sahiplik kaybedilmiş kabul edilir.
+
+### Fencing neden gerekli?
+
+Bir worker ağ duraklaması yaşarken lease süresi dolabilir. İkinci worker yeni lease ile yazmayı tamamladıktan sonra ilk worker geri dönebilir. Domain tablosu fencing token saklayıp yalnızca daha büyük token'ı kabul ederse eski worker'ın geç yazımı reddedilir.
+
+```sql
+UPDATE guild_settings
+SET payload = $1, fencing_token = $2
+WHERE guild_id = $3
+  AND fencing_token < $2;
+```
+
+## Deadline
+
+```ts
+timeoutMs: 5_000
+```
+
+`1.1.0`, underlying promise `AbortSignal` değerini dinlemese bile configured sınırda timeout sonucu döndürür. `DeadlineExceededError` içindeki `settlement` promise'i alttaki işlemin daha sonra nasıl sonuçlandığını gösterir.
+
+Uygulama kodu yine de sinyali dinlemelidir:
+
+```ts
+async execute(context, input) {
+  context.signal.throwIfAborted();
+  return repository.update(input, { signal: context.signal });
+}
+```
+
+## Geç tamamlanma sınırı
+
+```ts
+reliability: {
+  maximumLateSettlementMs: 5 * 60_000,
+}
+```
+
+Bu süre, HTTP deadline geçtikten sonra idempotency reservation ve lease sahipliğinin en fazla ne kadar korunacağını belirler. Sınırsız değer kullanma. Idempotency TTL, action deadline ve geç tamamlanma penceresinden uzun olmalıdır.
+
+Geç işlem commit ederse sonuç idempotency store'a yazılır ve sonraki aynı istek replay ile sonucu alabilir.
 
 ## Retry
 
-Ağ kesintisi, 429 ve bazı 5xx yanıtları tekrar denenebilir. Doğrulama, yetki, revision veya ürün kuralı hatalarını tekrar deneme.
+```ts
+retry: {
+  attempts: 3,
+  baseDelayMs: 50,
+  maximumDelayMs: 500,
+}
+```
 
-Retry politikası şu sınırları taşımalı:
+Retry uygulanacak hata sınıfını dar tut. Validation, authorization, revision conflict ve reservation loss tekrar edilmemelidir.
 
-- düşük deneme sayısı
-- jitter eklenmiş backoff
-- ortak timeout bütçesi
-- abort sinyaline saygı
-- idempotent olmayan yazmalarda idempotency anahtarı
+Retry öncesinde şu soruları cevapla:
+
+- Domain yazımı aynı idempotency key altında mı?
+- Harici API çağrısı kendi idempotency anahtarını kabul ediyor mu?
+- Lease aynı worker tarafından hâlâ tutuluyor mu?
+- Yeni deneme toplam deadline içinde mi?
 
 ## Circuit breaker
 
-Discord API veya store sürekli hata veriyorsa yeni çağrıları kısa süre durdur. Breaker durumunu kullanıcıya iç hata adıyla gösterme; sabit hata kodu ve uygun yeniden deneme süresi döndür.
+```ts
+circuitBreaker: {
+  name: "discord.guild.update",
+  failureThreshold: 5,
+  resetAfterMs: 30_000,
+}
+```
 
-## Timeout
+Breaker açıkken yeni çağrı hemen reddedilir. Bu, bozuk bir bağımlılığa sınırsız kuyruk oluşturmayı önler. Breaker anahtarını tenant veya endpoint sayısına göre gereksiz yüksek cardinality ile üretme.
 
-Action timeout değeri yalnızca Promise yarışını bitirmemeli. Abort sinyalini Discord istemcisine, Redis çağrısına ve veritabanı sorgusuna aktar.
+## Cache stampede
+
+`CacheManager`, cache miss sırasında yenilenebilir lease kullanabilir. Kilit meşgulse fallback loader çalışabilir. Fallback sonucu cache'e yazarken lease/fencing politikasını koru; aynı key için kontrolsüz paralel refresh başlatma.
+
+## Hata gözlemi
+
+- timeout sayısı ve gerçek settlement süresi
+- retry sayısı
+- breaker state değişimi
+- lease acquire/renew/release hatası
+- reservation ownership loss
+- stale fencing write reddi
+
+ölçülmelidir. Kullanıcıya kararlı hata kodu dönerken server logu `requestId` ve action adını taşımalıdır.
+
+## Testler
+
+- işlem sinyali dinlemiyor ama yanıt deadline'da dönüyor
+- geç commit sonucu replay ediliyor
+- `maximumLateSettlementMs` sonunda sahiplik bırakılıyor
+- eski reservation yeni kaydı tamamlayamıyor
+- lease renewal kaybı action'ı durduruyor
+- stale fencing token SQL yazımı reddediliyor
+- breaker reset sonrası kontrollü deneme yapıyor

@@ -1,46 +1,102 @@
 ---
 title: Errors and locales
-description: Map stable error codes to safe Turkish and English user messages.
+description: Handle GuildGate error codes, HTTP statuses, retry metadata, and Turkish-English messages safely.
 ---
 
 # Errors and locales
 
-GuildGate represents decisions with stable error codes. Choose the user-facing text through `locale.messages`.
+A GuildGate error result contains a stable code, user message, HTTP status, and retry information.
+
+```ts
+if (!result.ok) {
+  console.error({
+    requestId: result.meta.requestId,
+    code: result.error.code,
+    status: result.error.status,
+    retryable: result.error.retryable,
+  });
+}
+```
+
+## Result shape
+
+```ts
+{
+  ok: false,
+  error: {
+    code: "revision_conflict",
+    message: "The resource changed in another operation.",
+    status: 409,
+    retryable: false,
+    details: {
+      expected: 4,
+      current: 5,
+    },
+  },
+  meta: {
+    requestId: "...",
+    locale: "en",
+  },
+}
+```
+
+`details` must contain only client-safe fields. Do not return SQL, stacks, tokens, or raw driver errors.
+
+## Locale resolution
+
+The request locale is narrowed to a supported value; unsupported input falls back to the configured default. The package includes `tr` and `en` messages.
 
 ```ts
 locale: {
-  default: "en",
+  default: "tr",
   messages: {
     tr: {
-      MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
-    },
-    en: {
-      MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+      maintenance: "Panel kısa süreli bakımda.",
     },
   },
 }
 ```
 
-## Keep these out of user messages
+An override key should match the stable error code. Keep code and display text separate; do not bind frontend logic to translated prose.
 
-- stack traces
-- store names or Redis keys
-- tokens, cookies, nonces, or OAuth codes
-- raw Discord error bodies
-- database queries
-- internal class names and file paths
+## Important 1.1 error areas
 
-## HTTP mapping
+- deadline and timeout
+- idempotency conflict
+- idempotency reservation loss
+- revision conflict
+- lock or lease acquisition
+- malformed audit cursor
+- origin or CSRF rejection
+- required, expired, or revoked session
+- maintenance or policy block
+- realtime subscription and message limits
 
-Map a stable GuildGate code to an appropriate HTTP status. Do not use the same string for both operator logs and the user response. Operator context can be detailed; user copy should be safe and actionable.
+Use the installed version's `errors.d.ts` and runtime result for the complete code list.
 
-## Locale selection
+## Retry decision
 
-A practical priority order is:
+`retryable: true` does not mean the client should retry immediately without bounds. A client should:
 
-1. saved user preference
-2. Discord locale
-3. dashboard locale
-4. `locale.default`
+- honor `Retry-After` or rate metadata
+- apply exponential backoff
+- preserve the same idempotency key
+- avoid retrying authorization failures that need user action
 
-Map arbitrary client input to a supported locale. Do not use a free-form locale value as a file path or dynamic import target.
+## Post-commit issues
+
+A successful result may include `meta.postCommitIssues`. This does not mean the domain write failed. The UI should show the committed state while the server handles cache, realtime, or audit retry paths.
+
+## Request ID
+
+`requestId` may be displayed as a support code. Carry the same ID through application logs, traces, and audit records to connect the request chain.
+
+## HTTP adapter
+
+Official adapters handle status and cookie metadata. A custom adapter must:
+
+- write status only once
+- preserve the error code
+- serialize the localized message safely
+- apply `clearSessionCookie` and replacement tokens
+- avoid exposing the server error cause

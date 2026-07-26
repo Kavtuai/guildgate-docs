@@ -50,3 +50,38 @@ button,input {font:inherit}
 .gg-inline-icon{margin-right:.35rem;color:var(--ifm-color-primary)}
 @media(max-width:996px){.navbar__items--right .navbar__item{display:none}.theme-doc-markdown table{display:block}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.pagination-nav__link{transition:none}}
+
+/* IDE benzeri kod blokları */
+.theme-code-block {
+  overflow: hidden;
+  border: 1px solid #d7e1ec;
+  border-radius: 12px;
+  background: #f7f9fc;
+  box-shadow: 0 12px 30px rgba(30, 54, 86, .08)!important;
+}
+
+.theme-code-block pre,
+.prism-code {
+  font-family: "Cascadia Code", "JetBrains Mono", "SFMono-Regular", Consolas, monospace!important;
+  font-size: .86rem!important;
+  line-height: 1.68!important;
+  tab-size: 2;
+}
+
+[data-theme='light'] .prism-code {background: #f7f9fc!important}
+[data-theme='dark'] .theme-code-block {border-color: rgba(132, 160, 198, .16); background: #0b1220; box-shadow: 0 14px 34px rgba(0, 0, 0, .22)!important}
+[data-theme='dark'] .prism-code {background: #0b1220!important}
+
+[class*='codeBlockTitle'] {
+  padding: .72rem 1rem!important;
+  border-bottom: 1px solid #d7e1ec!important;
+  background: #eef3f8!important;
+  color: #334155!important;
+  font-family: "Cascadia Code", "JetBrains Mono", "SFMono-Regular", Consolas, monospace!important;
+  font-size: .76rem!important;
+  font-weight: 700!important;
+}
+
+[data-theme='dark'] [class*='codeBlockTitle'] {border-bottom-color: rgba(132, 160, 198, .16)!important; background: #101a2a!important; color: #b9c7da!important}
+[class*='codeBlockLines'] {padding: 1rem 1.15rem!important}
+.theme-code-block button {border-radius: 7px!important}
