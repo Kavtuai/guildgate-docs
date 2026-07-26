@@ -1,49 +1,46 @@
 ---
-title: Üretim güvenlik listesi
-description: Yayına çıkmadan önce doğrulanacak sunucu, oturum, veri ve bağlantı ayarları.
+title: Üretim güvenlik kontrol listesi
+description: GuildGate dağıtımını açmadan önce kimlik, store, proxy ve gözlem sınırlarını doğrula.
 ---
 
-# Üretim güvenlik listesi
+# Üretim güvenlik kontrol listesi
 
-## Adres ve proxy
+## Kimlik ve sırlar
 
-- Yönetim paneli ve OAuth geri dönüş adresleri HTTPS kullanıyor.
-- `allowedOrigins` içinde localhost yok.
-- Reverse proxy güven ayarı bilinen proxy katmanıyla sınırlı.
-- İstemci IP'si doğrulanmamış üstbilgiden alınmıyor.
-
-## Sırlar
-
-- Bot belirteci, OAuth istemci sırrı ve şifreleme anahtarı sunucuda tutuluyor.
-- CSRF sırrı ile audit salt farklı değerler.
-- `.env` Git geçmişinde yok.
-- Anahtar rotasyonu ve eski anahtarla çözme süresi belirli.
+- [ ] `baseUrl` ve Discord callback HTTPS kullanıyor.
+- [ ] Origin listesinde HTTP, localhost ve wildcard yok.
+- [ ] CSRF sırrı ile audit salt farklı ve yeterince uzun.
+- [ ] OAuth token keyring kaynak kodunun dışında tutuluyor.
+- [ ] Bot token, client secret ve store bağlantıları istemci bundle'ına girmiyor.
 
 ## Oturum
 
-- Çerez `HttpOnly` ve `Secure`.
-- Toplam ömür, boşta kalma ve rotasyon sınırları tanımlı.
-- Çıkış sunucudaki oturumu iptal ediyor.
-- Kullanıcı başına oturum üst sınırı var.
+- [ ] Çerez `HttpOnly` ve `Secure`.
+- [ ] Mutlak süre, idle süre, rotasyon ve kullanıcı oturum sınırı tanımlı.
+- [ ] Kullanıcı oturumlarını topluca iptal etme yolu test edildi.
+- [ ] Oturum iptali WebSocket/SSE bağlantılarını da kapatıyor.
 
-## Yazma işlemleri
+## Store
 
-- Her işlem girdiyi doğruluyor.
-- Her işlem hedef kaynak ile yetki kararını tanımlıyor.
-- İstek sınırı ve zaman aşımı var.
-- Yeniden denenebilen işlemlerde tekrarlı istek koruması kullanılıyor.
-- Aynı kaynağa yazmada kilit ve revision kontrolü var.
-- Denetim kaydı başarısız işlemi başarıdan ayırıyor.
+- [ ] Session, OAuth credential, audit, outbox ve policy kalıcı store kullanıyor.
+- [ ] Rate limit, idempotency, cache ve kilit tüm instance'lar tarafından paylaşılıyor.
+- [ ] OAuth state consume işlemi atomik.
+- [ ] Kilit renewal ve fencing testi geçti.
+- [ ] Audit/outbox uygulama değişikliğiyle aynı transaction'a girebiliyor.
 
-## Veri
+## Uygulama
 
-- Kalıcı depolar yeniden başlatmada veri kaybetmiyor.
-- Redis prefix'i ortam adına göre ayrılmış.
-- Saklama temizliği düzenli çalışıyor.
-- Hassas OAuth alanları şifreli.
+- [ ] Kullanıcı ve bot izinleri ayrı kontrol ediliyor.
+- [ ] Optimistic revision eski güncellemeyi reddediyor.
+- [ ] Abort sinyali Discord, Redis ve DB çağrılarına taşınıyor.
+- [ ] Kullanıcı yanıtları stack trace ve iç hata ayrıntısı içermiyor.
+- [ ] Reverse proxy güven sınırı açıkça yapılandırıldı.
 
-## Gerçek zamanlı bağlantılar
+## Doğrulama
 
-- Origin ve oturum bağlantı açılırken kontrol ediliyor.
-- Kanal aboneliğinde yeniden yetki kontrolü var.
-- Mesaj boyutu, hız, bağlantı ömrü ve abonelik sınırı tanımlı.
+```bash
+npm run typecheck
+npm test
+npm run pack:check
+npx guildgate-doctor --json
+```

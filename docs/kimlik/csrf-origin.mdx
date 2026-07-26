@@ -1,36 +1,37 @@
 ---
-title: CSRF ve origin kontrolü
-description: Yazma isteklerinde uygulanan iki ayrı doğrulama.
+title: CSRF ve origin
+description: Yazma isteklerinde exact-origin ve oturuma bağlı CSRF kontrolünü uygula.
 ---
 
-# CSRF ve origin kontrolü
+# CSRF ve origin
 
-GuildGate yazma isteğinde iki ayrı koşul arar:
+GuildGate iki ayrı kontrol kullanır: tam origin eşleşmesi ve oturuma bağlı CSRF belirteci. Biri diğerinin yerine geçmez.
 
-1. İstek origin'i izin verilen adreslerden biri olmalı.
-2. CSRF belirteci açık oturuma bağlı olmalı.
+## Tam origin eşleşmesi
 
-CORS bu kontrollerin yerine geçmez. CORS, tarayıcının yanıtı okuyup okuyamayacağını etkiler; istek sunucuya yine ulaşabilir. Bu nedenle origin sunucuda ayrıca doğrulanır.
+`https://panel.example.com`, aşağıdaki adreslerle aynı origin değildir:
 
-## İzin verilen origin'ler
+- `http://panel.example.com`
+- `https://admin.panel.example.com`
+- `https://panel.example.com:8443`
+- `https://panel.example.com.evil.test`
 
-```ts
-security: {
-  allowedOrigins: [
-    "https://panel.example.com",
-  ],
-}
-```
+Origin değerini substring, suffix veya düzenli ifadeyle gevşetme. URL ayrıştırıcısından çıkan `origin` alanını izin kümesiyle birebir karşılaştır.
 
-Joker karakter kullanma. Protokol, host ve port birlikte karşılaştırılır.
+## Oturuma bağlı CSRF
 
-## İstemci isteği
+CSRF belirteci oturum kimliğiyle kriptografik olarak bağlanır. Başka oturumdan alınan geçerli görünümlü değer kabul edilmez.
 
-Ön yüz, oturuma bağlı CSRF değerini sunucudan alır ve yazma isteğinde beklenen üstbilgiyle geri gönderir. Üstbilgi adı ile belirteç üretimi için kurulu paketin TypeScript tiplerini esas al.
+İstemci yazma isteğinde:
 
-<div className="gg-callout">
-  <i className="bi bi-sign-stop" aria-hidden="true"></i>
-  <div><strong>GET ile veri değiştirme</strong><p>HTTP yöntemi güvenlik kontrolü değildir. Veri değiştiren uç noktaları yazma yöntemleriyle tanımla ve aynı denetimleri uygula.</p></div>
-</div>
+1. Oturum çerezini otomatik gönderir.
+2. CSRF değerini özel header ile ekler.
+3. Sunucu origin, session ve CSRF bağını doğrular.
 
-Origin örneklerini [komut laboratuvarında](/docs/araclar/komut-laboratuvari) deneyebilirsin.
+## Production retleri
+
+GuildGate production profilinde boş origin listesi, HTTP origin, localhost origin ve kısa CSRF sırrını reddeder.
+
+## Proxy notu
+
+Origin kontrolü istemci IP'sine bağlı değildir. IP tabanlı rate limit veya audit hashing kullanıyorsan yalnızca güvenilir proxy zincirinden gelen adresi kabul et.

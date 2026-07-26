@@ -1,28 +1,49 @@
 ---
-title: Kalıcı kayıtlar
-description: Uygulamanın kendi veritabanında tutması gereken veriler.
+title: Kalıcı kayıtlar ve transaction
+description: Oturum, OAuth, audit, outbox ve policy verisini tutarlı biçimde sakla.
 ---
 
-# Kalıcı kayıtlar
+# Kalıcı kayıtlar ve transaction
 
-GuildGate veritabanını seçmez. PostgreSQL, MySQL veya başka bir sistem kullanabilir; depo sözleşmelerini kendi veri katmanına bağlayabilirsin.
+Kalıcı store'lar yalnızca süreç yeniden başlayınca veriyi korumaz; güvenlik kararlarının birden fazla instance arasında aynı kalmasını da sağlar.
 
-## Kalıcı tutulacak kayıt örnekleri
+## Kalıcı tutulacak başlıca kayıtlar
 
-- Aktif oturumlar ve iptal bilgisi
-- OAuth belirteç kayıtları
-- Denetim kayıtları
-- Uzun ömürlü kullanıcı tercihleri
-- Yeniden başlatma sonrasında korunacak güvenlik olayları
+- oturum özeti ve iptal durumu
+- şifreli OAuth credential kaydı
+- audit olayı
+- outbox teslim kaydı
+- operatör ve bakım politikası
+- gerektiğinde optimistic revision
 
-## Veri katmanı kuralları
+## Transaction düzeni
 
-- Belirteç gibi hassas alanları uygulama anahtarlarıyla şifrele.
-- Parametreli sorgu kullan.
-- Oturum ve OAuth kayıtları için düzenli saklama temizliği çalıştır.
-- Denetim tablosuna süre veya hacim sınırı koy.
-- Ürün yazmalarını işlem ve revision modeliyle bağla.
+```text
+BEGIN
+  mevcut revision oku
+  yeni ayarı yaz
+  audit satırını ekle
+  outbox olayını ekle
+COMMIT
+```
 
-## Bellek deposunun sınırı
+Revision uyuşmazsa transaction'ı kapat ve kullanıcıya güncel veriyi yeniden yüklemesini söyle. Kaynak kilidi bu kontrolü kaldırmaz.
 
-Tek süreçte bulunan oturum ikinci süreçte görünmeyebilir. Dağıtım veya çökme sonrasında bütün kullanıcıların oturum kaybetmesi de üretim için uygun değildir. Kalıcılık kararını ilk kurulumda ver.
+## Audit kaydı
+
+Audit satırı şu bağlamı taşıyabilir:
+
+- action adı
+- aktör kullanıcı kimliği
+- kaynak türü ve kimliği
+- istek/correlation kimliği
+- sonuç kodu
+- önceki ve yeni revision
+- hashlenmiş IP bağlamı
+- zaman
+
+Token, çerez, OAuth code, şifreleme anahtarı ve ham IP kayda girmemeli.
+
+## Retention
+
+Oturum ve OAuth state TTL ile temizlenir. Audit ve outbox için ürün, hukuk ve operasyon gereksinimine göre ayrı saklama süreleri tanımla.

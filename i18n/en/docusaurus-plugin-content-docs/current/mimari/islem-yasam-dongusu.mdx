@@ -1,0 +1,50 @@
+---
+title: Action lifecycle
+description: Follow the accept, reject and persistence path for a protected write.
+---
+
+# Action lifecycle
+
+An action calls application code only after its preconditions pass.
+
+```text
+HTTP adapter
+  │
+  ├─ method + body limits
+  ├─ exact origin
+  ├─ opaque session
+  └─ session-bound CSRF
+        │
+        ▼
+parse → resource → policy/maintenance
+        │
+        ▼
+Discord user permission + bot permission
+        │
+        ▼
+rate limit → idempotency → resource lock
+        │
+        ▼
+transaction hook → execute
+        │
+        ▼
+audit + outbox → cache invalidation → response
+```
+
+## Rejection points
+
+Each rejection uses a stable error code. The user-facing message may be localized, but stack traces, store keys, tokens, encryption details and internal error objects stay out of the response.
+
+## Transaction boundary
+
+The action lifecycle exposes a transaction hook; the store implementation opens the transaction. Keep the application write, audit/outbox record and optimistic revision check in one transaction when they share a database.
+
+## Lock loss
+
+If the distributed lock cannot renew, the action should stop. A fencing token lets the store reject a late write from a stale owner.
+
+## Successful response
+
+Return success after cache invalidation and event sequencing complete. An outbox worker may deliver external events later, while the application row and outbox row remain in one commit.
+
+See [`action()`](../istek-katmani/action.mdx) for an implementation example.

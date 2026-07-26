@@ -1,53 +1,40 @@
 ---
 title: Bellek ve Redis
-description: Yerel geliştirme depoları ile dağıtık kısa ömürlü kayıtlar.
+description: Geliştirme store'larını ve kısa ömürlü Redis kayıtlarını doğru yerde kullan.
 ---
 
 # Bellek ve Redis
 
-Bellek deposu yerel test için uygundur. Birden fazla sunucu sürecinde ortak durum sağlamaz ve süreç kapanınca kayıtları kaybeder.
+## Bellek store'ları
 
-Kısa ömürlü kayıtları Redis'e taşıyabilirsin:
+`createMemoryStoreBundle()` yerel geliştirme, örnek ve birim testi için hızlı bir başlangıç sağlar.
 
 ```ts
-import {
-  composeStores,
-  createMemoryStoreBundle,
-} from "@kavtuai/guildgate";
+const stores = createMemoryStoreBundle();
+```
+
+Süreç kapanınca tüm kayıtlar silinir. Birden fazla instance aynı veriyi paylaşmaz. Bu nedenle production oturumu, OAuth kaydı, audit, outbox veya dağıtık kilit için bellek store'u kullanma.
+
+## Redis store'ları
+
+`createRedisEphemeralStores()` rate limit, cache, idempotency, OAuth state ve kilit gibi kısa ömürlü kayıtları merkezi Redis'e bağlar.
+
+```ts
 import {
   createRedisEphemeralStores,
   fromNodeRedis,
 } from "@kavtuai/guildgate/redis";
 
-const temporary = createRedisEphemeralStores(
+const ephemeral = createRedisEphemeralStores(
   fromNodeRedis(redis),
-  {prefix: "mybot:guildgate"},
-);
-
-const stores = composeStores(
-  createMemoryStoreBundle(),
-  {
-    ...temporary,
-  },
+  {prefix: "guildgate:production"},
 );
 ```
 
-## Redis'e uygun kayıtlar
+## Ad alanı
 
-- OAuth `state` kayıtları
-- Kısa süreli `nonce` kayıtları
-- İstek sınırı sayaçları
-- Tekrarlı istek kayıtları
-- Dağıtık kaynak kilitleri
-- Geçici gerçek zamanlı bağlantı durumu
+Production, staging ve test aynı Redis'i kullanıyorsa ayrı prefix seç. Paket sürümü yerine ortam ve uygulama kimliğini kullan; sürüm yükseltmesi eski kayıtları gereksiz yere erişilmez bırakmasın.
 
-## Prefix seçimi
+## Kilit güvenliği
 
-Aynı Redis kümesini birden fazla uygulama kullanıyorsa proje ve ortam adını prefix'e ekle:
-
-```text
-fieldbot:production:guildgate
-fieldbot:staging:guildgate
-```
-
-Bellek deposu bileşimi öğrenmek ve test etmek için kullanışlıdır. Yeniden başlatma sonrasında korunması gereken kayıtları kalıcı depoya bağla.
+Redis kilidi TTL ile bırakıp unutulan basit bir anahtar olmamalı. Yenileme ve fencing token desteği, geciken iş sahibinin yeni sahibin ardından yazmasını engeller.

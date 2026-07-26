@@ -1,0 +1,30 @@
+{
+  "title": {
+    "message": "GuildGate",
+    "description": "The title in the navbar"
+  },
+  "item.label.Dokümanlar": {
+    "message": "Docs",
+    "description": "Navbar item with label Dokümanlar"
+  },
+  "item.label.Kurulum": {
+    "message": "Install",
+    "description": "Navbar item with label Kurulum"
+  },
+  "item.label.Konsol": {
+    "message": "Console",
+    "description": "Navbar item with label Konsol"
+  },
+  "item.label.API": {
+    "message": "API",
+    "description": "Navbar item with label API"
+  },
+  "item.label.npm": {
+    "message": "npm",
+    "description": "Navbar item with label npm"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}

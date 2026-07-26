@@ -1,0 +1,43 @@
+---
+title: Example projects
+description: Review GuildGate adapters, store contracts, and realtime integration through focused examples.
+---
+
+# Example projects
+
+The package repository keeps focused integrations under `examples/`. Before copying one, read its store and security assumptions.
+
+## HTTP adapters
+
+- `examples/fastify/`: Fastify routes connected to an action handler
+- `examples/hono/server.ts`: server setup with Hono
+- Express adapter: uses the same action definition through the `@kavtuai/guildgate/express` export
+
+The framework owns HTTP transport. Parsing, resource lookup, authorization, idempotency, locking, transactions, and audit decisions stay in the action definition.
+
+## Discord.js
+
+`examples/discordjs/adapter.ts` maps Discord user and bot permissions into the GuildGate authorization context. Keep the permission shown for the user separate from the permission the bot actually has.
+
+## PostgreSQL and custom stores
+
+- `examples/postgres/setup.ts`: persistent store setup
+- `examples/custom-store/postgres-audit-store.ts`: implementing one store contract independently
+
+Run contract tests before using a custom store. Atomic consumption, compare-and-set, TTL, and fencing behavior should be explicit rather than assumed from the driver.
+
+## Realtime
+
+`examples/realtime/ws.ts` connects a WebSocket transport to `createRealtimeHub()`. Session and guild access are resolved when the connection opens; sequence and replay finish before live delivery starts.
+
+## Status and metrics
+
+`examples/analytics/status-monitor.ts` shows aggregate status data without exposing user records or secrets.
+
+## Bringing an example into your project
+
+1. Pin the package version.
+2. Replace memory stores with production stores.
+3. Match `baseUrl`, origins, and the Discord callback to your environment.
+4. Define user and bot permissions for the real action name.
+5. Run the doctor command, tests, and canary sequence.

@@ -1,0 +1,42 @@
+---
+title: Locks, retries, and circuit breakers
+description: Control concurrent writes and temporary dependency failures without hiding real errors.
+---
+
+# Locks, retries, and circuit breakers
+
+Resilience settings are not an excuse to retry every failure. They define which failures are safe to repeat and how much time the operation may spend doing so.
+
+## Resource locks
+
+Serialize concurrent writes to the same guild resource under one key:
+
+```ts
+concurrency: {
+  key: (_context, input) => `guild-settings:${input.guildId}`,
+  ttlMs: 8_000,
+  waitMs: 500,
+}
+```
+
+The lock TTL must exceed the action timeout. Renew long-running locks, and use fencing tokens so a stale lock holder cannot commit a late write.
+
+## Retries
+
+A network interruption, a 429 response, and selected 5xx responses may be retried. Validation, authorization, revision, and business-rule failures should return immediately.
+
+Keep the policy bounded:
+
+- a small attempt count
+- backoff with jitter
+- one shared timeout budget
+- respect for the abort signal
+- an idempotency key for writes that are not naturally idempotent
+
+## Circuit breaker
+
+When Discord or a store keeps failing, stop new calls for a short period. Do not expose the breaker implementation or an internal exception name to the user. Return a stable error code and an appropriate retry delay.
+
+## Timeouts
+
+An action timeout should cancel work, not only stop waiting for a Promise. Pass the abort signal to Discord requests, Redis calls, and database queries.

@@ -1,30 +1,33 @@
 ---
-title: Gerçek zamanlı merkez
-description: Yetkili gerçek zamanlı bağlantıların kurulması.
+title: Realtime hub
+description: WebSocket ve SSE aboneliklerini oturum, yetki, sıra ve geri basınç ile koru.
 ---
 
-# Gerçek zamanlı merkez
+# Realtime hub
 
-`createRealtimeHub()` kendi başına bağlantı sunucusu açmaz. `RealtimeConnection` arayüzü üzerinden `ws`, `uWebSockets.js`, Socket.IO, Bun veya kullandığın taşıma katmanına bağlanır.
+`createRealtimeHub()` bağlantı taşıyıcısından bağımsız bir abonelik merkezi kurar. `RealtimeConnection` her bağlantının kimlik, abonelik ve teslim durumunu taşır.
 
-## Bağlantı kabul koşulları
+## Bağlantı açılışı
 
-Her bağlantıda şu sınırlar bulunmalıdır:
+1. Opak oturumu doğrula.
+2. Kullanıcının istediği sunucuya erişimini çöz.
+3. Abonelik konusunu izin listesiyle karşılaştır.
+4. Son görülen sıra numarasını kontrol et.
+5. Kaçırılan olayları yeniden gönder.
+6. Canlı teslimi başlat.
 
-- İzin verilen `Origin`
-- Geçerli oturum belirteci
-- Kanal bazında yetki kontrolü
-- Mesaj boyutu sınırı
-- Mesaj hızı sınırı
-- Boşta kalma süresi
-- En uzun bağlantı ömrü
-- Abonelik sayısı üst sınırı
-- Yavaş istemci yönetimi
+## WebSocket
 
-## Kanal yetkisi
+Paket örneklerinde `examples/realtime/ws.ts` bulunur. Hatalı JSON, bağlantıyı invalid-data close code ile kapatır. İç parse hatası veya stack trace istemciye gitmez.
 
-Panel oturumu, bütün sunucuların olay kanalına abone olma hakkı vermez. Abonelik sırasında hedef `guildId` için yeniden yetki kontrolü yap.
+## SSE
 
-## Olay üretimi
+SSE bağdaştırıcısı event kimliği ve data satırlarını doğru biçimde yazar. İstemci okumayı bıraktığında kuyruk sınırsız büyümez; geri basınç sınırı aşılırsa bağlantı kapanır.
 
-Başarı olayını veritabanı işlemi tamamlandıktan sonra yayınla. Başarısız kayıt için başarı olayı üretme. Böylece istemci, sunucuda gerçekleşmemiş bir değişikliği olmuş gibi göstermez.
+## Sıra ve replay
+
+Her olay artan bir sequence değeri taşır. İstemci yeniden bağlanırken son gördüğü değeri verir. Hub, retention penceresinde kalan olayları sırayla gönderir ve ardından canlı akışa geçer.
+
+## Oturum iptali
+
+Kullanıcı oturumu iptal edildiğinde aktif bağlantıları kapat. Yalnızca yeni aboneliklerde kontrol yapmak yeterli değildir.

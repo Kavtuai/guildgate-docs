@@ -1,0 +1,32 @@
+---
+title: Audit, outbox, and telemetry
+description: Record security decisions, separate event delivery, and measure behavior without leaking secrets.
+---
+
+# Audit, outbox, and telemetry
+
+These channels answer different questions:
+
+- **Audit:** Who requested what, against which resource, and what was the decision?
+- **Outbox:** Which event must be delivered after a successful change?
+- **Telemetry:** Where is the system slow or failing?
+
+## Audit
+
+Treat an audit row as an append-only security record. Store the action name and stable error code, not the localized message returned to the user.
+
+Avoid raw tokens, cookies, OAuth codes, request bodies, and unredacted IP addresses. Use a separate salt when you need a stable, privacy-conscious IP-derived context value.
+
+## Outbox
+
+A saved dashboard setting may need to trigger realtime delivery, a webhook, or a background job. Do not wait for that external delivery inside the transaction. Commit the application change and its outbox row together, then let a worker deliver the event.
+
+The worker should record attempts, next retry time, and final disposition without modifying the original application result.
+
+## OpenTelemetry
+
+GuildGate hooks can send action duration, retry count, store latency, and breaker state to your existing OpenTelemetry setup. Keep secret material and full user payloads out of span attributes.
+
+## Analytics and status monitoring
+
+`examples/analytics/status-monitor.ts` shows how to publish aggregate status data without bypassing security controls. A public status endpoint should contain service health, not personal data or operator-only details.

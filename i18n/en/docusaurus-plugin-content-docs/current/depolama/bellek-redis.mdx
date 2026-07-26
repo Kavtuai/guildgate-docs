@@ -1,0 +1,40 @@
+---
+title: Memory and Redis
+description: Use development stores and short-lived Redis records in the right place.
+---
+
+# Memory and Redis
+
+## Memory stores
+
+`createMemoryStoreBundle()` is useful for local development, examples and unit tests.
+
+```ts
+const stores = createMemoryStoreBundle();
+```
+
+All records disappear when the process stops, and multiple instances do not share data. Do not use memory stores for production sessions, OAuth records, audit, outbox or distributed locks.
+
+## Redis stores
+
+`createRedisEphemeralStores()` connects short-lived records such as rate limits, cache, idempotency, OAuth state and locks to shared Redis.
+
+```ts
+import {
+  createRedisEphemeralStores,
+  fromNodeRedis,
+} from "@kavtuai/guildgate/redis";
+
+const ephemeral = createRedisEphemeralStores(
+  fromNodeRedis(redis),
+  {prefix: "guildgate:production"},
+);
+```
+
+## Namespaces
+
+Use separate prefixes for production, staging and tests. Prefer application and environment identity over a package version so upgrades do not orphan valid records.
+
+## Lock safety
+
+A Redis lock needs renewal and fencing support. A simple key that expires silently cannot stop a stale owner from writing after a new owner acquires the lock.

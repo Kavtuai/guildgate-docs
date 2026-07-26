@@ -1,35 +1,46 @@
 ---
 title: Hatalar ve diller
-description: Hata kodları, Türkçe ve İngilizce mesajlar, güvenli yanıt sınırı.
+description: Sabit hata kodlarını güvenli Türkçe ve İngilizce kullanıcı mesajlarına çevir.
 ---
 
 # Hatalar ve diller
 
-GuildGate Türkçe ve İngilizce hata metinleriyle kullanılabilir. Projene özel metni hata kodu üzerinden değiştirebilirsin.
+GuildGate iç kararları sabit hata kodlarıyla temsil eder. Kullanıcıya gösterilecek metni `locale.messages` üzerinden seçebilirsin.
 
 ```ts
 locale: {
   default: "tr",
   messages: {
     tr: {
-      MAINTENANCE_MODE: "Ayarlar bakım sırasında geçici olarak kapalı.",
+      MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
+    },
+    en: {
+      MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
     },
   },
 }
 ```
 
-## Kullanıcı yanıtı
+## Kullanıcı mesajı ne içermemeli?
 
-Yanıtta kısa hata kodu ve anlaşılır mesaj ver. Şu değerleri dışarı çıkarma:
+- stack trace
+- store veya Redis anahtarı
+- token, çerez, nonce veya OAuth code
+- Discord ham hata gövdesi
+- veritabanı sorgusu
+- iç sınıf veya dosya yolu
 
-- OAuth belirteci
-- Oturum belirteci
-- CSRF sırrı
-- Bot belirteci
-- Veritabanı sorgusu
-- Stack trace
-- Dahili dosya yolu
+## HTTP eşlemesi
 
-## Sunucu günlüğü
+Uygulama sabit hata kodunu uygun HTTP durumuna çevirir. Aynı kodu hem log hem kullanıcı mesajı olarak kullanma; operatör bağlamı ile son kullanıcı metni ayrı kalmalı.
 
-Kullanıcı mesajı kısa kalabilir. Sunucu günlüğünde korelasyon kimliği, işlem adı, kaynak, süre ve güvenli hata sınıfı bulunmalıdır. Üstbilgi ve çerezleri günlük filtresinden geçir.
+## Dil seçimi
+
+Dil kaynağını sırayla belirleyebilirsin:
+
+1. kullanıcı tercihi
+2. Discord locale
+3. dashboard locale
+4. `locale.default`
+
+İstemciden gelen serbest dil etiketini dosya yolu veya dinamik import için kullanma; desteklenen dillerden birine eşleştir.

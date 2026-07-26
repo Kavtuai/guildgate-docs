@@ -1,0 +1,28 @@
+---
+title: Audit, outbox ve telemetri
+description: Güvenlik kararlarını kaydet, olay teslimini ayır ve ölçümleri sır sızdırmadan üret.
+---
+
+# Audit, outbox ve telemetri
+
+Bu üç kanal farklı sorulara cevap verir:
+
+- **Audit:** Kim, hangi kaynakta, hangi sonucu aldı?
+- **Outbox:** Başarılı değişiklikten sonra hangi olay teslim edilmeli?
+- **Telemetri:** Sistem nerede yavaşlıyor veya hata veriyor?
+
+## Audit
+
+Audit satırı değiştirilemez bir olay kaydı gibi ele alınmalı. Kullanıcıya dönen hata metnini değil, sabit hata kodunu ve action adını sakla.
+
+## Outbox
+
+Dashboard ayarı kaydedildiğinde realtime, webhook veya iş kuyruğu olayı göndermek isteyebilirsin. Harici teslimi transaction içinde bekletme. Uygulama değişikliğiyle outbox satırını birlikte commit et; ayrı worker teslimi tamamlasın.
+
+## OpenTelemetry
+
+GuildGate hook'ları action süresini, retry sayısını, store gecikmesini ve breaker durumunu mevcut OpenTelemetry altyapına aktarabilir. Span attribute alanlarına token, cookie, request body veya ham IP yazma.
+
+## Analytics ve status izleme
+
+`examples/analytics/status-monitor.ts`, güvenlik kontrollerini devre dışı bırakmadan durum ve toplu ölçüm üretme biçimini gösterir. Grafik veya status endpoint'i kişisel veri taşımamalı.

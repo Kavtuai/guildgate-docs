@@ -1,0 +1,56 @@
+---
+title: Installation
+description: Add GuildGate 1.0.0 and verify the runtime requirements.
+---
+
+# Installation
+
+## Requirements
+
+- Node.js `22.12.0` or newer
+- A server-side TypeScript or modern JavaScript project
+- A Discord OAuth application
+- HTTPS in production
+
+## Install the package
+
+```bash
+npm install @kavtuai/guildgate
+```
+
+The package ships its TypeScript declarations. Fastify, Express, Hono, your Redis client and database driver remain application choices, so install those separately.
+
+## Verify the installation
+
+```bash
+node ./node_modules/@kavtuai/guildgate/bin/guildgate-doctor.mjs
+```
+
+When the package binary is available through `node_modules/.bin`, you can use:
+
+```bash
+npx guildgate-doctor
+```
+
+JSON output:
+
+```bash
+npx guildgate-doctor --json
+```
+
+The doctor reads environment values inside the local process. It does not upload secrets or print their values.
+
+## Check the imports
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
+```
+
+Do not import from internal `src/` or `dist/` paths. Use the published package and subpath exports.
+
+## Next step
+
+The [five-minute guide](./bes-dakikada-basla.mdx) builds a development setup. Read [initial configuration](./ilk-yapilandirma.mdx) and the [production security checklist](../uretim/guvenlik-kontrol-listesi.mdx) before deployment.

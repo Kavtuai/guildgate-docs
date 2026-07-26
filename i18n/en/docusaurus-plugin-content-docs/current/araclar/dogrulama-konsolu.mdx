@@ -1,0 +1,38 @@
+---
+title: Verification console
+description: Inspect GuildGate decisions through a constrained command set in the browser.
+---
+
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
+# Verification console
+
+The console does not open an operating-system shell, execute arbitrary JavaScript, or send input to a server. It evaluates documented GuildGate rules through a fixed command set.
+
+<CommandPlayground />
+
+## Available checks
+
+| Command | What it inspects |
+| --- | --- |
+| `doctor` | A sample production profile |
+| `config check` | Development and production differences |
+| `origin check` | Exact origin matching |
+| `session policy` | TTL, idle timeout, rotation, and open-session limits |
+| `store check` | Persistent and short-lived store placement |
+| `action test` | The guarded write order |
+| `rate-limit test` | A fixed-window calculation |
+| `realtime check` | Transport, sequence, and replay choices |
+| `security explain` | CSRF, origin, sessions, and locks |
+
+## Safety boundaries
+
+- one line, up to 240 characters
+- 20 evaluations per minute
+- shell operators, redirection, and command substitution are rejected
+- common GitHub, API, MFA, JWT, and bot-token formats are blocked
+- up to 60 history entries, kept only in the current tab's memory
+- output is rendered as text
+- unexpected failures return one safe user-facing message
+
+Use [`guildgate-doctor`](../cli/doctor.mdx) when you need to inspect a real project environment.

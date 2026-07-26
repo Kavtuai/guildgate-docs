@@ -1,0 +1,40 @@
+---
+title: Depo sözleşmeleri
+description: GuildGateStores içindeki store arayüzlerini veri ömrüne göre yerleştir.
+---
+
+# Depo sözleşmeleri
+
+`GuildGateStores`, veri türlerini tek büyük veritabanı sınıfına bağlamaz. Her store kendi atomiklik ve yaşam süresi koşulunu taşır.
+
+| Store | Veri | Üretim yerleşimi |
+| --- | --- | --- |
+| `SessionStore` | Opak oturum özeti, süre, kullanıcı bağı | Kalıcı veritabanı veya güvenilir merkezi store |
+| `OAuthStateStore` | Tek kullanımlık login state | Redis ya da TTL ve atomik consume sunan store |
+| `OAuthCredentialStore` | Şifreli Discord token kayıtları | Kalıcı veritabanı |
+| `RateLimitStore` | Sayaç ve pencere | Redis |
+| `CacheStore` | Kısa ömürlü Discord ve kaynak cache'i | Redis |
+| `IdempotencyStore` | Tekrarlı istek sonucu | Redis veya TTL destekli merkezi store |
+| `LockStore` | Yenilenebilir dağıtık kilit | Redis veya fencing destekli kilit servisi |
+| `AuditStore` | Değişmez denetim satırları | Kalıcı veritabanı |
+| `OutboxStore` | Teslim bekleyen olaylar | Uygulama transaction'ıyla aynı veritabanı |
+| `PolicyStore` | Bakım, blok ve operatör politikaları | Kalıcı ve ortak store |
+
+## Birleştirme
+
+`composeStores()` farklı kaynaklardan gelen store uygulamalarını tek paket altında toplar.
+
+```ts
+const stores = composeStores(
+  postgresStores,
+  createRedisEphemeralStores(fromNodeRedis(redis), {
+    prefix: "guildgate:production",
+  }),
+);
+```
+
+Öncelik ve eksik store davranışını kurulu sürümün tiplerinden kontrol et. Aynı store'u iki farklı pakette tanımlama.
+
+## Sözleşme testi
+
+Özel store yazarken yalnızca TypeScript tipini karşılamak yeterli değildir. Atomik consume, compare-and-set, TTL, lock renewal ve fencing davranışlarını yarış koşulu testleriyle doğrula.

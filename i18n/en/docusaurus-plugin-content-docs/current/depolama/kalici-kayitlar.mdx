@@ -1,0 +1,49 @@
+---
+title: Persistent records and transactions
+description: Store sessions, OAuth, audit, outbox and policies consistently.
+---
+
+# Persistent records and transactions
+
+Persistent stores do more than survive restarts; they keep security decisions consistent across instances.
+
+## Records that normally persist
+
+- session digest and revocation state
+- encrypted OAuth credentials
+- audit events
+- outbox delivery records
+- operator and maintenance policies
+- optimistic revision values where needed
+
+## Transaction layout
+
+```text
+BEGIN
+  read current revision
+  write new settings
+  insert audit row
+  insert outbox event
+COMMIT
+```
+
+On a revision conflict, roll back and ask the client to reload current data. A resource lock does not replace this check.
+
+## Audit record
+
+A useful record may include:
+
+- action name
+- actor user ID
+- resource type and ID
+- request/correlation ID
+- result code
+- previous and new revision
+- hashed IP context
+- timestamp
+
+Do not store tokens, cookies, OAuth codes, encryption keys or raw IP values.
+
+## Retention
+
+Sessions and OAuth state expire with TTL. Define separate retention periods for audit and outbox data according to product, legal and operational needs.

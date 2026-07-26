@@ -1,0 +1,43 @@
+---
+title: Writing standard
+description: Write GuildGate documentation with direct, verifiable, and natural technical language.
+---
+
+# Writing standard
+
+A documentation sentence should help the reader make a decision or complete a task. Remove it when it carries neither.
+
+## Preferred style
+
+- Use active verbs: “Compare the origin value.”
+- State boundaries directly: “Production rejects localhost origins.”
+- Describe behavior instead of praising it: “The state record can be consumed once.”
+- Keep one main idea per paragraph.
+- Use one term consistently instead of rotating synonyms for variety.
+- Put the consequence near the rule that causes it.
+
+## Patterns to avoid
+
+- introductions that inflate the subject's importance
+- unsupported claims such as “critical role,” “landmark,” or “wider ecosystem”
+- brochure copy and generic claims of seamlessness
+- shallow conclusions that only say a feature “improves security”
+- vague references to experts, sources, or general opinion
+- forcing every explanation into groups of three
+- excessive bold text, emoji, title case, dividers, or heading stacks
+- chat remnants addressed to the user
+- placeholders, model-tool citation syntax, and provider artifacts
+- hidden implementation messages in user-facing copy
+
+## Source checking
+
+Open the source. Confirm that its title, author, date, and relevant passage support the claim. Remove tracking parameters. Do not invent a DOI, ISBN, page number, benchmark, or quotation.
+
+## Automated checks
+
+```bash
+npm run editorial:check
+npx guildgate-writing-check
+```
+
+These checks do not determine authorship. They catch residue and project-specific style violations. Technical accuracy still depends on source review, code review, and tests.

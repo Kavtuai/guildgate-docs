@@ -1,34 +1,45 @@
 ---
 title: guildgate-doctor
-description: Kurulum ve ortam tanı komutu.
+description: Dağıtım ayarlarını sırları yazdırmadan denetle.
 ---
-
-import CommandPlayground from '@site/src/components/CommandPlayground';
 
 # `guildgate-doctor`
 
-Tanı komutu proje ve çalışma ortamındaki yaygın yapılandırma sorunlarını raporlar.
+Doctor, GuildGate için gerekli ortam ve güvenlik koşullarını yerel süreçte kontrol eder.
 
 ```bash
 npx guildgate-doctor
 ```
 
-CI veya başka bir araç için JSON çıktısı:
+Makine tarafından okunabilir çıktı:
 
 ```bash
 npx guildgate-doctor --json
 ```
 
-Yardım:
+## Kontrol başlıkları
+
+- Node.js sürümü
+- environment ve `baseUrl`
+- HTTPS callback
+- origin listesi
+- CSRF ve audit hashing sırrı
+- oturum çerezi
+- store yerleşimi
+- Redis ad alanı
+- token cipher/keyring
+- owner kimlikleri
+
+## Çıktı güvenliği
+
+Doctor bir sırrın varlığını ve uzunluk koşulunu kontrol edebilir; değerin kendisini rapora yazmaz. JSON çıktısını CI log'unda kullanmadan önce yine de platform log saklama politikanı gözden geçir.
+
+## CI kullanımı
+
+Doctor risk bulduğunda sıfırdan farklı çıkış kodu vermelidir. Dağıtım adımını bu sonuçla durdur:
 
 ```bash
-npx guildgate-doctor --help
+npx guildgate-doctor --json
+npm test
+npm run pack:check
 ```
-
-Tanı başarılı olsa bile [üretim güvenlik listesini](/docs/uretim/guvenlik-kontrol-listesi) uygula. Komut, ürününe özel rol sırasını ve veri saklama kararını bilemez.
-
-## Örnek çıktı
-
-Aşağıdaki terminal gerçek proje dosyalarını okumadan örnek bir rapor üretir.
-
-<CommandPlayground compact />

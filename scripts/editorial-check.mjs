@@ -1,14 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const roots = ['docs', 'src', '.github'];
-const extensions = new Set(['.md', '.mdx', '.js', '.jsx', '.css', '.yml', '.yaml']);
+const roots = ['docs', 'i18n/en/docusaurus-plugin-content-docs/current', 'src', '.github'];
+const extensions = new Set(['.md', '.mdx', '.js', '.jsx', '.css', '.yml', '.yaml', '.json']);
 const checks = [
-  ['teslim cümlesi', /(?:işte istediğin|memnuniyetle|umarım yardımcı olur)/giu],
-  ['kalıp sonuç', /(?:sonuç olarak|özetle|genel olarak bakıldığında)/giu],
-  ['şişirilmiş giriş', /(?:günümüzün hızla değişen|daha geniş bir perspektiften|çığır açan bir dönüm noktası)/giu],
-  ['tanıtım kalıbı', /(?:kusursuz entegrasyon|sorunsuz deneyim|benzersiz bir çözüm|güçlü ve kapsamlı)/giu],
-  ['gereksiz önem iddiası', /(?:kalıcı bir miras|öneminin altını çizer|hayati bir rol oynar)/giu],
+  ['teslim cümlesi', /(?:işte istediğin|memnuniyetle|umarım yardımcı olur|here(?:'s| is) what you asked for|glad to help)/giu],
+  ['kalıp sonuç', /(?:sonuç olarak|(?:^|[\s.!?])özetle(?:[\s,;.!?]|$)|genel olarak bakıldığında|in conclusion|to summarize|overall,? it is clear)/gimu],
+  ['şişirilmiş giriş', /(?:günümüzün hızla değişen|daha geniş bir perspektiften|çığır açan bir dönüm noktası|in today'?s rapidly evolving|in the ever-evolving|a groundbreaking milestone)/giu],
+  ['tanıtım kalıbı', /(?:kusursuz entegrasyon|sorunsuz deneyim|benzersiz bir çözüm|güçlü ve kapsamlı|seamless integration|unparalleled solution|robust and comprehensive|unlock the power)/giu],
+  ['gereksiz önem iddiası', /(?:kalıcı bir miras|öneminin altını çizer|hayati bir rol oynar|stands as a testament|plays a pivotal role|underscores the importance)/giu],
+  ['belirsiz atıf', /(?:uzmanlara göre|kaynaklara göre|genel görüşe göre|experts say|according to sources|it is widely believed)/giu],
   ['boş şablon alanı', /(?:<link>|\{(?:şirket|proje|isim)[^}]*\}|\[(?:buraya )?(?:kaynak|link) ekle\])/giu],
   ['turn aracı artığı', /turn\d+(?:search|view|fetch|file)\d+/giu],
   ['contentReference artığı', /contentReference/giu],
@@ -17,6 +18,7 @@ const checks = [
   ['sağlayıcı artığı', /grok_(?:card|render_citation_card_json)|attached_file|ppl-ai-file-upload/giu],
   ['writing block artığı', /:::writing\b/giu],
   ['geçici büyük placeholder', /PASTE_[A-Z0-9_]+_HERE|TODO_CONTENT|LOREM IPSUM/gu],
+  ['eski konsol etiketi', /yerel simülasyon|local simulation/giu],
 ];
 
 function walk(dir) {
@@ -29,7 +31,10 @@ function walk(dir) {
 
 const intentionalReferencePages = new Set([
   path.normalize('docs/katki/yazi-standardi.mdx'),
+  path.normalize('i18n/en/docusaurus-plugin-content-docs/current/katki/yazi-standardi.mdx'),
   path.normalize('src/lib/command-engine.mjs'),
+  path.normalize('docs/cli/writing-check.mdx'),
+  path.normalize('i18n/en/docusaurus-plugin-content-docs/current/cli/writing-check.mdx'),
 ]);
 
 const files = roots

@@ -1,0 +1,46 @@
+---
+title: Production security checklist
+description: Verify identity, stores, proxy boundaries, errors, and observability before launch.
+---
+
+# Production security checklist
+
+## Identity and secrets
+
+- [ ] `baseUrl` and the Discord callback use HTTPS.
+- [ ] The origin list contains no HTTP, localhost, or wildcard entries.
+- [ ] The CSRF secret and audit salt are different and sufficiently long.
+- [ ] The OAuth token keyring is stored outside source control.
+- [ ] Bot tokens, client secrets, and store credentials never enter the browser bundle.
+
+## Sessions
+
+- [ ] The cookie is `HttpOnly` and `Secure`.
+- [ ] Absolute TTL, idle timeout, rotation, and per-user session limit are configured.
+- [ ] Bulk session revocation has been tested.
+- [ ] Revocation closes active WebSocket and SSE connections.
+
+## Stores
+
+- [ ] Sessions, OAuth credentials, audit, outbox, and policy use persistent stores.
+- [ ] Rate limits, idempotency, cache, and locks are shared by all instances.
+- [ ] OAuth state consumption is atomic.
+- [ ] Lock renewal and fencing tests pass.
+- [ ] Audit and outbox rows can commit with the application change.
+
+## Application
+
+- [ ] User and bot permissions are checked separately.
+- [ ] An old optimistic revision cannot overwrite a newer value.
+- [ ] Abort signals reach Discord, Redis, and database calls.
+- [ ] User responses contain no stack traces or internal dependency errors.
+- [ ] The reverse-proxy trust boundary is explicit.
+
+## Release checks
+
+```bash
+npm run typecheck
+npm test
+npm run pack:check
+npx guildgate-doctor --json
+```

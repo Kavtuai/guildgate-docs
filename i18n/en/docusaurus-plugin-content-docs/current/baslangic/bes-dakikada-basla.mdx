@@ -1,0 +1,90 @@
+---
+title: Start in five minutes
+description: Create the first GuildGate instance with memory stores.
+---
+
+# Start in five minutes
+
+This example creates a small development setup. Memory stores are cleared when the process stops; replace them before production.
+
+## 1. Prepare environment values
+
+```env
+BOT_OWNER_ID=123456789012345678
+GUILDGATE_CSRF_SECRET=a-random-value-longer-than-32-bytes
+GUILDGATE_AUDIT_IP_SALT=a-different-random-value
+```
+
+## 2. Create the gate
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
+
+const stores = createMemoryStoreBundle();
+
+export const gate = createGuildGate({
+  app: {
+    name: "My Discord Dashboard",
+    environment: "development",
+    baseUrl: "http://localhost:3000",
+  },
+  owners: [process.env.BOT_OWNER_ID!],
+  locale: {
+    default: "en",
+    messages: {
+      en: {
+        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+      },
+      tr: {
+        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
+      },
+    },
+  },
+  security: {
+    allowedOrigins: ["http://localhost:3000"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+});
+```
+
+## 3. Define the first action
+
+```ts
+export const updateGuildSettings = gate.action({
+  name: "guild.settings.update",
+  parse: parseGuildSettings,
+  resource: ({guildId}) => ({type: "guild", id: guildId}),
+  authorize: ({userId}, input) => canManageGuild(userId, input.guildId),
+  execute: (context, input) => saveGuildSettings(context, input),
+});
+```
+
+`execute` does not run until the earlier checks pass. The HTTP adapter adds session, origin and CSRF context.
+
+## 4. Run the doctor
+
+```bash
+npx guildgate-doctor
+```
+
+The development profile accepts localhost and memory stores. The production profile flags the same values as unsafe.
+
+## 5. Prepare production stores
+
+- Move sessions, OAuth credentials, audit, outbox and policies to persistent storage.
+- Move rate limits, idempotency, cache and distributed locks to Redis.
+- Use HTTPS for the base URL, callback and allowed origins.
+- Add the application-owned keyring for OAuth tokens.
+
+Read [store contracts](../depolama/depo-sozlesmeleri.mdx) and the [action lifecycle](../mimari/islem-yasam-dongusu.mdx) next.

@@ -1,0 +1,60 @@
+---
+title: Public API
+description: Find the main GuildGate 1.0.0 exports, store contracts, adapters, and gate methods.
+---
+
+# Public API
+
+This page summarizes the verified public surface in `1.0.0`. Use the TypeScript declarations shipped with the installed package for exact parameter and return types.
+
+## Core
+
+| Export | Purpose |
+| --- | --- |
+| `createGuildGate` | Creates the configured gate instance |
+| `createMemoryStoreBundle` | Creates an in-memory store bundle for development and tests |
+| `composeStores` | Combines store implementations into one `GuildGateStores` object |
+| `createRealtimeHub` | Creates the transport-neutral realtime hub |
+| `RealtimeConnection` | Represents connection identity and delivery state |
+
+## Store contracts
+
+- `GuildGateStores`
+- `SessionStore`
+- `OAuthStateStore`
+- `OAuthCredentialStore`
+- `RateLimitStore`
+- `CacheStore`
+- `IdempotencyStore`
+- `LockStore`
+- `AuditStore`
+- `OutboxStore`
+- `PolicyStore`
+
+## Redis
+
+| Export | Import path | Purpose |
+| --- | --- | --- |
+| `createRedisEphemeralStores` | `@kavtuai/guildgate/redis` | Creates the short-lived store set |
+| `fromNodeRedis` | `@kavtuai/guildgate/redis` | Adapts a Node Redis client to the required contract |
+
+## HTTP adapters
+
+| Export | Import path |
+| --- | --- |
+| `fastifyActionHandler` | `@kavtuai/guildgate/fastify` |
+| `expressActionHandler` | `@kavtuai/guildgate/express` |
+
+The package also includes Hono and discord.js adapters. Confirm exact export names through the installed package's `exports` field and your IDE completion.
+
+## Gate methods
+
+The verified surface includes:
+
+- `gate.action(...)`
+- `gate.owner.setMaintenance(...)`
+- `gate.owner.block(...)`
+- `gate.owner.unblock(...)`
+- `gate.revokeUserSessions(...)`
+
+Do not import internal file paths. Semver guarantees apply to published exports.

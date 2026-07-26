@@ -1,0 +1,46 @@
+---
+title: Errors and locales
+description: Map stable error codes to safe Turkish and English user messages.
+---
+
+# Errors and locales
+
+GuildGate represents decisions with stable error codes. Choose the user-facing text through `locale.messages`.
+
+```ts
+locale: {
+  default: "en",
+  messages: {
+    tr: {
+      MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
+    },
+    en: {
+      MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+    },
+  },
+}
+```
+
+## Keep these out of user messages
+
+- stack traces
+- store names or Redis keys
+- tokens, cookies, nonces, or OAuth codes
+- raw Discord error bodies
+- database queries
+- internal class names and file paths
+
+## HTTP mapping
+
+Map a stable GuildGate code to an appropriate HTTP status. Do not use the same string for both operator logs and the user response. Operator context can be detailed; user copy should be safe and actionable.
+
+## Locale selection
+
+A practical priority order is:
+
+1. saved user preference
+2. Discord locale
+3. dashboard locale
+4. `locale.default`
+
+Map arbitrary client input to a supported locale. Do not use a free-form locale value as a file path or dynamic import target.

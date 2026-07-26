@@ -1,0 +1,41 @@
+---
+title: Tehdit modeli
+description: GuildGate'in ele aldığı saldırıları ve dışarıda bıraktığı riskleri incele.
+---
+
+# Tehdit modeli
+
+Bu model, internete açık bir Discord dashboard API'sini ve oturum çerezini kullanan tarayıcı istemcisini temel alır.
+
+## Ele alınan riskler
+
+| Risk | Karşılık |
+| --- | --- |
+| Çalınan oturum belirteci | Ham belirteci depolamama, rotasyon, idle/mutlak süre, kullanıcı oturumlarını iptal etme |
+| Login CSRF ve OAuth replay | Tek kullanımlık `state`, tarayıcı nonce bağı, süre sınırı |
+| Cross-site yazma isteği | Tam origin eşleşmesi ve oturuma bağlı CSRF belirteci |
+| Eski Discord yetkisi | Yazma anında kullanıcı ve bot iznini yeniden çözme |
+| Aynı isteğin tekrar gönderilmesi | Idempotency store ve kaynak kapsamlı anahtar |
+| Aynı kaynağa eş zamanlı yazma | Yenilenebilir dağıtık kilit ve fencing token |
+| Discord veya store geçici hatası | Timeout, sınırlı retry ve circuit breaker |
+| Yetkisiz realtime aboneliği | Bağlantı ve abonelik başında oturum/sunucu yetkisi |
+| Denetim kaydının kaybolması | Transaction kancası ve outbox sözleşmesi |
+
+## Paketin tek başına durduramayacağı riskler
+
+- Sunucunun ele geçirilmesi
+- Kaynak koduna yazılmış sırlar
+- Yanlış reverse proxy veya istemci IP ayarı
+- Hatalı ürün yetki kuralı
+- Transaction kullanmayan uygulama servisi
+- Discord bot rolünün hedef rolün altında kalması
+- Zayıf anahtar yönetimi veya yedekleme politikası
+
+## Varsayımlar
+
+- TLS bağlantısını güvenilir proxy veya uygulama sonlandırır.
+- Store uygulamaları sözleşmedeki atomiklik koşullarını korur.
+- Uygulama, iptal ve timeout sinyalini alt katmanlara taşır.
+- Operatör işlemleri ayrı yetki ve audit kaydı kullanır.
+
+Üretim öncesinde [kontrol listesini](../uretim/guvenlik-kontrol-listesi.mdx) kendi altyapınla birlikte değerlendir.

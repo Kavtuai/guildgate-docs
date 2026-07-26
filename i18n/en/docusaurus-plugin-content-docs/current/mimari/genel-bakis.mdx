@@ -1,0 +1,39 @@
+---
+title: Architecture overview
+description: Learn how identity, actions, stores and realtime delivery fit together.
+---
+
+# Architecture overview
+
+GuildGate connects four parts: identity, protected actions, store contracts and event delivery.
+
+## Identity layer
+
+It starts Discord OAuth, binds a one-time state record to a browser nonce, encrypts OAuth tokens with the application-owned keyring and creates an opaque session.
+
+## Action layer
+
+`gate.action()` keeps this order visible:
+
+1. Parse input.
+2. Resolve the target resource.
+3. Check method, origin, session and CSRF.
+4. Check user and bot permissions.
+5. Apply rate limits, idempotency and the resource lock.
+6. Open the transaction hook.
+7. Run the application write.
+8. Record audit/outbox data and invalidate caches.
+
+## Store layer
+
+`GuildGateStores` defines a small interface for each data type. `composeStores()` combines implementations. Sessions may live in PostgreSQL while rate limits and locks use Redis and audit records use an existing ORM.
+
+## Realtime layer
+
+`createRealtimeHub()` manages authorized subscriptions. `RealtimeConnection` separates session, guild access, sequence, replay and backpressure decisions from the transport.
+
+## Adapters
+
+An HTTP adapter converts framework objects into GuildGate context. The core does not own route structure or response shape.
+
+Read the [action lifecycle](./islem-yasam-dongusu.mdx) for the full write path.

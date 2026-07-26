@@ -1,32 +1,22 @@
 ---
 title: guildgate-writing-check
-description: Dokümantasyon metinlerinde kalıp, placeholder ve araç artığı denetimi.
+description: Paket ve doküman metinlerinde placeholder, araç artığı ve tanıtım kalıplarını tara.
 ---
 
 # `guildgate-writing-check`
 
-Bu komut, projedeki dokümantasyon dosyalarını tarar. Eksik klasörleri atlar; bulunan metinlerde bilinen yazım artıklarını, doldurulmamış alanları ve bozuk araç işaretlerini arar.
+Bu komut kullanıcıya açık metinlerde unutulan placeholder, model aracı artığı, bozuk atıf biçimi ve proje tarafından yasaklanan tanıtım kalıplarını tarar.
 
 ```bash
 npx guildgate-writing-check
 ```
 
-Başka bir kök dizin:
+## Ne arar?
 
-```bash
-npx guildgate-writing-check --root ./docs-site
-```
+- `<link>`, `TODO_CONTENT` ve geçici metinler
+- `contentReference`, `oaicite`, `turn...` gibi araç işaretleri
+- bozuk sağlayıcı citation kalıpları
+- teslim cümleleri ve kaynakta kalmış sohbet notları
+- boş önem iddiaları ve reklam dili
 
-Yardım:
-
-```bash
-npx guildgate-writing-check --help
-```
-
-Bu depoda daha dar bir Türkçe denetim de vardır:
-
-```bash
-npm run editorial:check
-```
-
-Komut bir metnin insan mı makine mi tarafından yazıldığını söylemez. Ama yayıma girmemesi gereken placeholder, araç etiketi, bozuk atıf ve tekrar eden kalıpları yakalar. Kuralların ayrıntısı [yazı standardı](/docs/katki/yazi-standardi) sayfasındadır.
+Bu tarama bir “AI dedektörü” değildir. Metnin doğruluğunu, kaynağını veya yazarını belirlemez. Ama yayıma girmemesi gereken kalıntıları CI aşamasında yakalar.

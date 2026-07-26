@@ -1,25 +1,43 @@
 ---
 title: Discord OAuth
-description: Yetkilendirme kodu girişi, state doğrulaması ve belirteç saklama düzeni.
+description: Yetkilendirme kodu girişini state, nonce ve şifreli token saklama ile kur.
 ---
 
 # Discord OAuth
 
-GuildGate, Discord girişini yetkilendirme kodu modeliyle ele alır. Giriş başlatılırken tek kullanımlık ve süreli bir `state` kaydı oluşturulur. Tarayıcıya ayrı bir `nonce` çerezi verilir. Geri dönüş isteğinde iki değer birlikte doğrulanır.
+GuildGate, Discord girişini authorization code modeliyle ele alır. Login başlangıcında kısa ömürlü bir `state` kaydı açar ve tarayıcıya ayrı bir nonce çerezi verir. Callback sırasında state, nonce, süre ve tek kullanımlık tüketim birlikte kontrol edilir.
 
-Bu kontrol, başka tarayıcıda başlatılmış veya daha önce kullanılmış bir giriş isteğinin kabul edilmesini engeller.
+## Giriş sırası
 
-## Belirteç saklama
+```text
+Tarayıcı → login başlangıcı
+Sunucu   → state kaydı + nonce çerezi
+Tarayıcı → Discord yetkilendirme sayfası
+Discord  → callback?code=...&state=...
+Sunucu   → state + nonce + callback doğrulaması
+Sunucu   → code değişimi ve Discord kimliği
+Sunucu   → şifreli OAuth kaydı + opak oturum
+```
 
-OAuth erişim ve yenileme belirteçlerini düz metin tutma. GuildGate, uygulamanın verdiği anahtar halkası üzerinden belirteç şifrelemeyi destekler. Anahtar yönetimi uygulamana aittir ve istemci paketine gönderilmez.
+## State store
 
-## Geri dönüş kuralları
+`OAuthStateStore` şu özellikleri korumalıdır:
 
-- Üretim geri dönüş adresi HTTPS olmalı.
-- Discord Developer Portal'daki yönlendirme adresi uygulama ayarıyla birebir eşleşmeli.
-- `state` tek kullanımdan sonra tüketilmeli.
-- Hata yanıtı belirteç veya dahili hata ayrıntısı içermemeli.
+- tek kullanımlık tüketim
+- kısa yaşam süresi
+- tarayıcı nonce bağı
+- aynı state için atomik consume
+- hata durumunda tekrar kullanılmama
 
-## Giriş tamamlandığında
+## OAuth credential store
 
-Discord kimliği doğrulandıktan sonra sunucu tarafında opak oturum açılır. Tarayıcı, kullanıcı rolü ve Discord yetkisi taşıyan okunabilir bir belirteç almaz.
+`OAuthCredentialStore`, erişim ve yenileme token'larını düz metin tutmamalı. GuildGate şifreleme işini çağıranın sağladığı token cipher veya keyring ile yürütür. Anahtar sürümü kayıtla birlikte tutulursa eski token'ları yeni anahtarla kademeli olarak çevirebilirsin.
+
+## Callback kuralları
+
+- Production callback adresi HTTPS kullanmalı.
+- Discord Developer Portal ve uygulama ayarı birebir eşleşmeli.
+- Callback hatası kullanıcıya token, state, nonce veya Discord yanıt gövdesi göstermemeli.
+- Başarılı girişten sonra eski oturumu döndürmek yerine yeni opak oturum aç.
+
+Oturum politikasını [oturumlar sayfasında](./oturumlar.mdx) tamamla.

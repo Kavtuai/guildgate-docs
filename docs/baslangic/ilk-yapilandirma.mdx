@@ -1,37 +1,33 @@
 ---
 title: İlk yapılandırma
-description: Bellek deposuyla çalışan yerel GuildGate örneği.
+description: createGuildGate seçeneklerini geliştirme ve üretim için düzenle.
 ---
 
 # İlk yapılandırma
 
-Bu örnek yerel geliştirme içindir. Bellek deposundaki kayıtlar süreç kapandığında silinir.
+`createGuildGate()` uygulama kimliğini, güvenlik sınırlarını, dilleri ve store paketini tek nesnede alır.
 
 ```ts
-import {
-  createGuildGate,
-  createMemoryStoreBundle,
-} from "@kavtuai/guildgate";
-
-const stores = createMemoryStoreBundle();
-
 const gate = createGuildGate({
   app: {
-    name: "GuildGate Yönetim Paneli",
-    environment: "development",
-    baseUrl: "http://localhost:3000",
+    name: "My Discord Dashboard",
+    environment: "production",
+    baseUrl: "https://panel.example.com",
   },
-  owners: [process.env.BOT_OWNER_ID!],
+  owners: ["123456789012345678"],
   locale: {
-    default: "tr",
+    default: "en",
     messages: {
+      en: {
+        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+      },
       tr: {
-        MAINTENANCE_MODE: "Bakım sırasında ayar değişiklikleri duraklatıldı.",
+        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
       },
     },
   },
   security: {
-    allowedOrigins: ["http://localhost:3000"],
+    allowedOrigins: ["https://panel.example.com"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
     auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
     session: {
@@ -45,17 +41,32 @@ const gate = createGuildGate({
 });
 ```
 
-## Alanların görevi
+## Uygulama alanları
 
-`app` uygulama adını, ortamı ve temel adresi tanımlar. `owners` uygulama sahiplerinin Discord kullanıcı kimliklerini içerir. `security.allowedOrigins` yalnızca listede birebir bulunan origin adreslerini kabul eder.
-
-| Alan | Görevi |
+| Alan | Karar |
 | --- | --- |
-| `ttlMs` | Oturumun toplam ömrü |
-| `idleTimeoutMs` | İşlem yapılmadığında oturumun kapanacağı süre |
-| `rotateAfterMs` | Oturum belirtecinin yenilenme aralığı |
-| `maximumSessionsPerUser` | Kullanıcı başına açık oturum üst sınırı |
+| `app.name` | Log ve operatör ekranlarında görünen uygulama adı |
+| `app.environment` | Güvenlik varsayımlarını ve store ad alanlarını ayıran ortam |
+| `app.baseUrl` | Dashboard'un dışarıdan erişilen temel adresi |
+| `owners` | Sahip işlemlerini kullanabilen Discord kullanıcı kimlikleri |
+| `locale.default` | Varsayılan hata ve durum dili |
+| `locale.messages` | Uygulamaya ait hata kodu metinleri |
 
-## Üretim için değiştirilecekler
+## Oturum politikası
 
-Bellek deposunu yerel geliştirme ve test dışında kullanma. Yeniden başlatmadan sonra kalması gereken kayıtları kendi veritabanına bağla. Dağıtık ve kısa ömürlü kayıtlar için Redis kullan.
+`ttlMs` mutlak sınırı, `idleTimeoutMs` kullanılmayan oturumun kapanma süresini, `rotateAfterMs` belirteç yenileme aralığını, `maximumSessionsPerUser` ise açık oturum üst sınırını belirler.
+
+Süreleri birbirinden bağımsız düşünme. Çok uzun mutlak süre ve çok kısa yenileme, ele geçirilen oturumu tek başına durdurmaz; iptal store'u da çalışır durumda olmalı.
+
+## Üretim korumaları
+
+GuildGate production profilinde şunları reddeder:
+
+- HTTP `baseUrl`
+- boş origin listesi
+- HTTP veya localhost origin
+- Secure özelliği kapalı oturum çerezi
+- HTTP Discord callback adresi
+- kısa CSRF veya audit hashing sırrı
+
+Tüm seçenekler için [yapılandırma referansını](../referans/yapilandirma.mdx) aç.

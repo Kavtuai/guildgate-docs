@@ -1,0 +1,42 @@
+---
+title: Kilit, retry ve circuit breaker
+description: Eş zamanlı yazmaları ve geçici bağımlılık hatalarını kontrollü biçimde ele al.
+---
+
+# Kilit, retry ve circuit breaker
+
+Dayanıklılık ayarları her hatayı tekrar denemek için değil, hangi hatanın güvenle tekrar denenebileceğini açıkça tanımlamak için vardır.
+
+## Kaynak kilidi
+
+Aynı sunucu ayarına gelen eş zamanlı yazmaları tek anahtar altında sırala:
+
+```ts
+concurrency: {
+  key: (_context, input) => `guild-settings:${input.guildId}`,
+  ttlMs: 8_000,
+  waitMs: 500,
+}
+```
+
+Kilit süresi action timeout değerinden uzun olmalı. Uzun işlemlerde lock renewal kullan. Store, fencing token ile eski kilit sahibinin geç kalan yazısını reddetmeli.
+
+## Retry
+
+Ağ kesintisi, 429 ve bazı 5xx yanıtları tekrar denenebilir. Doğrulama, yetki, revision veya ürün kuralı hatalarını tekrar deneme.
+
+Retry politikası şu sınırları taşımalı:
+
+- düşük deneme sayısı
+- jitter eklenmiş backoff
+- ortak timeout bütçesi
+- abort sinyaline saygı
+- idempotent olmayan yazmalarda idempotency anahtarı
+
+## Circuit breaker
+
+Discord API veya store sürekli hata veriyorsa yeni çağrıları kısa süre durdur. Breaker durumunu kullanıcıya iç hata adıyla gösterme; sabit hata kodu ve uygun yeniden deneme süresi döndür.
+
+## Timeout
+
+Action timeout değeri yalnızca Promise yarışını bitirmemeli. Abort sinyalini Discord istemcisine, Redis çağrısına ve veritabanı sorgusuna aktar.

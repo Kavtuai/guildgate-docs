@@ -1,34 +1,41 @@
 ---
-title: Oturumlar
-description: Opak oturumlar, süreler, rotasyon ve iptal.
+title: Opak oturumlar
+description: Oturum ömrü, rotasyon, kullanıcı sınırı ve iptal düzenini kur.
 ---
 
-# Oturumlar
+# Opak oturumlar
 
-GuildGate oturum verisini sunucuda tutar. Tarayıcıdaki belirteç kendi başına kullanıcı rolü, Discord yetkisi veya sunucu listesi içermez.
+Tarayıcı, kullanıcı kimliği ve yetki verisi taşıyan okunabilir bir token almaz. GuildGate rastgele bir oturum değeri üretir; store tarafında ham değeri değil karşılaştırma özetini tutar.
 
-## Yaşam süresi
+## Oturum kuralları
 
-Oturum şu durumlardan birinde kapanır:
+| Kural | Amaç |
+| --- | --- |
+| `ttlMs` | Oturum için mutlak kapanma zamanı |
+| `idleTimeoutMs` | Kullanılmayan oturumu erken kapatma |
+| `rotateAfterMs` | Düzenli olarak yeni opak değer üretme |
+| `maximumSessionsPerUser` | Eski veya fazla oturumları sınırlama |
 
-- Toplam ömrü dolduğunda
-- Boşta kalma süresi aşıldığında
-- Kullanıcı çıkış yaptığında
-- Yönetici oturumu iptal ettiğinde
-- Kullanıcı başına sınır nedeniyle eski kayıt kaldırıldığında
+## Rotasyon
 
-`rotateAfterMs`, uzun süre açık kalan oturumun aynı belirteçle devam etmesini önler.
+Rotasyon sırasında yeni değer istemciye verilir ve eski değer kısa geçiş penceresinden sonra geçersizleşir. Aynı anda gelen isteklerin oturumu yanlışlıkla düşürmemesi için store atomik güncelleme sağlamalıdır.
 
-## Çerez ayarları
+## İptal
 
-Üretim oturum çerezinde şu taban ayarları kullan:
+`gate.revokeUserSessions()` kullanıcıya ait açık oturumları iptal eder. Şifre değişikliği, hesap bağlantısı değişikliği, erişim şüphesi veya operatör kararı gibi durumlarda bu işlemi kullan.
 
-- `HttpOnly`
-- `Secure`
-- Uygulamaya uygun `SameSite`
-- Daraltılmış `Path`
-- Gerekmedikçe `Domain` vermeden host-only kullanım
+Oturum iptali realtime bağlantılarına da yansımalı. Hub, iptal olayını aldıktan sonra ilgili bağlantıları kapatır veya yeniden kimlik doğrulaması ister.
 
-## Çıkış
+## Çerez ayarı
 
-Çıkış sırasında tarayıcı çerezini silmek yeterli değildir. Sunucudaki oturum kaydını da iptal et. Aksi durumda ele geçirilmiş eski belirteç süresi bitene kadar kullanılabilir.
+Production çerezi en az şu sınırları korumalıdır:
+
+```text
+HttpOnly
+Secure
+SameSite=Lax veya uygulama modeline uygun daha sıkı değer
+Path=/
+Daraltılmış Domain ya da host-only çerez
+```
+
+`SameSite`, CSRF kontrolünün yerine geçmez. Yazma isteklerinde [origin ve CSRF](./csrf-origin.mdx) birlikte doğrulanır.

@@ -1,0 +1,38 @@
+---
+title: Custom stores
+description: Connect an existing ORM or database layer to GuildGate store contracts.
+---
+
+# Custom stores
+
+GuildGate does not choose a database. Connect an existing repository or ORM through the small store interfaces.
+
+## Classify the data first
+
+For each store, answer:
+
+- How long does the record live?
+- Does it need atomic consume or compare-and-set?
+- Must it commit with another record in the same transaction?
+- Must every application instance see it?
+- Does it have a retention or deletion rule?
+
+## Audit-store example
+
+The source package includes `examples/custom-store/postgres-audit-store.ts`. It adapts an application database client to the GuildGate audit contract.
+
+## Transaction hook
+
+When the application write, audit row and outbox row share a database, open one transaction and pass the transaction client through action context.
+
+## Test matrix
+
+- The same OAuth state cannot be consumed twice.
+- Expired sessions cannot be found.
+- Rotation invalidates the previous token digest.
+- Idempotency returns the same result for the same scope and key.
+- Only the lock owner can renew.
+- A stale fencing token cannot commit a write.
+- Outbox rows roll back with the application write.
+
+See the [public API](../referans/public-api.mdx) for the store interface names.

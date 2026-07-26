@@ -1,0 +1,40 @@
+---
+title: Store contracts
+description: Place GuildGateStores interfaces according to data lifetime and atomicity.
+---
+
+# Store contracts
+
+`GuildGateStores` does not force every record through one database class. Each store carries its own lifetime and atomicity requirements.
+
+| Store | Data | Production placement |
+| --- | --- | --- |
+| `SessionStore` | Opaque-session digest, expiry and user binding | Persistent database or trusted central store |
+| `OAuthStateStore` | One-time login state | Redis or a store with TTL and atomic consume |
+| `OAuthCredentialStore` | Encrypted Discord tokens | Persistent database |
+| `RateLimitStore` | Counters and windows | Redis |
+| `CacheStore` | Short-lived Discord and resource cache | Redis |
+| `IdempotencyStore` | Duplicate-request result | Redis or another central TTL store |
+| `LockStore` | Renewable distributed lock | Redis or a fencing-capable lock service |
+| `AuditStore` | Append-only audit events | Persistent database |
+| `OutboxStore` | Events waiting for delivery | Same database as the application transaction |
+| `PolicyStore` | Maintenance, block and operator policy | Persistent shared store |
+
+## Compose stores
+
+`composeStores()` combines implementations from different sources.
+
+```ts
+const stores = composeStores(
+  postgresStores,
+  createRedisEphemeralStores(fromNodeRedis(redis), {
+    prefix: "guildgate:production",
+  }),
+);
+```
+
+Confirm precedence and missing-store behavior from the installed package types. Do not define the same store twice.
+
+## Contract testing
+
+Matching the TypeScript interface is not enough. Test atomic consume, compare-and-set, TTL behavior, lock renewal and fencing under race conditions.

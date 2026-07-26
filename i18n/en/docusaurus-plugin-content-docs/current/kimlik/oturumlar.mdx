@@ -1,0 +1,41 @@
+---
+title: Opaque sessions
+description: Configure session lifetime, rotation, per-user caps and revocation.
+---
+
+# Opaque sessions
+
+The browser does not receive a readable token containing identity or authorization data. GuildGate generates a random session value and stores a comparison digest rather than the raw value.
+
+## Session controls
+
+| Control | Purpose |
+| --- | --- |
+| `ttlMs` | Absolute session expiry |
+| `idleTimeoutMs` | Early expiry for inactive sessions |
+| `rotateAfterMs` | Regular opaque-value rotation |
+| `maximumSessionsPerUser` | Cap open sessions per user |
+
+## Rotation
+
+Rotation sends a new value to the browser and invalidates the old value after a short handover window. The store needs atomic updates so concurrent requests do not break an active session.
+
+## Revocation
+
+`gate.revokeUserSessions()` revokes open sessions for a user. Use it after account-link changes, suspected access, operator action or other security events.
+
+Revocation should also reach realtime connections. The hub can close affected connections or require fresh authentication.
+
+## Cookie settings
+
+A production cookie should include:
+
+```text
+HttpOnly
+Secure
+SameSite=Lax or a stricter value that fits the application
+Path=/
+A narrow Domain or a host-only cookie
+```
+
+`SameSite` does not replace CSRF protection. Validate [origin and CSRF](./csrf-origin.mdx) on writes.

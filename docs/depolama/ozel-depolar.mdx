@@ -1,0 +1,38 @@
+---
+title: Özel store yazma
+description: Mevcut ORM veya veritabanı katmanını GuildGate store sözleşmelerine bağla.
+---
+
+# Özel store yazma
+
+GuildGate veritabanı seçmez. Mevcut repository veya ORM katmanını küçük store arayüzleriyle bağlayabilirsin.
+
+## Önce veri türünü ayır
+
+Kısa ömürlü sayaç ile kalıcı denetim kaydını aynı soyutlamaya sıkıştırma. Her store için şu soruları cevapla:
+
+- Kayıt ne kadar yaşar?
+- Atomik consume veya compare-and-set gerekir mi?
+- Aynı transaction içinde başka kayıtlarla commit olmalı mı?
+- Birden fazla instance aynı veriyi görmeli mi?
+- Retention veya yasal silme kuralı var mı?
+
+## Audit store örneği
+
+Paket örneklerinde `examples/custom-store/postgres-audit-store.ts` bulunur. Uygulamanın DB istemcisini kullanır ve GuildGate'in audit sözleşmesini kendi tablo yapısına çevirir.
+
+## Transaction kancası
+
+Uygulama değişikliği, audit ve outbox satırı aynı veritabanındaysa tek transaction aç. Action context içine transaction istemcisini aktar ve tüm store çağrılarını bu istemciyle tamamla.
+
+## Test matrisi
+
+- Aynı OAuth state iki kez tüketilemez.
+- Süresi dolan oturum bulunamaz.
+- Rotasyon eski token özetini geçersiz kılar.
+- Idempotency aynı scope ve anahtarda aynı sonucu döndürür.
+- Lock renewal yalnızca kilit sahibine izin verir.
+- Eski fencing token yazmayı tamamlayamaz.
+- Outbox kaydı uygulama değişikliğiyle birlikte rollback olur.
+
+Store arayüzlerinin tam adları için [public API referansına](../referans/public-api.mdx) bak.

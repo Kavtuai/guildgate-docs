@@ -1,8 +1,8 @@
 {
   "name": "guildgate-docs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "GuildGate için Türkçe dokümantasyon sitesi",
+  "description": "GuildGate 1.0.0 için Türkçe ve İngilizce dokümantasyon sitesi",
   "scripts": {
     "start": "docusaurus start",
     "dev": "docusaurus start",
@@ -15,7 +15,9 @@
     "command:check": "node scripts/command-engine-check.mjs",
     "site:check": "node scripts/site-check.mjs",
     "check": "npm run editorial:check && npm run source:check && npm run command:check && npm run site:check",
-    "validate": "npm run check && npm run build"
+    "validate": "npm run check && npm run build",
+    "start:en": "docusaurus start --locale en",
+    "write-translations": "docusaurus write-translations"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",

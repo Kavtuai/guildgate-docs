@@ -1,11 +1,12 @@
 ## Değişiklik
 
-Hangi belge veya bileşenin değiştiğini kısa biçimde yaz.
+Hangi belge veya bileşenin değiştiğini ve okuyucunun ne kazanacağını kısa biçimde yaz.
 
 ## Doğrulama
 
 - [ ] `npm run validate`
+- [ ] Türkçe ve İngilizce belge kimlikleri eşleşiyor
 - [ ] Kod örnekleri belgelenen GuildGate sürümüyle uyumlu
 - [ ] Yeni veya değişen bağlantılar açıldı
-- [ ] Metin yazı standardına göre okundu
-- [ ] Komut laboratuvarı değiştiyse izin listesi ve güvenlik testleri güncellendi
+- [ ] Kullanıcıya açık metinde iç hata, sır veya debug ayrıntısı yok
+- [ ] Doğrulama konsolu değiştiyse izin listesi ve güvenlik testleri güncellendi

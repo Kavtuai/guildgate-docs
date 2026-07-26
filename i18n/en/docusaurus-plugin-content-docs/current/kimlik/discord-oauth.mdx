@@ -1,0 +1,43 @@
+---
+title: Discord OAuth
+description: Build authorization-code login with state, nonce and encrypted token storage.
+---
+
+# Discord OAuth
+
+GuildGate handles Discord login with the authorization-code flow. It creates a short-lived state record and a separate browser nonce cookie. The callback checks state, nonce, expiry and one-time consumption together.
+
+## Login sequence
+
+```text
+Browser → start login
+Server  → state record + nonce cookie
+Browser → Discord authorization page
+Discord → callback?code=...&state=...
+Server  → state + nonce + callback validation
+Server  → code exchange and Discord identity
+Server  → encrypted OAuth record + opaque session
+```
+
+## State store
+
+`OAuthStateStore` must provide:
+
+- one-time consumption
+- short expiry
+- browser nonce binding
+- atomic consume for the same state
+- no reuse after an error
+
+## OAuth credential store
+
+`OAuthCredentialStore` should not store access or refresh tokens as plaintext. GuildGate uses an application-supplied token cipher or keyring. Store the key version with the record so older tokens can be re-encrypted gradually.
+
+## Callback rules
+
+- Production callbacks use HTTPS.
+- The Discord Developer Portal redirect matches the application value exactly.
+- Callback errors do not expose tokens, state, nonce or raw Discord responses.
+- A successful login creates a new opaque session instead of returning authorization data to the browser.
+
+Continue with the [session guide](./oturumlar.mdx).

@@ -1,0 +1,52 @@
+---
+sidebar_position: 1
+title: What is GuildGate?
+description: Understand the role, boundaries and placement of GuildGate 1.0.0.
+slug: /giris
+---
+
+# What is GuildGate?
+
+GuildGate is a TypeScript library for the server side of Discord bot dashboards. It provides shared contracts for OAuth login, opaque sessions, CSRF, exact origin matching, user and bot authorization, rate limits, idempotency, resource locks, audit records and realtime subscriptions.
+
+These docs cover `@kavtuai/guildgate` `1.0.0`. The package requires Node.js 22 or newer.
+
+<div className="gg-callout">
+  <i className="bi bi-shield-lock" aria-hidden="true"></i>
+  <div><strong>The dashboard does not make the final decision</strong><p>Do not trust role, guild or permission data sent by the browser. Resolve it again on the server when a protected write arrives.</p></div>
+</div>
+
+## What does it add?
+
+- Protected writes follow one validation order.
+- Server-side sessions can be rotated and revoked.
+- Discord OAuth state is bound to one browser and consumed once.
+- Redis, persistent databases and custom stores implement the same contracts.
+- Fastify, Express and Hono projects connect the core to their own HTTP layer.
+- WebSocket and SSE subscriptions require a session and guild authorization.
+
+## What does it not own?
+
+GuildGate does not render a dashboard. It does not own your database schema, role hierarchy, product rules or Discord commands. Those decisions stay in your application.
+
+```text
+Browser
+   │
+   ▼
+HTTP / WebSocket / SSE adapter
+   │
+   ▼
+GuildGate
+   ├─ identity and sessions
+   ├─ origin and CSRF
+   ├─ authorization
+   ├─ rate limits and idempotency
+   ├─ resource locks and resilience
+   ├─ audit records and outbox
+   └─ realtime subscription authorization
+   │
+   ▼
+Application service, Discord API and database
+```
+
+Open the [five-minute guide](./baslangic/bes-dakikada-basla.mdx) for a working setup, or read the [architecture overview](./mimari/genel-bakis.mdx) first.

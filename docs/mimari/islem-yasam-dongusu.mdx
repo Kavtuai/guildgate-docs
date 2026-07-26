@@ -1,0 +1,50 @@
+---
+title: İşlem yaşam döngüsü
+description: Korunan bir yazma isteğinin kabul, ret ve kayıt sırasını izle.
+---
+
+# İşlem yaşam döngüsü
+
+Bir action, uygulama kodunu ancak ön koşullar tamamlandıktan sonra çağırır.
+
+```text
+HTTP bağdaştırıcısı
+  │
+  ├─ yöntem + gövde sınırı
+  ├─ exact origin
+  ├─ opak oturum
+  └─ session-bound CSRF
+        │
+        ▼
+parse → resource → policy/maintenance
+        │
+        ▼
+Discord kullanıcı izni + bot izni
+        │
+        ▼
+rate limit → idempotency → resource lock
+        │
+        ▼
+transaction hook → execute
+        │
+        ▼
+audit + outbox → cache invalidation → response
+```
+
+## Ret noktaları
+
+Her ret kararı sabit bir hata kodu döndürür. Kullanıcı mesajı yerelleştirilebilir; stack trace, store anahtarı, token, şifreleme ayrıntısı veya iç hata nesnesi yanıta girmez.
+
+## Transaction sınırı
+
+Action yaşam döngüsü transaction kancası sunar, fakat transaction'ı store uygulaman açar. Uygulama değişikliği, audit/outbox kaydı ve optimistic revision kontrolü aynı transaction içinde çalışabiliyorsa birlikte commit et.
+
+## Kilit kaybı
+
+Dağıtık kilit yenilenemezse action yazmayı sürdürmemeli. Fencing token, eski kilit sahibinin geç kalan yazısını store katmanında reddetmek için kullanılır.
+
+## Başarılı yanıt
+
+Başarı, cache temizliği ve olay sıralaması tamamlandıktan sonra döner. Outbox kullanan projeler dış sistem teslimini daha sonra yapabilir; uygulama kaydı ve outbox satırı aynı transaction içinde kalır.
+
+Uygulama örneği için [`action()` sayfasına](../istek-katmani/action.mdx) geç.

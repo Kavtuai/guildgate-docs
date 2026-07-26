@@ -1,0 +1,45 @@
+---
+title: guildgate-doctor
+description: Check deployment settings without printing secret values.
+---
+
+# `guildgate-doctor`
+
+The doctor command checks the environment and security conditions required by GuildGate in the local process.
+
+```bash
+npx guildgate-doctor
+```
+
+Machine-readable output:
+
+```bash
+npx guildgate-doctor --json
+```
+
+## Checks
+
+- Node.js version
+- environment and `baseUrl`
+- HTTPS callbacks
+- allowed origins
+- CSRF secret and audit hashing salt
+- session cookies
+- store placement
+- Redis namespace
+- token cipher and keyring
+- owner IDs
+
+## Safe output
+
+The command may check whether a secret exists and whether it meets a length rule, but it does not include the secret value in its report. Review your CI log-retention policy before storing JSON output.
+
+## CI use
+
+The doctor command should return a non-zero exit code when it finds a release-blocking issue:
+
+```bash
+npx guildgate-doctor --json
+npm test
+npm run pack:check
+```

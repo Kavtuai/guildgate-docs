@@ -1,0 +1,35 @@
+---
+title: Responsibility boundaries
+description: Separate GuildGate controls from application-owned decisions.
+---
+
+# Responsibility boundaries
+
+GuildGate organizes security checks; it does not own the whole infrastructure. Production security depends on both sides keeping their boundary clear.
+
+## GuildGate owns
+
+- Opaque session creation, rotation and revocation
+- OAuth state and browser nonce binding
+- Origin and CSRF validation
+- Discord permission parsing with `BigInt`
+- Rate-limit, idempotency, lock, retry, timeout and circuit-breaker contracts
+- Audit, outbox and realtime event contracts
+- Fastify, Express and Hono integration layers
+
+## The application owns
+
+- Reliable client IP resolution behind trusted proxies
+- Secret storage outside source control and client bundles
+- Transactional persistent writes
+- Optimistic revision checks
+- Discord role hierarchy and product policy
+- Retention, backups and deletion policy
+- Cancellation propagation to database and HTTP calls
+- Review of Discord permission and API changes before major releases
+
+## State the guarantee accurately
+
+Passing `authorize` does not make the database write automatically consistent. A resource lock controls concurrent work; transactions and revision checks protect record-level consistency.
+
+The [threat model](../mimari/tehdit-modeli.mdx) maps these boundaries to concrete risks.

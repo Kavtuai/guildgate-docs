@@ -1,0 +1,39 @@
+---
+title: Mimariye genel bakış
+description: GuildGate çekirdeğini kimlik, action, store ve realtime katmanlarıyla tanı.
+---
+
+# Mimariye genel bakış
+
+GuildGate dört ana parçayı birbirine bağlar: kimlik, korunan işlemler, store sözleşmeleri ve olay dağıtımı.
+
+## Kimlik katmanı
+
+Discord OAuth girişini başlatır, tek kullanımlık `state` kaydını tarayıcı nonce değeriyle eşleştirir, OAuth token'larını uygulamanın anahtar halkasıyla şifreler ve opak oturum açar.
+
+## Action katmanı
+
+`gate.action()` şu sırayı görünür tutar:
+
+1. Girdiyi doğrula.
+2. Hedef kaynağı çöz.
+3. HTTP yöntemi, origin, oturum ve CSRF kontrolünü tamamla.
+4. Kullanıcı ve bot izinlerini doğrula.
+5. İstek sınırı, idempotency ve kaynak kilidini al.
+6. Transaction kancasını aç.
+7. Uygulama değişikliğini çalıştır.
+8. Audit/outbox kaydı yaz ve önbelleği temizle.
+
+## Store katmanı
+
+`GuildGateStores`, her veri türü için küçük bir arayüz tanımlar. `composeStores()` farklı uygulamaları tek paket altında birleştirir. Bu sayede oturumu PostgreSQL'de, rate limit ve kilidi Redis'te, audit kaydını mevcut ORM katmanında tutabilirsin.
+
+## Realtime katmanı
+
+`createRealtimeHub()` yetkili abonelikleri yönetir. `RealtimeConnection` oturum, sunucu erişimi, sıra numarası, yeniden oynatma ve geri basınç kararlarını bağlantı taşıyıcısından ayırır.
+
+## Bağdaştırıcılar
+
+HTTP bağdaştırıcısı framework nesnelerini GuildGate bağlamına çevirir. Çekirdek, Fastify veya Express'e ait route kararlarını sahiplenmez; uygulama rotayı ve yanıt biçimini seçer.
+
+Bir yazma isteğinin tam sırasını [işlem yaşam döngüsünde](./islem-yasam-dongusu.mdx) görebilirsin.

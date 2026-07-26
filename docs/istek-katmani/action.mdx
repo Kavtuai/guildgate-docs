@@ -1,13 +1,13 @@
 ---
 title: action() işlem tanımı
-description: Korunan yönetim paneli işlemlerinin tek tanımda kurulması.
+description: Korunan bir dashboard yazmasını tek işlem yaşam döngüsünde tanımla.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
 # `action()` işlem tanımı
 
-`gate.action()` bir yazma işleminin giriş, kaynak, sınır, yetki ve çalıştırma adımlarını aynı tanımda gösterir. Kontrollerin sırası uç nokta dosyalarına dağılmaz.
+`gate.action()` bir yazma isteğinin girdi, kaynak, yetki, dayanıklılık ve kayıt kararlarını aynı tanımda tutar.
 
 ```ts
 const updateSettings = gate.action({
@@ -39,29 +39,31 @@ const updateSettings = gate.action({
     waitMs: 500,
   },
   timeoutMs: 5_000,
-  authorize: async (context, input) => {
-    return canManageGuild(context.userId, input.guildId);
-  },
-  execute: async (context, input) => {
-    return saveGuildSettings(context, input);
-  },
+  authorize: (context, input) =>
+    canManageGuild(context.userId, input.guildId),
+  execute: (context, input) =>
+    saveGuildSettings(context, input),
 });
 ```
 
-## Adımlar
+## `parse`
 
-`parse` ham girdiyi doğrular ve gerekli alanlara indirger. `resource` hedef kaynağı tanımlar. `authorize` kullanıcının bu kaynak üzerinde işlem yapıp yapamayacağını belirler. `execute`, önceki kontroller geçerse çağrılır.
+Ham gövdeyi dar bir tipe çevir. Bilinmeyen alanları at, uzunluk ve enum sınırlarını burada uygula. Yetki kontrolünden önce veri doğrulaması yapman, gereksiz Discord ve store çağrılarını azaltır.
 
-## Tekrarlı istek koruması
+## `resource`
 
-İstemci ağ sorunu nedeniyle aynı yazma isteğini yeniden gönderebilir. Aynı tekrarlı istek anahtarı ikinci kez kayıt üretmemelidir. Kapsamı kullanıcı ve kaynakla sınırlandırmak, farklı kullanıcıların aynı anahtarı paylaşmasını engeller.
+Rate limit, idempotency, kilit, audit ve realtime olayları aynı kaynağı kullanır. Kaynak kimliğini kullanıcı girdisinden olduğu gibi loglama; önce doğrula.
 
-## Kaynak kilidi
+## `authorize`
 
-`concurrency.key`, aynı sunucu ayarına eşzamanlı yazmaları sıraya alır veya reddeder. Bu kontrol revision denetiminin yerine geçmez. Kilit eşzamanlı yazmayı, revision ise eski veriyle güncelleme yapılmasını ele alır.
+Kullanıcının Discord sunucusuna erişimini ve gerekli izin bitini yazma anında yeniden çöz. Botun aynı işlem için gereken iznini ayrıca kontrol et.
 
-## İşlem sırasını dene
+## `execute`
 
-Aşağıdaki terminal gerçek uç noktaya bağlanmaz. `action test` komutunu izin listesi üzerinde çalıştırır.
+Uygulama değişikliği burada çalışır. Transaction, optimistic revision ve Discord rol hiyerarşisi uygulama servisinin sorumluluğunda kalır.
+
+## Denetim sırası
 
 <CommandPlayground compact />
+
+Konsolda `action test guild.settings.update` komutunu kullanarak origin, oturum, CSRF ve izin kararlarını değiştirebilirsin.

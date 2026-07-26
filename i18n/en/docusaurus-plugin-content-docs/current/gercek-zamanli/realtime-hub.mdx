@@ -1,0 +1,35 @@
+---
+title: Realtime hub
+description: Protect WebSocket and SSE subscriptions with sessions, authorization, ordering, replay, and backpressure.
+---
+
+# Realtime hub
+
+`createRealtimeHub()` creates a transport-neutral subscription center. `RealtimeConnection` tracks identity, subscriptions, delivery position, and connection state.
+
+## Opening a connection
+
+1. Validate the opaque session.
+2. Resolve the user's access to the requested guild.
+3. Match the topic against an allowlist.
+4. Check the last sequence number seen by the client.
+5. Replay retained events in order.
+6. Start live delivery.
+
+## WebSocket
+
+The package includes `examples/realtime/ws.ts`. Invalid JSON should close the connection with an invalid-data close code. Parsing details and stack traces stay in operator logs.
+
+Authenticate before accepting subscriptions, and recheck access when policy or session state changes.
+
+## SSE
+
+The SSE adapter writes event IDs and data lines in the expected format. If the client stops reading, the queue must not grow without a bound. Close the connection when the backpressure limit is reached and let the client reconnect with its last event ID.
+
+## Sequence and replay
+
+Every event carries an increasing sequence value. A reconnecting client sends the last value it processed. The hub replays events still inside the retention window, then switches to the live stream.
+
+## Session revocation
+
+Close active WebSocket and SSE connections when a session is revoked. Checking only at subscription time leaves an already-open connection active after logout or an operator action.

@@ -1,30 +1,30 @@
 ---
 title: Sürüm notları
-description: Paket sürümü ve dokümantasyon sitesindeki değişiklikler.
+description: GuildGate belgeleri ve paket yüzeyindeki önemli değişiklikleri izle.
 ---
 
 # Sürüm notları
 
-## Dokümantasyon 0.2.0
+## GuildGate 1.0.0
 
-- Ana sayfadaki hareketli güvenlik görseli yeniden kuruldu.
-- Bootstrap Icons yerel paket olarak eklendi.
-- İzin listeli komut laboratuvarı eklendi.
-- Komut yorumlayıcısına uzunluk, hız, sır algılama ve kabuk karakteri sınırları eklendi.
-- Kökteki tekrar eden README ve editoryal not dosyası kaldırıldı.
-- Metinler kısa, doğrudan ve teknik davranışa bağlı olacak şekilde gözden geçirildi.
+Kararlı yüzey şu başlıkları kapsar:
 
-## Paket 0.1.0
+- guarded writes ve optimistic concurrency
+- transaction hook, cache invalidation ve outbox
+- yenilenebilir dağıtık kilit ve fencing token
+- timeout, retry ve circuit breaker
+- operator ve session yönetimi
+- WebSocket, SSE, sequence ve replay
+- Fastify, Express, Hono ve discord.js bağdaştırıcıları
+- PostgreSQL, Redis ve özel store sözleşmeleri
+- OpenTelemetry hook'ları, status izleme ve analytics örnekleri
+- migration, operating limits ve security response belgeleri
 
-Belgelenen alanlar:
+## Doküman sitesi 0.3.0
 
-- Opak sunucu tarafı oturumları
-- Discord yetkilendirme kodu girişi
-- Oturuma bağlı CSRF ve tam origin eşleşmesi
-- İşlem tabanlı doğrulama, yetki, istek sınırı, kilit ve zaman aşımı
-- Fastify ve Express bağdaştırıcıları
-- Bellek ve Redis depo bileşimi
-- Yetkili gerçek zamanlı bağlantı merkezi
-- Discord sunucu yetkilendiricisi
-- Türkçe ve İngilizce hata metinleri
-- `guildgate-doctor` ve `guildgate-writing-check` komutları
+- Türkçe ve İngilizce sayfalar aynı bilgi mimarisine taşındı.
+- Paket sürümü `1.0.0` olarak düzeltildi.
+- Doğrulama konsolu iki dilde çalışacak şekilde yeniden yazıldı.
+- Doğrulama konsolunun tarayıcı sınırları ve veri işleme davranışı doğrudan açıklandı.
+- Mimari, tehdit modeli, store sözleşmeleri, dayanıklılık, telemetri, geçiş ve test sayfaları eklendi.
+- Sosyal paylaşım görseli ve favicon yeni GuildGate görselleriyle değiştirildi.

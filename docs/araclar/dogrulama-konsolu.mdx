@@ -1,0 +1,38 @@
+---
+title: Doğrulama konsolu
+description: GuildGate kurallarını tarayıcıda güvenli komutlarla incele.
+---
+
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
+# Doğrulama konsolu
+
+Konsol bir işletim sistemi kabuğu açmaz, JavaScript çalıştırmaz ve girdiyi sunucuya göndermez. Belgelenmiş GuildGate kararlarını sabit bir komut listesi üzerinden değerlendirir.
+
+<CommandPlayground />
+
+## Kullanılabilir kontroller
+
+| Komut | İncelediği konu |
+| --- | --- |
+| `doctor` | Örnek production profili |
+| `config check` | Development ve production farkları |
+| `origin check` | Tam origin eşleşmesi |
+| `session policy` | TTL, idle, rotasyon ve açık oturum sınırı |
+| `store check` | Kalıcı ve kısa ömürlü store yerleşimi |
+| `action test` | Korunan yazma sırası |
+| `rate-limit test` | Sabit pencere hesabı |
+| `realtime check` | Taşıma, sequence ve replay |
+| `security explain` | CSRF, origin, oturum ve kilit açıklaması |
+
+## Güvenlik sınırları
+
+- Tek satır ve en fazla 240 karakter
+- Dakikada 20 değerlendirme
+- Kabuk operatörü, yönlendirme ve command substitution reddi
+- GitHub, API, MFA, JWT ve bot token biçimlerini engelleme
+- En fazla 60 geçmiş kaydı; yalnızca açık sekmenin belleğinde
+- Çıktıyı düz metin olarak render etme
+- Beklenmeyen hatada tek, güvenli kullanıcı mesajı
+
+Gerçek projenin ortamını kontrol etmek için tarayıcı konsolu yerine [`guildgate-doctor`](../cli/doctor.mdx) komutunu çalıştır.

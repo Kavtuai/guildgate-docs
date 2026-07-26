@@ -1,0 +1,90 @@
+---
+title: Beş dakikada başla
+description: Bellek store'larıyla çalışan ilk GuildGate örneğini kur.
+---
+
+# Beş dakikada başla
+
+Bu örnek geliştirme ortamında çalışan küçük bir çekirdek kurar. Bellek store'ları süreç kapanınca temizlenir; üretimde bunları değiştireceksin.
+
+## 1. Ortam değerlerini hazırla
+
+```env
+BOT_OWNER_ID=123456789012345678
+GUILDGATE_CSRF_SECRET=32-bayttan-uzun-rastgele-bir-deger
+GUILDGATE_AUDIT_IP_SALT=csrf-sirrindan-farkli-bir-deger
+```
+
+## 2. Gate oluştur
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
+
+const stores = createMemoryStoreBundle();
+
+export const gate = createGuildGate({
+  app: {
+    name: "My Discord Dashboard",
+    environment: "development",
+    baseUrl: "http://localhost:3000",
+  },
+  owners: [process.env.BOT_OWNER_ID!],
+  locale: {
+    default: "tr",
+    messages: {
+      tr: {
+        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
+      },
+      en: {
+        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+      },
+    },
+  },
+  security: {
+    allowedOrigins: ["http://localhost:3000"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+});
+```
+
+## 3. İlk işlemi tanımla
+
+```ts
+export const updateGuildSettings = gate.action({
+  name: "guild.settings.update",
+  parse: parseGuildSettings,
+  resource: ({guildId}) => ({type: "guild", id: guildId}),
+  authorize: ({userId}, input) => canManageGuild(userId, input.guildId),
+  execute: (context, input) => saveGuildSettings(context, input),
+});
+```
+
+`execute`, önceki kontroller geçmeden çağrılmaz. HTTP bağdaştırıcısı oturum, origin ve CSRF bağlamını işleme aktarır.
+
+## 4. Doctor çalıştır
+
+```bash
+npx guildgate-doctor
+```
+
+Geliştirme profili localhost ve bellek store'ları için uyarı vermez. Aynı değerleri production ortamıyla çalıştırırsan doctor bunları risk olarak işaretler.
+
+## 5. Üretime hazırlık
+
+- Oturum, OAuth kimlik bilgisi, audit, outbox ve politika store'larını kalıcı depoya bağla.
+- Rate limit, idempotency, cache ve dağıtık kilitleri Redis'e taşı.
+- `baseUrl`, callback ve origin değerlerinde HTTPS kullan.
+- OAuth token'ları için uygulama tarafından sağlanan anahtar halkasını ekle.
+
+Store ayrımı için [depo sözleşmelerine](../depolama/depo-sozlesmeleri.mdx), yazma sırası için [işlem yaşam döngüsüne](../mimari/islem-yasam-dongusu.mdx) geç.

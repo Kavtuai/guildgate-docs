@@ -1,0 +1,47 @@
+---
+title: Troubleshooting
+description: Narrow down installation, OAuth, session, origin, store, and realtime problems.
+---
+
+# Troubleshooting
+
+## Production exits during startup
+
+Run the doctor command first:
+
+```bash
+npx guildgate-doctor --json
+```
+
+An HTTP `baseUrl`, localhost origin, short secret, insecure cookie, or missing persistent store can block the production profile.
+
+## Discord callback mismatch
+
+Compare the Developer Portal callback and application URL character by character. Protocol, port, path, and trailing slash differences matter.
+
+## Every write returns a CSRF error
+
+- Send the CSRF value through the configured header.
+- Make the request from the same allowed origin as the session cookie.
+- Do not reuse an old CSRF value after session rotation.
+- Confirm that the reverse proxy keeps the custom header.
+
+## An allowed origin is still rejected
+
+Print the URL's `origin` value and compare it exactly. The path is not part of an origin; the protocol and port are.
+
+## Instances disagree
+
+An in-memory store may still be active in production. Share session, rate-limit, idempotency, cache, and lock data across instances.
+
+## A lock keeps expiring
+
+Review the action timeout, lock TTL, and renewal interval together. A database call that ignores the abort signal can keep writing after the lock expires.
+
+## Realtime events are missing
+
+Check sequence values, replay retention, and the last cursor stored by the client. Session revocation and backpressure closure also require a reconnect.
+
+## Users can see an internal error
+
+Review the framework adapter's error mapper. Never pass `error.message`, a stack trace, a store error, or a Discord response body directly to the client. Map the stable GuildGate code to localized copy.

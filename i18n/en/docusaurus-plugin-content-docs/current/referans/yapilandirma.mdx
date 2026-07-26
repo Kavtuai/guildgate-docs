@@ -1,0 +1,45 @@
+---
+title: Configuration reference
+description: Review the main createGuildGate options and production requirements.
+---
+
+# Configuration reference
+
+## `app`
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Application name used in audit and operational context |
+| `environment` | Development, staging, or production profile |
+| `baseUrl` | Public dashboard URL |
+
+## `owners`
+
+Discord user IDs allowed to perform owner operations. Owner status does not bypass session, origin, CSRF, rate-limit, policy, or audit checks.
+
+## `locale`
+
+| Field | Meaning |
+| --- | --- |
+| `default` | Default message locale |
+| `messages` | Error-code-based Turkish, English, or custom locale copy |
+
+## `security`
+
+| Field | Meaning |
+| --- | --- |
+| `allowedOrigins` | Exact origins accepted for browser requests |
+| `csrfSecret` | Separate secret for CSRF signing |
+| `auditIpSalt` | Separate salt for IP-derived audit context |
+| `session.ttlMs` | Absolute session lifetime |
+| `session.idleTimeoutMs` | Idle timeout |
+| `session.rotateAfterMs` | Opaque token rotation interval |
+| `session.maximumSessionsPerUser` | Maximum open sessions per user |
+
+## `stores`
+
+A bundle implementing `GuildGateStores`. `createMemoryStoreBundle()` is suitable for development and tests, not a multi-instance production deployment. See [store contracts](../depolama/depo-sozlesmeleri.mdx).
+
+## Advanced action options
+
+The `1.0.0` action surface supports transaction hooks, cache invalidation, retries, timeouts, circuit breakers, distributed locks, and fencing behavior. Read the installed TypeScript declarations for the complete typed shape.

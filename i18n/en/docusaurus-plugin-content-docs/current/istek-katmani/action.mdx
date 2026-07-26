@@ -1,0 +1,69 @@
+---
+title: action() definitions
+description: Define a protected dashboard write in one lifecycle.
+---
+
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
+# `action()` definitions
+
+`gate.action()` keeps input, resource, authorization, resilience and persistence decisions in one definition.
+
+```ts
+const updateSettings = gate.action({
+  name: "guild.settings.update",
+  parse(value) {
+    const body = parseBody(value);
+    return {
+      guildId: body.guildId,
+      revision: body.revision,
+      settings: body.settings,
+    };
+  },
+  resource: (input) => ({
+    type: "guild",
+    id: input.guildId,
+  }),
+  rateLimit: {
+    limit: 20,
+    windowMs: 60_000,
+    key: (context, input) => `${context.userId}:${input.guildId}`,
+  },
+  idempotency: {
+    ttlMs: 10 * 60_000,
+    scope: (context, input) => `${context.userId}:${input.guildId}`,
+  },
+  concurrency: {
+    key: (_context, input) => `guild-settings:${input.guildId}`,
+    ttlMs: 8_000,
+    waitMs: 500,
+  },
+  timeoutMs: 5_000,
+  authorize: (context, input) =>
+    canManageGuild(context.userId, input.guildId),
+  execute: (context, input) =>
+    saveGuildSettings(context, input),
+});
+```
+
+## `parse`
+
+Reduce the raw body to a narrow type. Reject unknown fields and apply length and enum limits before authorization.
+
+## `resource`
+
+Rate limits, idempotency, locks, audit records and realtime events can use the same resource identity. Validate it before logging.
+
+## `authorize`
+
+Resolve the user's guild access and required permission at write time. Check the bot permission separately.
+
+## `execute`
+
+Application persistence happens here. Transactions, optimistic revisions and Discord role hierarchy remain application responsibilities.
+
+## Try the validation order
+
+<CommandPlayground compact />
+
+Run `action test guild.settings.update` and change the origin, session, CSRF or permission flags.

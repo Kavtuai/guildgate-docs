@@ -1,33 +1,35 @@
 ---
 title: Sorumluluk sınırları
-description: GuildGate ile uygulamanın ayrı ayrı üstlendiği işler.
+description: GuildGate'in koruduğu alanları ve uygulamanın üstlenmesi gereken kararları ayır.
 ---
 
 # Sorumluluk sınırları
 
-GuildGate güvenlik düzenini kurar; ürün kararlarını devralmaz.
+GuildGate güvenlik kontrollerini düzenler; altyapının tamamına sahip olmaz. Üretim güvenliği iki tarafın da kendi sınırını korumasına bağlıdır.
 
-## GuildGate'in üstlendiği işler
+## GuildGate'in sınırı
 
-- Oturum açma, rotasyon ve iptal
-- Discord OAuth sırasında `state` ve `nonce` denetimi
-- CSRF ve origin kontrolü
-- İşlem başına hız sınırı
-- Tekrarlı istek koruması
-- Kaynak kilidi ve süre sınırı
-- Yetkilendirme kancaları
-- Denetim kaydı, önbellek etiketi ve gerçek zamanlı olay sözleşmesi
+- Opak oturum üretimi, rotasyonu ve iptali
+- OAuth `state` ve tarayıcı nonce bağlantısı
+- Origin ve CSRF doğrulaması
+- Discord izin bitlerinin `BigInt` ile çözülmesi
+- İstek sınırı, idempotency, kilit, retry, timeout ve circuit breaker sözleşmeleri
+- Audit, outbox ve realtime olay sözleşmeleri
+- Fastify, Express ve Hono bağlantı katmanları
 
-## Uygulamada kalan işler
+## Uygulamanın sınırı
 
-- Yönetim paneli arayüzü
-- Veritabanı şeması ve migration'lar
-- Discord bot komutları
-- Sunucu ayarlarının ürün kuralları
-- Kalıcı depo uygulamaları
-- Hata izleme ve altyapı metrikleri
-- Fastify, Express veya başka bir HTTP çatısının kurulumu
+- Reverse proxy arkasında güvenilir istemci IP'sini doğru çözmek
+- Sırları kaynak kodu ve istemci paketinden uzak tutmak
+- Kalıcı değişiklikleri transaction içinde tamamlamak
+- Eski revision ile gelen güncellemeyi reddetmek
+- Discord rol hiyerarşisini ve ürün kuralını tanımlamak
+- Yedekleme, saklama süresi ve veri silme politikasını uygulamak
+- Abort/cancellation sinyalini veritabanı ve HTTP çağrılarına taşımak
+- Discord izin ve API değişikliklerini büyük sürüm öncesinde gözden geçirmek
 
-## Bu ayrım neden gerekli?
+## Güvenlik iddiasını doğru kur
 
-“Bu rol seçilebilir mi?” sorusunun cevabı botun rol sırasına ve ürün kuralına bağlıdır. GuildGate, bu kararın `authorize` adımında verilmesini zorunlu kılar; cevabı kendi başına üretmez.
+Bir action'ın `authorize` adımından geçmesi, veritabanı değişikliğinin otomatik olarak tutarlı olduğu anlamına gelmez. Kaynak kilidi eş zamanlı istekleri düzenler; transaction ve revision kontrolü kayıt düzeyindeki tutarlılığı korur.
+
+[Tehdit modeli](../mimari/tehdit-modeli.mdx), bu sınırların hangi saldırıları ele aldığını ayrıntılandırır.

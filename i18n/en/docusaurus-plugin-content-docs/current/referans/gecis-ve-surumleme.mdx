@@ -1,0 +1,29 @@
+---
+title: Migration and versioning
+description: Manage semver, store changes, key rotation, and production rollbacks deliberately.
+---
+
+# Migration and versioning
+
+GuildGate follows semver for its published export surface. Internal file paths are not part of that guarantee.
+
+## Before an upgrade
+
+- read the changelog and migration notes
+- run `npm run typecheck`
+- rerun store contract tests
+- review Discord permission and API changes
+- run the doctor command and one guarded mutation in a canary environment
+- verify realtime replay and session revocation
+
+## Store migration
+
+When a release adds a store field, deploy the backward-compatible schema first and then upgrade the application. If old and new instances may run together, keep a record format both versions can read.
+
+## Key rotation
+
+An OAuth token keyring can hold more than one key version. Encrypt new writes with the active key, then re-encrypt older records when they are read or through a controlled background task.
+
+## Rollback
+
+A rollback plan needs more than an older npm version. Include store schema compatibility, outbox workers, Redis prefixes, realtime sequence handling, and any keyring changes.

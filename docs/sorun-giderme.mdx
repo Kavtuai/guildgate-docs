@@ -1,40 +1,47 @@
 ---
 title: Sorun giderme
-description: OAuth, CSRF, oturum, depo ve GitHub Pages sorunları.
+description: Kurulum, OAuth, session, origin, store ve realtime sorunlarını daralt.
 ---
 
 # Sorun giderme
 
-## OAuth geri dönüş adresi uyuşmuyor
+## Production başlangıçta kapanıyor
 
-Discord Developer Portal'daki yönlendirme adresi ile sunucu ayarını karakter karakter karşılaştır. Protokol, yol ve sondaki eğik çizgi farklıysa Discord isteği reddeder.
+Önce doctor çalıştır:
 
-## CSRF hatası alıyorum
+```bash
+npx guildgate-doctor --json
+```
 
-Şu sırayla kontrol et:
+HTTP `baseUrl`, localhost origin, kısa sır, Secure olmayan çerez veya eksik kalıcı store production profilinde başlangıcı durdurabilir.
 
-- İstek veri değiştiren bir yöntem kullanıyor mu?
-- Oturum açık mı?
-- CSRF değeri aynı oturumdan mı üretildi?
-- Beklenen üstbilgi gönderiliyor mu?
-- Ön yüz ve API origin adresleri `allowedOrigins` listesiyle birebir eşleşiyor mu?
+## Discord callback uyuşmuyor
 
-## İki instance arasında oturum kayboluyor
+Developer Portal'daki callback ile uygulamadaki adresi karakter karakter karşılaştır. Protokol, port, path ve trailing slash farkı uyuşmazlık üretir.
 
-Bellek deposu kullanılıyor olabilir. Paylaşılan kısa ömürlü kayıtları Redis'e, kalıcı kayıtları ana veritabanına taşı.
+## Her yazma isteği CSRF hatası veriyor
 
-## Aynı ayar iki kez kaydediliyor
+- CSRF değerini doğru header ile gönder.
+- Oturum çereziyle aynı origin üzerinden istek yap.
+- Rotasyon sonrası eski CSRF değerini kullanma.
+- Proxy'nin özel header'ı silmediğini kontrol et.
 
-İstemci isteği yeniden deniyor olabilir. İşleme tekrarlı istek kapsamı ekle ve aynı işlem için aynı anahtarın gönderildiğini doğrula.
+## Origin izin listesinde görünüyor ama reddediliyor
 
-## Rol işlemi yetki hatası veriyor
+URL'nin `origin` değerini yazdır ve tam karşılaştır. Path izin listesine dahil değildir; protokol ve port dahildir.
 
-Kullanıcı izni ile bot rol sırasını ayrı kontrol et. Botun `MANAGE_ROLES` izni olsa bile kendi rolünün üstündeki rolü yönetemez.
+## Birden fazla instance farklı sonuç veriyor
 
-## Gerçek zamanlı bağlantı açık, kanal boş
+Bellek store'u production'da kalmış olabilir. Session, rate limit, idempotency, cache ve lock verisini instance'lar arasında ortaklaştır.
 
-Bağlantı oturumu geçerli olsa da abonelik yetkisi reddedilmiş olabilir. Kanal yetki kontrolünü, hedef `guildId` değerini ve korelasyon kimliğini sunucu günlüğünde incele.
+## Kilit sürekli kayboluyor
 
-## GitHub Pages CSS olmadan açılıyor
+Action timeout, kilit TTL ve renewal aralığını birlikte kontrol et. Uzun DB sorgusu abort sinyalini dinlemiyorsa kilit süresi dolduktan sonra yazma devam edebilir.
 
-Özel alan adı hazır değilken `DOCS_DOMAIN=jsorg` kullanma. Depo yolu üzerinden yayında değişkeni kaldır. js.org DNS kaydı açıldığında tekrar ekle.
+## Realtime olayları eksik
+
+Sequence değerini, replay retention süresini ve istemcinin son gördüğü cursor'u kontrol et. Session revocation veya geri basınç kapanması da yeniden bağlanma gerektirir.
+
+## Kullanıcıya iç hata görünüyor
+
+Framework bağdaştırıcısındaki error mapper'ı kontrol et. Kullanıcı yanıtına `error.message`, stack veya store hatasını doğrudan koyma; sabit GuildGate kodunu yerelleştirilmiş metne çevir.

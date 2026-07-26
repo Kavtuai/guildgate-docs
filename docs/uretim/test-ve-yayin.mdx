@@ -1,0 +1,45 @@
+---
+title: Test ve yayın
+description: GuildGate entegrasyonunu test et ve paket yükseltmesini güvenli biçimde dağıt.
+---
+
+# Test ve yayın
+
+## Asgari testler
+
+- Korunan mutation oturum ve CSRF olmadan reddedilir.
+- OAuth state yalnızca bağlı tarayıcıda ve bir kez tüketilir.
+- Oturum rotasyonu eski belirteci geçersiz kılar.
+- Kullanıcı ve bot izni ayrı ayrı hata üretebilir.
+- Transaction hook, retry ve fencing token action context'e ulaşır.
+- Operator işlemleri session, policy ve owner rate reset kayıtlarını yönetir.
+- WebSocket aboneliği yetki ister ve kaçırılan olayları yeniden oynatır.
+- SSE geri basınç sınırında bağlantıyı kapatır.
+- Hatalı realtime JSON invalid-data koduyla kapanır.
+
+## Paket kontrolleri
+
+```bash
+npm run typecheck
+npm test
+npm run pack:check
+```
+
+`pack:check`, yayımlanan tarball içinde gerekli export, tip, CLI, docs ve örneklerin bulunduğunu doğrulamalı.
+
+## Canary
+
+Önce tek instance veya staging ortamında şu akışı dene:
+
+1. Discord login
+2. session rotasyonu
+3. korunan settings mutation
+4. idempotent tekrar
+5. eş zamanlı iki yazma
+6. audit/outbox kaydı
+7. realtime replay
+8. session revocation
+
+## Trusted publishing
+
+npm trusted publisher kullanıyorsan workflow kimliğini ve tag kuralını sınırlı tut. Uzun ömürlü npm token'ını CI sırlarına ekleme.

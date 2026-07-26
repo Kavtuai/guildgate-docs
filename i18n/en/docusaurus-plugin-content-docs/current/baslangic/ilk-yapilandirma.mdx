@@ -1,0 +1,72 @@
+---
+title: Initial configuration
+description: Configure createGuildGate for development and production.
+---
+
+# Initial configuration
+
+`createGuildGate()` receives the application identity, security boundaries, locales and store bundle in one object.
+
+```ts
+const gate = createGuildGate({
+  app: {
+    name: "My Discord Dashboard",
+    environment: "production",
+    baseUrl: "https://panel.example.com",
+  },
+  owners: ["123456789012345678"],
+  locale: {
+    default: "en",
+    messages: {
+      en: {
+        MAINTENANCE_MODE: "Settings are unavailable during maintenance.",
+      },
+      tr: {
+        MAINTENANCE_MODE: "Ayar değişiklikleri bakım bitene kadar kapalı.",
+      },
+    },
+  },
+  security: {
+    allowedOrigins: ["https://panel.example.com"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+});
+```
+
+## Application fields
+
+| Field | Decision |
+| --- | --- |
+| `app.name` | Name used in operator and audit context |
+| `app.environment` | Environment boundary for security defaults and store namespaces |
+| `app.baseUrl` | Public dashboard URL |
+| `owners` | Discord user IDs allowed to use owner operations |
+| `locale.default` | Default error and status language |
+| `locale.messages` | Application-specific messages by error code |
+
+## Session policy
+
+`ttlMs` sets the absolute limit, `idleTimeoutMs` closes inactive sessions, `rotateAfterMs` rotates the opaque value and `maximumSessionsPerUser` limits open sessions.
+
+Treat these controls as a group. Rotation alone does not stop a stolen session; revocation must remain available.
+
+## Production guards
+
+The production profile rejects:
+
+- an HTTP `baseUrl`
+- an empty origin allowlist
+- HTTP or localhost origins
+- session cookies without `Secure`
+- an HTTP Discord callback
+- short CSRF or audit hashing secrets
+
+See the [configuration reference](../referans/yapilandirma.mdx) for the complete overview.

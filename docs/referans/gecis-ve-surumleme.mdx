@@ -1,0 +1,29 @@
+---
+title: Geçiş ve sürümleme
+description: Semver, store değişiklikleri ve üretim geçişlerini kontrollü biçimde yönet.
+---
+
+# Geçiş ve sürümleme
+
+GuildGate yayımlanan export yüzeyinde semver kullanır. Dahili dosyalar bu güvenceye dahil değildir.
+
+## Sürüm yükseltmeden önce
+
+- changelog ve migration notlarını oku
+- `npm run typecheck` çalıştır
+- store sözleşme testlerini yeniden çalıştır
+- Discord izin ve API değişikliklerini kontrol et
+- canary ortamında doctor ve korunan mutation testini çalıştır
+- realtime replay ve session revocation senaryolarını doğrula
+
+## Store geçişi
+
+Yeni store alanı eklendiğinde önce şemayı geriye uyumlu biçimde dağıt, ardından uygulamayı yükselt. Eski ve yeni instance aynı anda çalışacaksa iki sürümün okuyabileceği kayıt biçimini koru.
+
+## Anahtar rotasyonu
+
+OAuth token keyring birden fazla anahtar sürümü taşıyabilir. Yeni yazmaları aktif anahtarla şifrele; eski kayıtları okunduğunda veya arka plan göreviyle yeniden şifrele.
+
+## Geri dönüş
+
+Rollback planı yalnızca npm sürümünü düşürmekten ibaret olmamalı. Store şeması, outbox worker'ı, Redis prefix'i ve realtime sequence uyumluluğunu da kapsamalı.

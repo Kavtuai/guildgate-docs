@@ -1,0 +1,34 @@
+---
+title: Discord authorization
+description: Check current user and bot permissions with BigInt.
+---
+
+# Discord authorization
+
+Seeing a guild in the dashboard does not grant permission to change every setting. Each action should state the required user and bot permissions.
+
+## User permissions
+
+Do not parse Discord permission bitfields with JavaScript `number`. Use `BigInt` to avoid precision loss.
+
+```ts
+const permissions = BigInt(discordGuild.permissions);
+const canManage = (permissions & MANAGE_GUILD) === MANAGE_GUILD;
+```
+
+## Bot permissions and role hierarchy
+
+A user may have `MANAGE_ROLES` while the bot remains below the target role. Keep two decisions separate:
+
+- May the user request the action?
+- Can the bot complete the action on Discord?
+
+## Caching
+
+Guild lists and permission data may use a short cache, but a protected write should not trust stale browser state. Resolve current Discord data or use a deliberately short cache window.
+
+## Owner actions
+
+The `owners` list unlocks operator actions. It does not bypass session, origin, CSRF, rate-limit or audit checks.
+
+Discord.js projects can use the package authorization adapter. The source package includes `examples/discordjs/adapter.ts`.

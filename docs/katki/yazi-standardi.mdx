@@ -1,123 +1,41 @@
 ---
 title: Yazı standardı
-description: GuildGate belgelerinde kullanılan açık, doğal ve doğrulanabilir anlatım kuralları.
+description: GuildGate belgelerinde kısa, doğrulanabilir ve doğal teknik metin yaz.
 ---
 
 # Yazı standardı
 
-Bir belge, okurun çalışan bir kurulum yapmasına veya teknik bir kararı anlamasına yardım etmelidir. Özelliği olduğundan büyük göstermeyiz. Ne yaptığını, nerede durduğunu ve hangi koşulda başarısız olduğunu yazarız.
+Doküman kullanıcıya bir işi tamamlatmalı. Cümle, gerçek bir karar veya sonuç taşımıyorsa çıkar.
 
-Bu kontrol listesi, Wikipedia'nın [“Signs of AI writing”](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) sayfasındaki başlıkların teknik dokümantasyona uyarlanmış hâlidir. Kaynak bir Wikipedia politikası değildir ve tek bir kelime üzerinden yazarlık tespiti yapmaz. Buradaki maddeler de yasaklı kelime listesi olarak kullanılmaz.
+## Tercih edilen dil
 
-## Kelime ve ifade yoğunluğu
+- Etken fiil kullan: “Origin değerini karşılaştır.”
+- Sınırı doğrudan yaz: “Production profilinde localhost reddedilir.”
+- Soyut övgü yerine davranış belirt: “State kaydı bir kez tüketilir.”
+- Bir paragrafta tek ana fikir tut.
+- Aynı terim için sürekli eş anlamlı değiştirme.
 
-Aşağıdaki sözcükler tek başına sorun değildir. Aynı sayfada sık tekrarlanıyor, ölçülemeyen önem veya etki iddiası kuruyorsa cümleyi yeniden inceleriz.
+## Kaçınılan kalıplar
 
-| İngilizce kalıp | Türkçede sık görülen karşılığı |
-| --- | --- |
-| `stands as`, `serves as` | olarak öne çıkar, niteliği taşır |
-| `testament`, `reminder` | kanıtı, göstergesi, hatırlatıcısı |
-| `pivotal`, `crucial`, `vital`, `key` | dönüm noktası, kritik, hayati, kilit |
-| `underscores`, `highlights` | önemini vurgular, altını çizer |
-| `broader landscape`, `evolving landscape` | daha geniş çerçeve, değişen ortam |
-| `enduring legacy`, `lasting impact` | kalıcı miras, süregelen etki |
-| `fostering`, `cultivating`, `enhancing` | destekleyerek, geliştirerek, güçlendirerek |
-| `showcasing`, `exemplifies` | gözler önüne serer, örnek teşkil eder |
-| `vibrant`, `rich`, `profound` | canlı, zengin, derin |
-| `seamless`, `robust`, `comprehensive` | sorunsuz, sağlam, kapsamlı |
-| `valuable insights`, `resonates with` | değerli içgörüler, karşılık bulur |
-| `in conclusion`, `overall`, `moreover` | sonuç olarak, genel olarak, dahası |
+- konuya gereksiz önem yükleyen girişler
+- “kritik rol”, “dönüm noktası”, “geniş ekosistem” gibi kanıtsız önem cümleleri
+- tanıtım broşürü tonu
+- yüzeysel “böylece güvenliği artırır” sonuçları
+- belirsiz “uzmanlar”, “kaynaklar” ve “genel görüş” atıfları
+- her paragrafı üçlü listeye zorlama
+- gereksiz kalın yazı, emoji ve başlık yığını
+- kullanıcıya hitap eden sohbet artıkları
+- placeholder, araç citation ve model işaretleri
 
-Teknik belgede çoğu zaman daha düz karşılık yeterlidir: “kontrol eder”, “reddeder”, “kaydeder”, “beş saniye bekler”, “bu alan zorunludur”.
+## Kaynak doğrulama
 
-## İçerik kalıpları
+Kaynak bağlantısını aç. Başlık, yazar, tarih ve ilgili iddiayı gerçekten desteklediğini kontrol et. UTM parametresini kaldır. Var olmayan DOI, ISBN veya sayfa numarası üretme.
 
-- Konunun önemini veya etkisini ölçülebilir dayanak olmadan büyütme
-- Sıradan bir sürüm değişikliğini dönüm noktası gibi anlatma
-- Kaynak sayısını tekrar ederek ürünün değerini kanıtlama
-- Kaynakta bulunmayan yorumu kaynak sahibine yükleme
-- Veriden çıkmayan etki, anlam veya sembol yorumu ekleme
-- Cümle sonuna sürekli “böylece güçlendirir” türü yorum iliştirme
-- Reklam, basın bülteni veya ürün tanıtımı tonu kullanma
-- Kim olduğu belli olmayan “uzmanlar” ve “bazı kaynaklar” ifadelerine görüş yükleme
-- Bölümü otomatik olarak zorluklar ve gelecek beklentileriyle kapatma
-- Genel bir başlığı özel isim gibi sunan yapay giriş paragrafı yazma
-
-## Cümle yapısı
-
-- Basit fiil yeterliyken dolambaçlı ve resmî karşılığa yönelme
-- “Yalnızca X değil, aynı zamanda Y” kalıbını tekrar etme
-- Gereksiz “X değil Y” karşıtlığı kurma
-- Her anlatımı üç maddelik gruba zorlama
-- Aynı kavram için sırf tekrar görünmesin diye farklı adlar kullanma
-- Bir cümleye peş peşe sıfat ve yan cümle ekleme
-- Her paragrafı aynı uzunluk ve ritimle yazma
-
-## Biçim alışkanlıkları
-
-- Her başlık kelimesini İngilizce title case biçiminde büyütme
-- Kalın yazıyı ana anlatım yöntemi hâline getirme
-- Her liste maddesine kalın ara başlık ve iki nokta ekleme
-- Paragrafın daha okunur olduğu yerde uzun dikey liste kullanma
-- Uzun tireyi cümle bağlamak için sık tekrarlama
-- Emojiyi başlık veya bilgi mimarisi olarak kullanma
-- Kısa karşılaştırmayı gereksiz tabloya çevirme
-- Başlık seviyesini atlama
-- Her başlık önüne tematik ayraç koyma
-
-## Sohbet ve şablon artıkları
-
-- “İşte istediğin metin”, “memnuniyetle” veya “umarım yardımcı olur” cümlelerini belgeye bırakma
-- Okurdan onay isteyen ya da sonraki işi teklif eden kapanış yazma
-- Model sınırı, bilgi kesim tarihi veya üretim süreci anlatma
-- `{şirket adı}`, `<link>` veya `[kaynak ekle]` gibi doldurulmamış alan bırakma
-- Aynı giriş ve kapanış paragrafını farklı sayfalarda tekrar etme
-
-## Araç ve işaretleme artıkları
-
-- Kapanmamış etiket, bozuk bağlantı veya hatalı kod çiti bırakma
-- `contentReference`, `oaicite`, `oai_citation`, `attributableIndex` veya `turn0search0` gibi araç değerlerini yayımlama
-- `[cite: 1]`, `[span_1](start_span)`, `grok_card`, `attached_file` veya `:::writing` parçalarını bırakma
-- Var olmayan kategori, şablon, DOI, ISBN veya bağlantı üretme
-- Arama sonucu sayfasını doğrudan kaynak olarak verme
-- Kaynak bağlantısında gereksiz izleme parametresi bırakma
-
-## Değişiklik özeti ve ton
-
-- Bütün kurallara uyulduğunu kalıp bir güvenceyle ilan etme
-- “Tüm bilgi korundu” sözünü doğrulamadan kullanma
-- Atıfların güvenilirliğini değişiklik özetinde gereğinden fazla savunma
-- Belgenin ortasında açıklanamayan ton veya terim değişikliği bırakma
-- İnceleyene değişikliği neden kabul etmesi gerektiğini anlatan uzun başvuru notu ekleme
-
-## Güvenilir olmayan göstergeler
-
-Şunlar tek başına üretim biçimini göstermez:
-
-- Kusursuz dil bilgisi
-- Resmî veya gündelik ton
-- Metnin sade, akademik ya da süslü gelmesi
-- Tek bir geçiş sözcüğü
-- Tek bir uzun tire
-- Belirli cümle uzunluğu
-- Bir tespit aracının verdiği yüzde
-
-Asıl kontrol teknik doğruluk, kaynakla uyum, tutarlı terim seçimi ve yazarın yaptığı değişikliği açıklayabilmesidir.
-
-## Bu depoda uygulanan kurallar
-
-- İlk paragraf sayfanın görevini söyler.
-- “Güvenli” demek yerine kontrolün neyi reddettiği yazılır.
-- Kod örneğinde var olmayan API alanı kullanılmaz.
-- Aynı bilgi farklı kelimelerle yeniden anlatılmaz.
-- Liste yalnızca taramayı kolaylaştırıyorsa kullanılır.
-- Sürüme bağlı davranışta sürüm numarası verilir.
-- Dış bağlantı yayımdan önce açılıp kontrol edilir.
-
-## Otomatik denetim
+## Otomatik kontrol
 
 ```bash
 npm run editorial:check
+npx guildgate-writing-check
 ```
 
-Bu komut yazarlık tespiti yapmaz. Placeholder, araç artığı, bozuk atıf işareti ve depoda istemediğimiz tekrar eden kalıpları bulur. Son okuma yine insan tarafından yapılır.
+Bu kontroller yazar tespiti yapmaz. Yayıma girmemesi gereken kalıp ve artıkları bulur; teknik doğruluk için kod, test ve kaynak incelemesi yine gerekir.

@@ -1,6 +1,6 @@
 ---
 title: Kurulum
-description: GuildGate paketini ekleme, çalışma koşulları ve ilk tanı komutu.
+description: GuildGate 1.0.0'ı projeye ekle ve paket koşullarını kontrol et.
 ---
 
 # Kurulum
@@ -18,34 +18,39 @@ description: GuildGate paketini ekleme, çalışma koşulları ve ilk tanı komu
 npm install @kavtuai/guildgate
 ```
 
-GuildGate, Fastify veya Express'i kendi bağımlılığı olarak kurmaz. Mevcut sunucunun istek ve yanıt nesnelerini ince bağdaştırıcılarla kullanır.
+Paket TypeScript bildirimlerini kendi içinde taşır. Fastify, Express, Hono, Redis istemcisi ve veritabanı sürücüsü proje seçimine bağlı kaldığı için bunları ayrıca kurarsın.
 
-## İlk tanı
+## Kurulumu doğrula
+
+```bash
+node ./node_modules/@kavtuai/guildgate/bin/guildgate-doctor.mjs
+```
+
+Paket komutu `node_modules/.bin` üzerinden görünüyorsa kısa biçimi de kullanabilirsin:
 
 ```bash
 npx guildgate-doctor
 ```
 
-Makine tarafından okunabilir çıktı:
+JSON çıktısı:
 
 ```bash
 npx guildgate-doctor --json
 ```
 
-Tarayıcıda örnek sonucu görmek için [komut laboratuvarını](/docs/araclar/komut-laboratuvari) açabilirsin. Bu araç gerçek proje dosyalarını okumaz; belgelenen kontrolleri sabit örneklerle gösterir.
+Doctor komutu ortam değerlerini yerel süreçte okur. Sırları dışarı göndermez ve değerlerin kendisini rapora yazmaz.
 
-## Ortam değişkenleri
+## Import kontrolü
 
-Yerel örnek için en az şu değerleri tanımla:
-
-```env
-GUILDGATE_CSRF_SECRET=uzun-ve-rastgele-bir-deger
-GUILDGATE_AUDIT_IP_SALT=ayri-uzun-ve-rastgele-bir-deger
-BOT_OWNER_ID=discord-kullanici-id
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
 ```
 
-OAuth istemci sırrı, bot belirteci, şifreleme anahtarı ve Redis bağlantısı da sunucu ortamında tutulmalıdır. Bunları istemci paketine veya herkese açık depo geçmişine koyma.
+Dahili `src/` veya `dist/` yollarından import yapma. Yayımlanan ana paket ve alt yolları kullan.
 
-:::warning Sırları kaynak koduna yazma
-`.env` dosyasını Git'e ekleme. Üretim değerlerini dağıtım platformunun gizli değişken alanında sakla.
-:::
+## Sonraki adım
+
+[Beş dakikalık kurulum](./bes-dakikada-basla.mdx), çalışan bir geliştirme örneği kurar. Üretim ayarları için [ilk yapılandırma](./ilk-yapilandirma.mdx) ve [güvenlik kontrol listesi](../uretim/guvenlik-kontrol-listesi.mdx) sayfalarını birlikte oku.

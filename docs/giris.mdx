@@ -1,56 +1,52 @@
 ---
 sidebar_position: 1
 title: GuildGate nedir?
-description: GuildGate'in hangi işleri üstlendiği ve uygulamanın neresinde durduğu.
+description: GuildGate 1.0.0'ın görevini, sınırlarını ve uygulamadaki yerini tanı.
 slug: /giris
 ---
 
 # GuildGate nedir?
 
-GuildGate, Discord bot yönetim panellerinin sunucu tarafında kullanılan bir TypeScript paketidir. OAuth girişi, oturum, CSRF, origin, istek sınırı, yetki ve denetim kaydı gibi kontrolleri aynı işlem düzeninde toplar.
+GuildGate, Discord bot dashboard'larının sunucu tarafı için yazılmış bir TypeScript kütüphanesidir. Paket; OAuth girişi, opak oturum, CSRF, tam origin eşleşmesi, kullanıcı ve bot yetkisi, istek sınırı, idempotency, kaynak kilidi, denetim kaydı ve gerçek zamanlı abonelikler için ortak sözleşmeler sunar.
 
-Belgeler `@kavtuai/guildgate` paketinin `0.1.0` sürümünü izler. Çalışma ortamı Node.js 22 veya üzeridir.
+Bu belgeler `@kavtuai/guildgate` paketinin `1.0.0` sürümünü izler. Paket Node.js 22 veya üzerini ister.
 
 <div className="gg-callout">
   <i className="bi bi-shield-lock" aria-hidden="true"></i>
-  <div><strong>Tarayıcı karar vermez</strong><p>Rol ve yetki bilgisi istemciye güvenilerek kabul edilmez. Yazma anında sunucu tarafında yeniden kontrol edilir.</p></div>
+  <div><strong>Dashboard karar vermez</strong><p>Tarayıcıdan gelen rol, sunucu ve yetki bilgisini doğru kabul etme. Yazma isteği geldiğinde bu bilgileri sunucu tarafında yeniden çöz.</p></div>
 </div>
 
-## Paket ne yapar?
+## Ne kazandırır?
 
-- Kullanıcı bilgisini taşıyan okunabilir belirteçler yerine sunucu tarafında opak oturum açar.
-- Discord yetkilendirme kodu girişinde tek kullanımlık `state` kaydı ve `nonce` çerezi kullanır.
-- Yazma isteklerinde oturuma bağlı CSRF belirtecini ve tam origin eşleşmesini kontrol eder.
-- İstek sınırı, tekrarlı istek koruması, kaynak kilidi, süre sınırı ve denetim kaydını işlem tanımına bağlar.
-- Fastify ile Express için bağdaştırıcılar sunar.
-- Kısa ömürlü kayıtların Redis üzerinde tutulmasına izin verir.
+- Yazma istekleri aynı kontrol sırasını izler.
+- Oturum belirteçleri sunucu tarafında iptal edilebilir.
+- Discord OAuth `state` kaydı tek tarayıcıya bağlanır ve bir kez tüketilir.
+- Redis, kalıcı veritabanı ve özel store uygulamaları aynı sözleşmelerle çalışır.
+- Fastify, Express ve Hono kullanan projeler çekirdeği kendi HTTP katmanına bağlar.
+- WebSocket ve SSE abonelikleri de oturum ve sunucu yetkisi ister.
 
-## Paket ne yapmaz?
+## Neyi üstlenmez?
 
-GuildGate yönetim paneli arayüzü çizmez, veritabanı seçmez ve Discord botunun ürün kurallarını devralmaz. Kalıcı veri modeli, rol hiyerarşisi ve asıl kayıt işlemi uygulamanda kalır.
-
-Bu sınır, güvenlik kontrollerini tek yerde tutarken ürün kararlarının sana ait kalmasını sağlar.
-
-## Uygulamadaki yeri
+GuildGate bir dashboard arayüzü üretmez. Veritabanı şemana sahip olmaz. Rol hiyerarşini, ürün kurallarını veya Discord botunun komutlarını yönetmez. Bu kararlar uygulamanda kalır.
 
 ```text
 Tarayıcı
    │
    ▼
-Fastify / Express uç noktası
+HTTP / WebSocket / SSE bağdaştırıcısı
    │
    ▼
-GuildGate işlem katmanı
-   ├─ oturum ve origin
-   ├─ CSRF
-   ├─ istek sınırı
-   ├─ tekrarlı istek koruması
-   ├─ kaynak kilidi
+GuildGate
+   ├─ kimlik ve oturum
+   ├─ origin ve CSRF
    ├─ yetkilendirme
-   └─ denetim, önbellek ve gerçek zamanlı olay
+   ├─ istek sınırı ve idempotency
+   ├─ kaynak kilidi ve dayanıklılık
+   ├─ denetim kaydı ve outbox
+   └─ realtime abonelik yetkisi
    │
    ▼
-Uygulamanın servis ve veritabanı katmanı
+Uygulama servisi, Discord API'si ve veritabanı
 ```
 
-Yeni kurulum için [paketi ekle](/docs/baslangic/kurulum), ardından [ilk yapılandırmayı](/docs/baslangic/ilk-yapilandirma) uygula.
+Kuruluma geçmek için [beş dakikalık rehberi](./baslangic/bes-dakikada-basla.mdx) aç. Mimari kararları önce görmek istersen [genel bakıştan](./mimari/genel-bakis.mdx) devam et.

@@ -9,20 +9,30 @@ npm install
 npm run dev
 ```
 
+İngilizce siteyi tek başına açmak için:
+
+```bash
+npm run start:en
+```
+
 Değişikliği göndermeden önce:
 
 ```bash
 npm run validate
 ```
 
+## İki dil kuralı
+
+`docs/` altında eklenen veya değiştirilen her sayfanın İngilizce karşılığı `i18n/en/docusaurus-plugin-content-docs/current/` altında aynı belge kimliğiyle bulunmalıdır. Kod alanları ve export adları çevrilmez; açıklama metni doğal biçimde yazılır.
+
 ## Belge değişiklikleri
 
-- API adı ve kod alanı değiştirilmez; açıklaması Türkçe yazılır.
-- Sürüme bağlı davranışta ilgili GuildGate sürümü belirtilir.
-- Çalışmayan veya varsayıma dayanan kod örneği eklenmez.
-- Dış bağlantılar açılarak kontrol edilir.
-- `docs/katki/yazi-standardi.mdx` içindeki kurallar uygulanır.
+- Sürüme bağlı davranışta ilgili GuildGate sürümünü yaz.
+- Varsayıma dayanan veya çalıştırılmamış kod örneği ekleme.
+- Dış bağlantıları açarak kontrol et.
+- Kullanıcı yanıtına iç hata, sır, store anahtarı veya debug ayrıntısı koyma.
+- `docs/katki/yazi-standardi.mdx` içindeki dili koru.
 
-## Komut laboratuvarı
+## Doğrulama konsolu
 
-Yeni komut eklerken `src/lib/command-engine.mjs` içindeki izin listesi kullanılır. Dinamik kod değerlendirme, işletim sistemi komutu, ağ isteği veya kullanıcı girdisini HTML olarak gösterme kabul edilmez. `npm run command:check` yeni senaryoyu kapsamalıdır.
+Yeni komut yalnızca `src/lib/command-engine.mjs` içindeki açık izin listesine eklenebilir. Dinamik kod değerlendirme, işletim sistemi komutu, ağ isteği, kalıcı tarayıcı depolaması veya kullanıcı girdisini HTML olarak işleme kabul edilmez. Her yeni davranış `npm run command:check` içinde sınanmalıdır.

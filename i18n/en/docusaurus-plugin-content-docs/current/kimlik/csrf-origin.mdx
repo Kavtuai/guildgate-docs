@@ -1,0 +1,37 @@
+---
+title: CSRF and origins
+description: Apply exact-origin and session-bound CSRF validation to writes.
+---
+
+# CSRF and origins
+
+GuildGate uses two separate controls: exact origin matching and a session-bound CSRF token. Neither replaces the other.
+
+## Exact origin matching
+
+`https://panel.example.com` is different from:
+
+- `http://panel.example.com`
+- `https://admin.panel.example.com`
+- `https://panel.example.com:8443`
+- `https://panel.example.com.evil.test`
+
+Do not weaken the check with substring or suffix matching. Compare the parsed URL `origin` against an explicit set.
+
+## Session-bound CSRF
+
+The CSRF value is cryptographically bound to the session. A valid-looking value from another session is rejected.
+
+For a protected write, the client:
+
+1. Sends the session cookie.
+2. Adds the CSRF value in a dedicated header.
+3. Lets the server validate origin, session and token binding.
+
+## Production rejections
+
+The production profile rejects an empty origin list, HTTP origins, localhost origins and short CSRF secrets.
+
+## Proxy note
+
+Origin validation does not depend on the client IP. If you use IP-based rate limits or audit hashing, trust addresses only from a configured proxy chain.

@@ -1,28 +1,60 @@
 ---
 title: Dışa açık API
-description: GuildGate 0.1.0 dışa aktarımlarının kısa referansı.
+description: GuildGate 1.0.0 ana export ve store sözleşmelerini hızlıca bul.
 ---
 
 # Dışa açık API
 
-Bu sayfa `0.1.0` sürümündeki ana dışa aktarımları gösterir. Parametre ve dönüş tiplerinde kurulu paketin TypeScript bildirimlerini esas al.
+Bu sayfa `1.0.0` sürümündeki doğrulanmış ana export'ları özetler. Parametre ve dönüş tiplerinde kurulu paketin TypeScript bildirimlerini esas al.
 
-| Dışa aktarım | Import yolu | Görevi |
+## Çekirdek
+
+| Export | Görev |
+| --- | --- |
+| `createGuildGate` | Ana çekirdeği oluşturur |
+| `createMemoryStoreBundle` | Geliştirme ve test store'larını kurar |
+| `composeStores` | Birden fazla store paketini birleştirir |
+| `createRealtimeHub` | Yetkili realtime abonelik merkezini kurar |
+| `RealtimeConnection` | Bir bağlantının kimlik ve teslim bağlamını temsil eder |
+
+## Store tipleri
+
+- `GuildGateStores`
+- `SessionStore`
+- `OAuthStateStore`
+- `OAuthCredentialStore`
+- `RateLimitStore`
+- `CacheStore`
+- `IdempotencyStore`
+- `LockStore`
+- `AuditStore`
+- `OutboxStore`
+- `PolicyStore`
+
+## Redis
+
+| Export | Import yolu | Görev |
 | --- | --- | --- |
-| `createGuildGate` | `@kavtuai/guildgate` | Ana GuildGate örneğini oluşturur |
-| `createMemoryStoreBundle` | `@kavtuai/guildgate` | Yerel geliştirme ve test depolarını kurar |
-| `composeStores` | `@kavtuai/guildgate` | Farklı depo uygulamalarını birleştirir |
-| `createRedisEphemeralStores` | `@kavtuai/guildgate/redis` | Kısa ömürlü Redis depolarını kurar |
-| `fromNodeRedis` | `@kavtuai/guildgate/redis` | Node Redis istemcisini beklenen arayüze uyarlar |
-| `fastifyActionHandler` | `@kavtuai/guildgate/fastify` | İşlemi Fastify rotasına bağlar |
-| `expressActionHandler` | `@kavtuai/guildgate/express` | İşlemi Express rotasına bağlar |
-| `createRealtimeHub` | ana paket dışa aktarımı | Yetkili gerçek zamanlı bağlantı merkezini oluşturur |
-| `createDiscordGuildAuthorizer` | `@kavtuai/guildgate/discord` | Discord kullanıcı ve bot izinlerini denetler |
+| `createRedisEphemeralStores` | `@kavtuai/guildgate/redis` | Kısa ömürlü store paketini kurar |
+| `fromNodeRedis` | `@kavtuai/guildgate/redis` | Node Redis istemcisini gereken sözleşmeye çevirir |
 
-## Gate üzerinde kullanılan alanlar
+## HTTP
+
+| Export | Import yolu |
+| --- | --- |
+| `fastifyActionHandler` | `@kavtuai/guildgate/fastify` |
+| `expressActionHandler` | `@kavtuai/guildgate/express` |
+
+Paket Hono ve discord.js bağdaştırıcıları da içerir. Tam export adını kurulu sürümün `exports` alanı ve IDE otomatik tamamlamasıyla doğrula.
+
+## Gate yöntemleri
+
+Doğrulanmış yüzeyde şu işlemler bulunur:
 
 - `gate.action(...)`
-- `gate.cache`
-- Oturum, CSRF, denetim ve gerçek zamanlı servisler
+- `gate.owner.setMaintenance(...)`
+- `gate.owner.block(...)`
+- `gate.owner.unblock(...)`
+- `gate.revokeUserSessions(...)`
 
-Paket alt yollarını IDE otomatik tamamlama ve yayımlanan `exports` alanıyla doğrula. Dahili dosya yollarından import yapma.
+Dahili dosya yollarından import yapma; semver güvencesi yalnızca yayımlanan export yüzeyi için geçerlidir.

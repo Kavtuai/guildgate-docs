@@ -1,0 +1,45 @@
+---
+title: Testing and release
+description: Test a GuildGate integration and roll out package upgrades with a controlled canary.
+---
+
+# Testing and release
+
+## Minimum scenarios
+
+- A guarded mutation is rejected without a session or CSRF proof.
+- OAuth state can be consumed once and only by the bound browser context.
+- Session rotation invalidates the previous opaque token.
+- User and bot permission failures are distinguishable.
+- Transaction hooks, retries, and fencing data reach the action context.
+- Operator actions manage session, policy, and owner-rate-reset records.
+- A WebSocket subscription requires authorization and replays missed events.
+- SSE closes when the backpressure limit is reached.
+- Invalid realtime JSON closes with an invalid-data code.
+
+## Package checks
+
+```bash
+npm run typecheck
+npm test
+npm run pack:check
+```
+
+`pack:check` should verify that the tarball contains the expected exports, declarations, CLI binaries, documentation, and examples.
+
+## Canary sequence
+
+Run the upgrade first on one instance or in staging:
+
+1. Discord login
+2. session rotation
+3. guarded settings mutation
+4. idempotent repeat
+5. two concurrent writes
+6. audit and outbox commit
+7. realtime replay
+8. session revocation
+
+## Trusted publishing
+
+When using npm trusted publishing, keep the workflow identity and tag rule narrow. Do not add a long-lived npm token to CI secrets.

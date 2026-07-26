@@ -1,0 +1,41 @@
+---
+title: Threat model
+description: Review the attacks GuildGate addresses and the risks left to the application.
+---
+
+# Threat model
+
+This model assumes an internet-facing Discord dashboard API and a browser client using a session cookie.
+
+## Addressed risks
+
+| Risk | Control |
+| --- | --- |
+| Stolen session token | No raw-token storage, rotation, idle/absolute expiry and revocation |
+| Login CSRF and OAuth replay | One-time state, browser nonce binding and expiry |
+| Cross-site write request | Exact origin matching and a session-bound CSRF token |
+| Stale Discord authorization | Re-resolve user and bot permissions on protected writes |
+| Duplicate delivery | Idempotency store with a resource-scoped key |
+| Concurrent writes | Renewable distributed lock and fencing token |
+| Temporary Discord/store failure | Timeout, bounded retry and circuit breaker |
+| Unauthorized realtime subscription | Session and guild checks at connection and subscription time |
+| Lost audit event | Transaction hook and outbox contract |
+
+## Risks outside the package boundary
+
+- A compromised server
+- Secrets committed to source code
+- Incorrect reverse-proxy trust
+- Incorrect product authorization rules
+- Application services that skip transactions
+- A bot role below the target role
+- Weak key management or backups
+
+## Assumptions
+
+- TLS terminates at a trusted proxy or the application.
+- Store implementations keep the required atomic behavior.
+- The application forwards cancellation and timeout signals.
+- Operator actions use separate authorization and audit records.
+
+Use the [production checklist](../uretim/guvenlik-kontrol-listesi.mdx) to evaluate the whole deployment.

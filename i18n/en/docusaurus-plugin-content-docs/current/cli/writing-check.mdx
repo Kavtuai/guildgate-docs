@@ -1,0 +1,22 @@
+---
+title: guildgate-writing-check
+description: Scan package and documentation copy for placeholders, tool artifacts, and banned promotional patterns.
+---
+
+# `guildgate-writing-check`
+
+This command scans user-facing text for forgotten placeholders, model-tool artifacts, malformed citation syntax, and promotional phrases that the project does not accept.
+
+```bash
+npx guildgate-writing-check
+```
+
+## What it catches
+
+- `<link>`, `TODO_CONTENT`, and temporary copy
+- artifacts such as `contentReference`, `oaicite`, and `turn...`
+- malformed provider citation patterns
+- chat remnants left in source files
+- empty claims of importance and brochure-style language
+
+This is not an authorship detector. It cannot establish who wrote a text or whether its claims are correct. It catches publishing residue; code review, source checking, and technical tests remain separate work.

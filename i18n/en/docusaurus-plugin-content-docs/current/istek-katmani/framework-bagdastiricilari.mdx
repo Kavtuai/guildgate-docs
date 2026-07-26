@@ -1,0 +1,44 @@
+---
+title: Framework adapters
+description: Connect GuildGate actions to Fastify, Express and Hono routes.
+---
+
+# Framework adapters
+
+The core stays independent from framework request objects. Adapters convert headers, cookies, IP context, abort signals and responses into GuildGate context.
+
+## Fastify
+
+```ts
+import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
+
+fastify.patch(
+  "/api/guilds/:guildId/settings",
+  fastifyActionHandler(gate, updateGuildSettings),
+);
+```
+
+## Express
+
+```ts
+import {expressActionHandler} from "@kavtuai/guildgate/express";
+
+app.patch(
+  "/api/guilds/:guildId/settings",
+  expressActionHandler(gate, updateGuildSettings),
+);
+```
+
+## Hono
+
+The package also includes a Hono adapter. Confirm the exact subpath from the installed package `exports` field and TypeScript autocomplete; do not depend on internal files.
+
+## Application responsibilities
+
+- Resolve client IP only through a trusted proxy boundary.
+- Map session and CSRF headers/cookies correctly.
+- Forward abort signals to lower layers.
+- Map error codes to user-facing messages.
+- Keep secrets and internal error objects out of framework logs and responses.
+
+Keep adapters thin. Product rules belong in actions and services, not route files.

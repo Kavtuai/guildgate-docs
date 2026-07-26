@@ -1,6 +1,6 @@
 ---
 title: Yapılandırma referansı
-description: createGuildGate ana seçeneklerinin açıklaması.
+description: createGuildGate ana seçeneklerini ve production koşullarını incele.
 ---
 
 # Yapılandırma referansı
@@ -9,30 +9,37 @@ description: createGuildGate ana seçeneklerinin açıklaması.
 
 | Alan | Açıklama |
 | --- | --- |
-| `name` | Log ve hata bağlamında kullanılan uygulama adı |
-| `environment` | `development`, `staging` veya üretim ortamı |
-| `baseUrl` | Yönetim panelinin temel adresi |
+| `name` | Uygulama ve audit bağlamındaki ad |
+| `environment` | Geliştirme, staging veya production ayrımı |
+| `baseUrl` | Dışarıdan erişilen dashboard adresi |
 
 ## `owners`
 
-Uygulama sahibi kabul edilen Discord kullanıcı kimlikleri. Sahip yetkisi istek güvenliği kontrollerini kapatmamalıdır.
+Sahip işlemlerini kullanabilen Discord kullanıcı kimlikleri. Sahip olmak session, origin, CSRF, rate limit veya audit kontrolünü kapatmaz.
 
 ## `locale`
 
-`default` varsayılan hata dilini belirler. `messages`, hata kodlarını projeye uygun metinlerle değiştirmene izin verir.
+| Alan | Açıklama |
+| --- | --- |
+| `default` | Varsayılan mesaj dili |
+| `messages` | Hata kodu bazlı TR/EN veya özel dil metinleri |
 
 ## `security`
 
 | Alan | Açıklama |
 | --- | --- |
-| `allowedOrigins` | Tam eşleşmeyle kabul edilen origin adresleri |
-| `csrfSecret` | CSRF belirteçleri için ayrı sır |
-| `auditIpSalt` | IP değerini denetim kaydında düz tutmamak için salt |
-| `session.ttlMs` | Oturumun toplam ömrü |
+| `allowedOrigins` | Tam eşleşmeyle kabul edilen origin listesi |
+| `csrfSecret` | CSRF imzası için ayrı sır |
+| `auditIpSalt` | Ham IP saklamadan bağlam üretmek için ayrı salt |
+| `session.ttlMs` | Mutlak oturum süresi |
 | `session.idleTimeoutMs` | Boşta kalma sınırı |
-| `session.rotateAfterMs` | Belirteç rotasyon süresi |
-| `session.maximumSessionsPerUser` | Kullanıcı başına açık oturum sınırı |
+| `session.rotateAfterMs` | Opak belirteç yenileme aralığı |
+| `session.maximumSessionsPerUser` | Kullanıcı başına açık oturum üst sınırı |
 
 ## `stores`
 
-Oturum, OAuth durum kaydı, tekrarlı istek koruması, istek sınırı, kilit ve denetim kaydı için depo uygulamalarıdır. Yerel örnekte bellek deposu kullanılabilir. Üretimde kayıt türüne göre kalıcı veritabanı ve Redis seçilir.
+`GuildGateStores` sözleşmesini karşılayan paket. `createMemoryStoreBundle()` yalnızca geliştirme/test için uygundur. Production store yerleşimi için [depo sözleşmelerine](../depolama/depo-sozlesmeleri.mdx) bak.
+
+## İleri ayarlar
+
+`1.0.0` action yüzeyi transaction hook, cache invalidation, retry, timeout, circuit breaker, dağıtık kilit ve fencing token davranışlarını destekler. Bu alanların tam tipini kurulu paketin TypeScript bildirimlerinden al.
