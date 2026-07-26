@@ -30,7 +30,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Bağımlılıkları kur
-        run: npm install
+        run: npm ci
       - name: Metin, kaynak ve komut kontrolleri
         run: npm run check
       - name: Siteyi derle
