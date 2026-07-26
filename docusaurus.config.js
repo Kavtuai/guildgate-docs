@@ -19,7 +19,7 @@ const useJsOrg = process.env.DOCS_DOMAIN === 'jsorg';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'GuildGate',
-  tagline: 'Discord yönetim paneli sunucuları için güvenlik çekirdeği',
+  tagline: 'Discord yönetim panelleri için sunucu tarafı güvenlik çekirdeği',
   favicon: 'img/favicon.svg',
   url: useJsOrg ? 'https://guildgate.js.org' : 'https://kavtuai.github.io',
   baseUrl: useJsOrg ? '/' : '/guildgate-docs/',
@@ -63,7 +63,7 @@ const config = {
   themeConfig: {
     image: 'img/guildgate-social-card.png',
     metadata: [
-      {name: 'description', content: 'GuildGate 0.1.0 için Türkçe kurulum, güvenlik ve API belgeleri.'},
+      {name: 'description', content: 'GuildGate için Türkçe kurulum, güvenlik, komut testi ve API belgeleri.'},
       {name: 'keywords', content: 'GuildGate, Discord yönetim paneli, Node.js, TypeScript, OAuth, CSRF, oturum güvenliği'},
     ],
     navbar: {
@@ -72,6 +72,7 @@ const config = {
       items: [
         {type: 'docSidebar', sidebarId: 'docsSidebar', position: 'left', label: 'Dokümanlar'},
         {to: '/docs/baslangic/kurulum', label: 'Kurulum', position: 'left'},
+        {to: '/docs/araclar/komut-laboratuvari', label: 'Komut testi', position: 'left', className: 'navbar-playground-link'},
         {to: '/docs/referans/public-api', label: 'API', position: 'left'},
         {href: 'https://www.npmjs.com/package/@kavtuai/guildgate', label: 'npm', position: 'right'},
         {href: 'https://github.com/Kavtuai/guildgate', label: 'GitHub', position: 'right'},
@@ -86,7 +87,8 @@ const config = {
           {label: 'İlk yapılandırma', to: '/docs/baslangic/ilk-yapilandirma'},
         ]},
         {title: 'Geliştirme', items: [
-          {label: 'İşlem hattı', to: '/docs/istek-katmani/action'},
+          {label: 'İşlem tanımı', to: '/docs/istek-katmani/action'},
+          {label: 'Komut laboratuvarı', to: '/docs/araclar/komut-laboratuvari'},
           {label: 'Dışa açık API', to: '/docs/referans/public-api'},
           {label: 'Sorun giderme', to: '/docs/sorun-giderme'},
         ]},

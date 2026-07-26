@@ -5,6 +5,7 @@ const docsRoot = path.resolve('docs');
 const errors = [];
 
 function walk(dir) {
+  if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, {withFileTypes: true}).flatMap((entry) => {
     const full = path.join(dir, entry.name);
     return entry.isDirectory() ? walk(full) : [full];
@@ -36,7 +37,11 @@ for (const file of docFiles) {
   routes.add(`/docs${slug?.startsWith('/') ? slug : `/${slug ?? relative}`}`.replace(/\/$/u, ''));
 }
 
-const linkFiles = [...docFiles, path.resolve('src/pages/index.js')];
+const linkFiles = [
+  ...docFiles,
+  ...walk(path.resolve('src')).filter((file) => /\.(?:js|jsx)$/u.test(file)),
+];
+
 for (const file of linkFiles) {
   const text = fs.readFileSync(file, 'utf8');
   const matches = [

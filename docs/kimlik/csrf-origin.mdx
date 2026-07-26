@@ -1,16 +1,16 @@
 ---
 title: CSRF ve origin kontrolü
-description: Yazma isteklerinde uygulanan iki ayrı kontrol.
+description: Yazma isteklerinde uygulanan iki ayrı doğrulama.
 ---
 
 # CSRF ve origin kontrolü
 
-GuildGate yazma isteklerinde iki ayrı sinyal arar:
+GuildGate yazma isteğinde iki ayrı koşul arar:
 
 1. İstek origin'i izin verilen adreslerden biri olmalı.
-2. CSRF belirteci geçerli oturuma bağlı olmalı.
+2. CSRF belirteci açık oturuma bağlı olmalı.
 
-Tek başına CORS ayarı yeterli değildir. CORS tarayıcının yanıtı okuyup okuyamayacağını etkiler; istek yine sunucuya ulaşabilir. Sunucu tarafındaki exact-origin kontrolü bu nedenle ayrıca yapılır.
+CORS bu kontrollerin yerine geçmez. CORS, tarayıcının yanıtı okuyup okuyamayacağını etkiler; istek sunucuya yine ulaşabilir. Bu nedenle origin sunucuda ayrıca doğrulanır.
 
 ## İzin verilen origin'ler
 
@@ -22,12 +22,15 @@ security: {
 }
 ```
 
-Origin karşılaştırmasında joker karakter kullanma. Protokol, host ve port birlikte değerlendirilmelidir.
+Joker karakter kullanma. Protokol, host ve port birlikte karşılaştırılır.
 
 ## İstemci isteği
 
-Uygulama, oturuma bağlı CSRF değerini sunucudan alıp yazma isteğinde beklenen üstbilgiyle geri gönderir. Üstbilgi adı ve belirteç üretimi için paketin TypeScript tiplerini temel al.
+Ön yüz, oturuma bağlı CSRF değerini sunucudan alır ve yazma isteğinde beklenen üstbilgiyle geri gönderir. Üstbilgi adı ile belirteç üretimi için kurulu paketin TypeScript tiplerini esas al.
 
-:::note GET güvenli kabul edilmemeli
-Veri değiştiren işlemleri `GET` uç noktasına koyma. Yöntem adı güvenlik kontrolünün yerini tutmaz.
-:::
+<div className="gg-callout">
+  <i className="bi bi-sign-stop" aria-hidden="true"></i>
+  <div><strong>GET ile veri değiştirme</strong><p>HTTP yöntemi güvenlik kontrolü değildir. Veri değiştiren uç noktaları yazma yöntemleriyle tanımla ve aynı denetimleri uygula.</p></div>
+</div>
+
+Origin örneklerini [komut laboratuvarında](/docs/araclar/komut-laboratuvari) deneyebilirsin.

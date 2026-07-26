@@ -9,17 +9,17 @@ description: createGuildGate ana seçeneklerinin açıklaması.
 
 | Alan | Açıklama |
 | --- | --- |
-| `name` | Uygulamanın log ve hata bağlamında kullanılan adı |
+| `name` | Log ve hata bağlamında kullanılan uygulama adı |
 | `environment` | `development`, `staging` veya üretim ortamı |
 | `baseUrl` | Yönetim panelinin temel adresi |
 
 ## `owners`
 
-Uygulama sahibi kabul edilen Discord kullanıcı ID'leri. Sahip yetkisi güvenlik kontrollerini devre dışı bırakmamalıdır.
+Uygulama sahibi kabul edilen Discord kullanıcı kimlikleri. Sahip yetkisi istek güvenliği kontrollerini kapatmamalıdır.
 
 ## `locale`
 
-`default`, varsayılan hata dilini belirler. `messages`, hata kodları için proje metni tanımlamana izin verir.
+`default` varsayılan hata dilini belirler. `messages`, hata kodlarını projeye uygun metinlerle değiştirmene izin verir.
 
 ## `security`
 
@@ -27,7 +27,7 @@ Uygulama sahibi kabul edilen Discord kullanıcı ID'leri. Sahip yetkisi güvenli
 | --- | --- |
 | `allowedOrigins` | Tam eşleşmeyle kabul edilen origin adresleri |
 | `csrfSecret` | CSRF belirteçleri için ayrı sır |
-| `auditIpSalt` | IP değerini denetim kaydında doğrudan tutmamak için salt |
+| `auditIpSalt` | IP değerini denetim kaydında düz tutmamak için salt |
 | `session.ttlMs` | Oturumun toplam ömrü |
 | `session.idleTimeoutMs` | Boşta kalma sınırı |
 | `session.rotateAfterMs` | Belirteç rotasyon süresi |
@@ -35,4 +35,4 @@ Uygulama sahibi kabul edilen Discord kullanıcı ID'leri. Sahip yetkisi güvenli
 
 ## `stores`
 
-Oturum, OAuth durum kaydı, tekrarlı istek koruması, istek sınırı, kilit ve denetim kaydı gibi kayıtların uygulamaları. Yerel örnekte bellek depo paketi kullanılabilir; üretimde kayıt türüne göre kalıcı veritabanı ve Redis tercih edilir.
+Oturum, OAuth durum kaydı, tekrarlı istek koruması, istek sınırı, kilit ve denetim kaydı için depo uygulamalarıdır. Yerel örnekte bellek deposu kullanılabilir. Üretimde kayıt türüne göre kalıcı veritabanı ve Redis seçilir.

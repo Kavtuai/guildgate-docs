@@ -1,11 +1,11 @@
 ---
 title: Fastify ve Express
-description: GuildGate işlemlerini HTTP uç noktalarına bağlama.
+description: GuildGate işlemlerini mevcut HTTP uç noktalarına bağlama.
 ---
 
 # Fastify ve Express
 
-GuildGate bu çatıları kurmaz. Bağdaştırıcılar, mevcut uç noktanın istek ve yanıt nesnelerini GuildGate işlem hattına taşır.
+GuildGate HTTP çatısı kurmaz. Bağdaştırıcılar, mevcut uç noktanın istek ve yanıt nesnelerini işlem tanımına taşır.
 
 ## Fastify
 
@@ -29,9 +29,9 @@ app.patch(
 );
 ```
 
-## Endpoint öncesi kararlar
+## Uç noktadan önce karar verilecekler
 
-- Proxy arkasındaysan istemci IP'sini güvenilir biçimde çöz.
-- JSON gövde sınırını HTTP çatısında da ayarla.
-- Genel hata yakalayıcıda dahili stack trace'i kullanıcıya gönderme.
-- Kimlik doğrulama çerezlerini HTTPS dışında üretimde açma.
+- Proxy arkasında istemci IP'sini yalnızca güvenilen proxy katmanından çöz.
+- JSON gövde sınırını HTTP çatısında tanımla.
+- Genel hata yakalayıcıda stack trace'i kullanıcıya gönderme.
+- Üretim kimlik çerezlerini HTTPS dışında açma.

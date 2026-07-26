@@ -5,7 +5,7 @@ description: Bellek deposuyla çalışan yerel GuildGate örneği.
 
 # İlk yapılandırma
 
-Aşağıdaki örnek yerel geliştirme içindir. Bellek deposu süreç kapanınca temizlenir.
+Bu örnek yerel geliştirme içindir. Bellek deposundaki kayıtlar süreç kapandığında silinir.
 
 ```ts
 import {
@@ -45,19 +45,17 @@ const gate = createGuildGate({
 });
 ```
 
-## Bu ayarlar neyi belirler?
+## Alanların görevi
 
-`app` uygulama adını, çalışma ortamını ve temel adresi tanımlar. `owners` ayrıcalıklı uygulama sahiplerini listeler. `security.allowedOrigins` yalnızca açıkça izin verdiğin origin adreslerini kabul eder.
-
-Oturum bölümü dört ayrı sınır koyar:
+`app` uygulama adını, ortamı ve temel adresi tanımlar. `owners` uygulama sahiplerinin Discord kullanıcı kimliklerini içerir. `security.allowedOrigins` yalnızca listede birebir bulunan origin adreslerini kabul eder.
 
 | Alan | Görevi |
 | --- | --- |
 | `ttlMs` | Oturumun toplam ömrü |
-| `idleTimeoutMs` | İşlem yapılmadığında oturumun kapanma süresi |
+| `idleTimeoutMs` | İşlem yapılmadığında oturumun kapanacağı süre |
 | `rotateAfterMs` | Oturum belirtecinin yenilenme aralığı |
-| `maximumSessionsPerUser` | Bir kullanıcı için açık oturum üst sınırı |
+| `maximumSessionsPerUser` | Kullanıcı başına açık oturum üst sınırı |
 
-## Üretime geçmeden önce
+## Üretim için değiştirilecekler
 
-Bellek deposunu yalnızca test ve yerel geliştirmede kullan. Yeniden başlatma sonrasında kalması gereken kayıtlar için kendi kalıcı depo uygulamalarını sağla; dağıtık ve kısa ömürlü kayıtları Redis'e taşı.
+Bellek deposunu yerel geliştirme ve test dışında kullanma. Yeniden başlatmadan sonra kalması gereken kayıtları kendi veritabanına bağla. Dağıtık ve kısa ömürlü kayıtlar için Redis kullan.

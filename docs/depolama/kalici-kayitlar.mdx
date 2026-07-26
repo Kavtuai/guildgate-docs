@@ -5,24 +5,24 @@ description: Uygulamanın kendi veritabanında tutması gereken veriler.
 
 # Kalıcı kayıtlar
 
-GuildGate veritabanını sahiplenmez. PostgreSQL, MySQL veya başka bir sistem seçebilirsin; depo sözleşmelerini kendi veri katmanına bağlarsın.
+GuildGate veritabanını seçmez. PostgreSQL, MySQL veya başka bir sistem kullanabilir; depo sözleşmelerini kendi veri katmanına bağlayabilirsin.
 
-## Kalıcı tutulması gereken örnekler
+## Kalıcı tutulacak kayıt örnekleri
 
 - Aktif oturumlar ve iptal bilgisi
 - OAuth belirteç kayıtları
 - Denetim kayıtları
-- Uzun ömürlü kullanıcı ve uygulama tercihleri
-- Yeniden başlatmadan sonra korunması gereken güvenlik olayları
+- Uzun ömürlü kullanıcı tercihleri
+- Yeniden başlatma sonrasında korunacak güvenlik olayları
 
-## Temel kurallar
+## Veri katmanı kuralları
 
 - Belirteç gibi hassas alanları uygulama anahtarlarıyla şifrele.
-- Sorgularda parametreli ifadeler kullan.
-- Oturum ve OAuth kayıtları için düzenli retention görevi çalıştır.
-- Denetim tablosunu sınırsız büyütme; saklama süresini ürün ihtiyacına göre belirle.
-- Depo işlemlerini işlem ve sürüm modeliyle ürün yazmalarına bağla.
+- Parametreli sorgu kullan.
+- Oturum ve OAuth kayıtları için düzenli saklama temizliği çalıştır.
+- Denetim tablosuna süre veya hacim sınırı koy.
+- Ürün yazmalarını işlem ve revision modeliyle bağla.
 
-## Bellek deposu neden yeterli değil?
+## Bellek deposunun sınırı
 
-Tek süreçte başarılı görünen bir oturum, ikinci süreçte bulunamayabilir. Deploy veya çökme sonrasında bütün kullanıcıların çıkış yapması da üretim davranışı değildir. Bu nedenle kalıcılık ve dağıtık durum kararını baştan ver.
+Tek süreçte bulunan oturum ikinci süreçte görünmeyebilir. Dağıtım veya çökme sonrasında bütün kullanıcıların oturum kaybetmesi de üretim için uygun değildir. Kalıcılık kararını ilk kurulumda ver.

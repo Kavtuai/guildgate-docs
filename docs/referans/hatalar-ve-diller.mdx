@@ -1,11 +1,11 @@
 ---
 title: Hatalar ve diller
-description: Hata kodları, Türkçe/İngilizce mesajlar ve güvenli yanıtlar.
+description: Hata kodları, Türkçe ve İngilizce mesajlar, güvenli yanıt sınırı.
 ---
 
 # Hatalar ve diller
 
-GuildGate Türkçe ve İngilizce hata metinleriyle kullanılabilir. Projene özel bir metni hata kodu üzerinden değiştirebilirsin.
+GuildGate Türkçe ve İngilizce hata metinleriyle kullanılabilir. Projene özel metni hata kodu üzerinden değiştirebilirsin.
 
 ```ts
 locale: {
@@ -18,9 +18,9 @@ locale: {
 }
 ```
 
-## Kullanıcıya gösterilecek bilgi
+## Kullanıcı yanıtı
 
-Yanıtta kısa bir hata kodu ve anlaşılır mesaj ver. Şunları dışarı çıkarma:
+Yanıtta kısa hata kodu ve anlaşılır mesaj ver. Şu değerleri dışarı çıkarma:
 
 - OAuth belirteci
 - Oturum belirteci
@@ -30,6 +30,6 @@ Yanıtta kısa bir hata kodu ve anlaşılır mesaj ver. Şunları dışarı çı
 - Stack trace
 - Dahili dosya yolu
 
-## Log kaydı
+## Sunucu günlüğü
 
-Kullanıcı mesajı kısa kalabilir; sunucu günlüğünde korelasyon kimliği, işlem adı, kaynak, süre ve güvenli hata sınıfı bulunmalıdır. Hassas üstbilgi ve çerezleri günlük filtresinden geçir.
+Kullanıcı mesajı kısa kalabilir. Sunucu günlüğünde korelasyon kimliği, işlem adı, kaynak, süre ve güvenli hata sınıfı bulunmalıdır. Üstbilgi ve çerezleri günlük filtresinden geçir.

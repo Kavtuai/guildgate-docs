@@ -1,23 +1,23 @@
 ---
 title: Üretim güvenlik listesi
-description: Yayına çıkmadan önce doğrulanacak maddeler.
+description: Yayına çıkmadan önce doğrulanacak sunucu, oturum, veri ve bağlantı ayarları.
 ---
 
 # Üretim güvenlik listesi
 
 ## Adres ve proxy
 
-- Yönetim paneli ve OAuth geri dönüş adresleri HTTPS.
+- Yönetim paneli ve OAuth geri dönüş adresleri HTTPS kullanıyor.
 - `allowedOrigins` içinde localhost yok.
-- Reverse proxy güven ayarı yalnızca bilinen proxy katmanı için açık.
-- İstemci IP'si doğrudan gelen sahte header'dan alınmıyor.
+- Reverse proxy güven ayarı bilinen proxy katmanıyla sınırlı.
+- İstemci IP'si doğrulanmamış üstbilgiden alınmıyor.
 
 ## Sırlar
 
-- Bot belirteci, OAuth istemci sırrı ve şifreleme anahtarları yalnızca sunucuda.
+- Bot belirteci, OAuth istemci sırrı ve şifreleme anahtarı sunucuda tutuluyor.
 - CSRF sırrı ile audit salt farklı değerler.
 - `.env` Git geçmişinde yok.
-- Anahtar rotasyonu ve eski anahtarla çözme süresi planlı.
+- Anahtar rotasyonu ve eski anahtarla çözme süresi belirli.
 
 ## Oturum
 
@@ -29,21 +29,21 @@ description: Yayına çıkmadan önce doğrulanacak maddeler.
 ## Yazma işlemleri
 
 - Her işlem girdiyi doğruluyor.
-- Her işlem kaynak ve yetki tanımlıyor.
+- Her işlem hedef kaynak ile yetki kararını tanımlıyor.
 - İstek sınırı ve zaman aşımı var.
-- Tekrarlanabilen işlemlerde tekrarlı istek koruması kullanılıyor.
-- Aynı kaynağa yazmada kilit ve sürüm kontrolü var.
-- Denetim kaydı başarısız işlemleri de ayırt ediyor.
+- Yeniden denenebilen işlemlerde tekrarlı istek koruması kullanılıyor.
+- Aynı kaynağa yazmada kilit ve revision kontrolü var.
+- Denetim kaydı başarısız işlemi başarıdan ayırıyor.
 
 ## Veri
 
 - Kalıcı depolar yeniden başlatmada veri kaybetmiyor.
-- Redis prefix'i ortam bazında ayrılmış.
-- Retention görevleri düzenli çalışıyor.
+- Redis prefix'i ortam adına göre ayrılmış.
+- Saklama temizliği düzenli çalışıyor.
 - Hassas OAuth alanları şifreli.
 
 ## Gerçek zamanlı bağlantılar
 
-- Origin ve oturum kontrolü bağlantı açılırken yapılıyor.
+- Origin ve oturum bağlantı açılırken kontrol ediliyor.
 - Kanal aboneliğinde yeniden yetki kontrolü var.
-- Mesaj boyutu, hız, bağlantı ömrü ve abonelik sınırı belirli.
+- Mesaj boyutu, hız, bağlantı ömrü ve abonelik sınırı tanımlı.

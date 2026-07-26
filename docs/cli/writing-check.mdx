@@ -1,17 +1,17 @@
 ---
 title: guildgate-writing-check
-description: Dokümantasyon metinlerinde kalıp ve artık denetimi.
+description: Dokümantasyon metinlerinde kalıp, placeholder ve araç artığı denetimi.
 ---
 
 # `guildgate-writing-check`
 
-Bu komut, bulunduğun projedeki dokümantasyon dosyalarını kontrol eder. Eksik doküman klasörlerini atlar; mevcut metinlerde bilinen yazım artıklarını arar.
+Bu komut, projedeki dokümantasyon dosyalarını tarar. Eksik klasörleri atlar; bulunan metinlerde bilinen yazım artıklarını, doldurulmamış alanları ve bozuk araç işaretlerini arar.
 
 ```bash
 npx guildgate-writing-check
 ```
 
-Başka bir kökü denetlemek için:
+Başka bir kök dizin:
 
 ```bash
 npx guildgate-writing-check --root ./docs-site
@@ -23,4 +23,10 @@ Yardım:
 npx guildgate-writing-check --help
 ```
 
-Bu sitede ayrıca `npm run editorial:check` komutu vardır. Siteye özel Türkçe kalıpları ve istemeden yapıştırılmış araç işaretlerini tarar.
+Bu depoda daha dar bir Türkçe denetim de vardır:
+
+```bash
+npm run editorial:check
+```
+
+Komut bir metnin insan mı makine mi tarafından yazıldığını söylemez. Ama yayıma girmemesi gereken placeholder, araç etiketi, bozuk atıf ve tekrar eden kalıpları yakalar. Kuralların ayrıntısı [yazı standardı](/docs/katki/yazi-standardi) sayfasındadır.

@@ -7,28 +7,28 @@ description: Opak oturumlar, süreler, rotasyon ve iptal.
 
 GuildGate oturum verisini sunucuda tutar. Tarayıcıdaki belirteç kendi başına kullanıcı rolü, Discord yetkisi veya sunucu listesi içermez.
 
-## Yaşam döngüsü
+## Yaşam süresi
 
-Bir oturum şu koşullardan biri gerçekleştiğinde kapanabilir:
+Oturum şu durumlardan birinde kapanır:
 
 - Toplam ömrü dolduğunda
 - Boşta kalma süresi aşıldığında
 - Kullanıcı çıkış yaptığında
 - Yönetici oturumu iptal ettiğinde
-- Kullanıcı başına oturum sınırı nedeniyle eski kayıt kaldırıldığında
+- Kullanıcı başına sınır nedeniyle eski kayıt kaldırıldığında
 
 `rotateAfterMs`, uzun süre açık kalan oturumun aynı belirteçle devam etmesini önler.
 
 ## Çerez ayarları
 
-Üretimde oturum çerezi için şu taban ayarlar kullanılmalıdır:
+Üretim oturum çerezinde şu taban ayarları kullan:
 
 - `HttpOnly`
 - `Secure`
 - Uygulamaya uygun `SameSite`
 - Daraltılmış `Path`
-- Gerekmiyorsa `Domain` alanı olmadan host-only kullanım
+- Gerekmedikçe `Domain` vermeden host-only kullanım
 
 ## Çıkış
 
-Çıkış yalnızca tarayıcı çerezini silmekten ibaret değildir. Sunucudaki oturum kaydı da iptal edilmelidir. Aksi halde ele geçirilmiş eski belirteç geçerli kalabilir.
+Çıkış sırasında tarayıcı çerezini silmek yeterli değildir. Sunucudaki oturum kaydını da iptal et. Aksi durumda ele geçirilmiş eski belirteç süresi bitene kadar kullanılabilir.

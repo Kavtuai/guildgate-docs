@@ -1,32 +1,37 @@
 ---
 sidebar_position: 1
 title: GuildGate nedir?
-description: GuildGate'in çözdüğü sorunlar ve uygulamadaki yeri.
+description: GuildGate'in hangi işleri üstlendiği ve uygulamanın neresinde durduğu.
 slug: /giris
 ---
 
 # GuildGate nedir?
 
-GuildGate, Discord bot yönetim panellerinin sunucu tarafında çalışan bir TypeScript kütüphanesidir. Oturum açma, CSRF kontrolü, origin doğrulaması, yetki kararı, istek sınırı ve denetim kaydı gibi parçaları ortak bir sözleşmede toplar.
+GuildGate, Discord bot yönetim panellerinin sunucu tarafında kullanılan bir TypeScript paketidir. OAuth girişi, oturum, CSRF, origin, istek sınırı, yetki ve denetim kaydı gibi kontrolleri aynı işlem düzeninde toplar.
 
-Paketin güncel sürümü `0.1.0`'dır ve Node.js 22 veya üzerini ister.
+Belgeler `@kavtuai/guildgate` paketinin `0.1.0` sürümünü izler. Çalışma ortamı Node.js 22 veya üzeridir.
 
-## Ne yapar?
+<div className="gg-callout">
+  <i className="bi bi-shield-lock" aria-hidden="true"></i>
+  <div><strong>Tarayıcı karar vermez</strong><p>Rol ve yetki bilgisi istemciye güvenilerek kabul edilmez. Yazma anında sunucu tarafında yeniden kontrol edilir.</p></div>
+</div>
 
-- Kimliği tarayıcıda saklanan okunabilir oturum verilerine bağlamak yerine sunucu tarafında opak oturumlar kullanır.
-- Discord yetkilendirme kodu girişinde tek kullanımlık `state` kayıtları ve `nonce` çerezi kullanır.
-- Yazma isteklerini oturuma bağlı CSRF belirteci ve tam origin eşleşmesiyle denetler.
-- Uç nokta düzeyinde istek sınırı, tekrarlı istek koruması, kaynak kilidi, süre sınırı, denetim kaydı, önbellek etiketi ve gerçek zamanlı olay üretimi sağlar.
-- Fastify ve Express için ince bağdaştırıcılar sunar.
-- Kısa ömürlü kayıtları Redis'e taşıyabilir.
+## Paket ne yapar?
 
-## Ne yapmaz?
+- Kullanıcı bilgisini taşıyan okunabilir belirteçler yerine sunucu tarafında opak oturum açar.
+- Discord yetkilendirme kodu girişinde tek kullanımlık `state` kaydı ve `nonce` çerezi kullanır.
+- Yazma isteklerinde oturuma bağlı CSRF belirtecini ve tam origin eşleşmesini kontrol eder.
+- İstek sınırı, tekrarlı istek koruması, kaynak kilidi, süre sınırı ve denetim kaydını işlem tanımına bağlar.
+- Fastify ile Express için bağdaştırıcılar sunar.
+- Kısa ömürlü kayıtların Redis üzerinde tutulmasına izin verir.
 
-GuildGate bir yönetim paneli çizmez, veritabanı seçmez ve Discord botunun iş kurallarını devralmaz. Kullanıcı arayüzü, kalıcı veri modeli ve asıl `execute` işlemi uygulamanda kalır.
+## Paket ne yapmaz?
 
-Bu ayrım bilinçlidir: güvenlik kuralları tek yerde kalır, ürün mantığı sana ait olmaya devam eder.
+GuildGate yönetim paneli arayüzü çizmez, veritabanı seçmez ve Discord botunun ürün kurallarını devralmaz. Kalıcı veri modeli, rol hiyerarşisi ve asıl kayıt işlemi uygulamanda kalır.
 
-## Paketin yeri
+Bu sınır, güvenlik kontrollerini tek yerde tutarken ürün kararlarının sana ait kalmasını sağlar.
+
+## Uygulamadaki yeri
 
 ```text
 Tarayıcı
@@ -42,12 +47,10 @@ GuildGate işlem katmanı
    ├─ tekrarlı istek koruması
    ├─ kaynak kilidi
    ├─ yetkilendirme
-   └─ denetim / önbellek / gerçek zamanlı bildirim
+   └─ denetim, önbellek ve gerçek zamanlı olay
    │
    ▼
 Uygulamanın servis ve veritabanı katmanı
 ```
 
-:::tip Sonraki adım
-Yeni bir projede başlıyorsan önce [kurulum](/docs/baslangic/kurulum), sonra [ilk yapılandırma](/docs/baslangic/ilk-yapilandirma) sayfasını uygula.
-:::
+Yeni kurulum için [paketi ekle](/docs/baslangic/kurulum), ardından [ilk yapılandırmayı](/docs/baslangic/ilk-yapilandirma) uygula.

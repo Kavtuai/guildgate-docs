@@ -1,0 +1,58 @@
+---
+title: Komut laboratuvarı
+description: GuildGate kontrollerini tarayıcıda, izin listeli komutlarla deneme alanı.
+---
+
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
+# Komut laboratuvarı
+
+Bu sayfa, GuildGate'in temel kontrollerini küçük örneklerle anlatır. Girilen komutlar tarayıcı içinde çalışan sabit bir yorumlayıcıya gider. Sunucuda kabuk açılmaz, kod değerlendirilmez ve ağ isteği gönderilmez.
+
+<CommandPlayground />
+
+## Desteklenen komutlar
+
+| Komut | Ne gösterir? |
+| --- | --- |
+| `help` | Kullanılabilir komutları listeler |
+| `version` | Belgelenen paket sürümünü yazar |
+| `doctor [--json]` | Örnek ortam tanısı üretir |
+| `config check --preset NAME` | Geliştirme veya üretim ayarını denetler |
+| `origin check URL` | Origin değerini tam eşleşmeyle sınar |
+| `action test NAME [flags]` | Oturum, CSRF, origin ve yetki sırasını simüle eder |
+| `rate-limit test --requests N --limit N` | Pencere içindeki kabul ve ret sayılarını hesaplar |
+| `clear` | Terminal çıktısını temizler |
+
+## Güvenlik sınırları
+
+Laboratuvar şu kurallarla çalışır:
+
+- Komutlar izin listesiyle eşleştirilir.
+- `eval`, `Function`, `child_process`, WebAssembly ve dinamik modül çalıştırma kullanılmaz.
+- `&&`, `;`, pipe, yönlendirme ve komut yerleştirme karakterleri reddedilir.
+- GitHub, OpenAI, Discord veya JWT biçimine benzeyen sırlar kabul edilmez.
+- Çıktı HTML olarak yorumlanmaz; düz metin olarak gösterilir.
+- Komut uzunluğu 180 karakterle, çalışma sayısı dakikada 20 ile sınırlıdır.
+- Geçmiş yalnızca açık sekmenin belleğinde tutulur.
+
+<div className="gg-callout">
+  <i className="bi bi-terminal-x" aria-hidden="true"></i>
+  <div><strong>Gerçek proje tanısı değildir</strong><p>`doctor` çıktısı örnek verilerle üretilir. Kendi projen için terminalde `npx guildgate-doctor` çalıştır.</p></div>
+</div>
+
+## İşlem denemesi
+
+Başlangıç komutu:
+
+```text
+action test guild.settings.update --method PATCH --origin https://panel.example.com --session valid --csrf valid --permission MANAGE_GUILD --bot-permission VIEW_CHANNEL
+```
+
+Bir kontrolü başarısız görmek için örneğin origin değerini değiştir:
+
+```text
+action test guild.settings.update --method PATCH --origin https://example.net --session valid --csrf valid --permission MANAGE_GUILD --bot-permission VIEW_CHANNEL
+```
+
+Yorumlayıcı ilk başarısız kontrolde durur ve `execute` adımını çalıştırmaz.

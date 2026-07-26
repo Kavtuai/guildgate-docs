@@ -3,15 +3,17 @@ title: guildgate-doctor
 description: Kurulum ve ortam tanı komutu.
 ---
 
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
 # `guildgate-doctor`
 
-Tanı komutu, proje ve çalışma ortamındaki yaygın yapılandırma sorunlarını hızlıca görmeye yarar.
+Tanı komutu proje ve çalışma ortamındaki yaygın yapılandırma sorunlarını raporlar.
 
 ```bash
 npx guildgate-doctor
 ```
 
-CI veya başka bir araçta işlemek için JSON çıktısı al:
+CI veya başka bir araç için JSON çıktısı:
 
 ```bash
 npx guildgate-doctor --json
@@ -23,4 +25,10 @@ Yardım:
 npx guildgate-doctor --help
 ```
 
-Tanı sonucu başarılı olsa bile üretim güvenlik kontrol listesini ayrıca uygula. Komut, ürününe özel Discord rol hiyerarşisini veya veritabanı retention kararını bilemez.
+Tanı başarılı olsa bile [üretim güvenlik listesini](/docs/uretim/guvenlik-kontrol-listesi) uygula. Komut, ürününe özel rol sırasını ve veri saklama kararını bilemez.
+
+## Örnek çıktı
+
+Aşağıdaki terminal gerçek proje dosyalarını okumadan örnek bir rapor üretir.
+
+<CommandPlayground compact />

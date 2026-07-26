@@ -1,6 +1,6 @@
 ---
 title: Kurulum
-description: GuildGate paketini kurma ve çalışma koşulları.
+description: GuildGate paketini ekleme, çalışma koşulları ve ilk tanı komutu.
 ---
 
 # Kurulum
@@ -18,25 +18,25 @@ description: GuildGate paketini kurma ve çalışma koşulları.
 npm install @kavtuai/guildgate
 ```
 
-Fastify kullanıyorsan ana pakete ek olarak ayrı bir çatı kurulumu yapman gerekmez. GuildGate, Fastify veya Express'i kendi bağımlılığı olarak yüklemez; mevcut sunucunun yapısal istek ve yanıt tiplerini kullanır.
+GuildGate, Fastify veya Express'i kendi bağımlılığı olarak kurmaz. Mevcut sunucunun istek ve yanıt nesnelerini ince bağdaştırıcılarla kullanır.
 
-## İlk kontrol
-
-Kurulumdan sonra tanı komutunu çalıştır:
+## İlk tanı
 
 ```bash
 npx guildgate-doctor
 ```
 
-Makine tarafından okunabilir çıktı için:
+Makine tarafından okunabilir çıktı:
 
 ```bash
 npx guildgate-doctor --json
 ```
 
+Tarayıcıda örnek sonucu görmek için [komut laboratuvarını](/docs/araclar/komut-laboratuvari) açabilirsin. Bu araç gerçek proje dosyalarını okumaz; belgelenen kontrolleri sabit örneklerle gösterir.
+
 ## Ortam değişkenleri
 
-İlk yerel örnek için en az iki rastgele sır gerekir:
+Yerel örnek için en az şu değerleri tanımla:
 
 ```env
 GUILDGATE_CSRF_SECRET=uzun-ve-rastgele-bir-deger
@@ -44,8 +44,8 @@ GUILDGATE_AUDIT_IP_SALT=ayri-uzun-ve-rastgele-bir-deger
 BOT_OWNER_ID=discord-kullanici-id
 ```
 
-OAuth ve üretim ayarları eklendiğinde Discord istemci bilgilerini, belirteç şifreleme anahtarlarını ve Redis bağlantısını da ortam değişkenlerinde tut. Bu değerleri istemci paketine koyma.
+OAuth istemci sırrı, bot belirteci, şifreleme anahtarı ve Redis bağlantısı da sunucu ortamında tutulmalıdır. Bunları istemci paketine veya herkese açık depo geçmişine koyma.
 
-:::warning Kaynak koduna sır yazma
-`.env` dosyasını Git'e ekleme. Üretim sırlarını dağıtım platformunun gizli değişken alanında sakla.
+:::warning Sırları kaynak koduna yazma
+`.env` dosyasını Git'e ekleme. Üretim değerlerini dağıtım platformunun gizli değişken alanında sakla.
 :::

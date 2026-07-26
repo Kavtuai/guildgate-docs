@@ -1,11 +1,11 @@
 ---
 title: Discord sunucu yetkisi
-description: Kullanıcı ve bot izinlerinin canlı doğrulanması.
+description: Kullanıcı ve bot izinlerinin yazma anında doğrulanması.
 ---
 
 # Discord sunucu yetkisi
 
-Yönetim panelinde bir sunucuyu listede göstermek, o sunucuda yazma yetkisi vermek anlamına gelmez. Yazma anında kullanıcı ve bot izinlerini tekrar doğrula.
+Bir sunucuyu panel listesinde göstermek, o sunucuda yazma yetkisi vermek değildir. Kullanıcı ve bot izinlerini işlem sırasında yeniden kontrol et.
 
 ```ts
 import {createDiscordGuildAuthorizer} from "@kavtuai/guildgate/discord";
@@ -31,10 +31,10 @@ const saveAction = gate.action({
 });
 ```
 
-## Kullanıcı izni ve bot izni farklıdır
+## Kullanıcı izni ve bot izni
 
-Kullanıcının `MANAGE_GUILD` izni olabilir; botun hedef rolü yönetme izni olmayabilir. Endpoint iki koşulu da değerlendirmelidir.
+Kullanıcının `MANAGE_GUILD` izni olabilir; bot hedef rolü yönetemeyebilir. Uç nokta iki koşulu ayrı ayrı değerlendirmelidir.
 
-## Sahip rotaları
+## Uygulama sahibi rotaları
 
-Uygulama sahibi olmak diğer kontrolleri atlamamalıdır. Sahip uç noktalarında da oturum, CSRF, origin, hız sınırı ve denetim kaydı çalışmaya devam etmelidir.
+Uygulama sahibi olmak oturum, CSRF, origin, hız sınırı ve denetim kaydını kapatmamalıdır. Sahip yetkisi ürün kararını etkileyebilir; istek güvenliğini kaldırmamalıdır.

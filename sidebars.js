@@ -30,8 +30,9 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Komut satırı',
-      items: ['cli/doctor', 'cli/writing-check'],
+      label: 'Araçlar',
+      collapsed: false,
+      items: ['araclar/komut-laboratuvari', 'cli/doctor', 'cli/writing-check'],
     },
     {
       type: 'category',

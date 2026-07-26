@@ -1,11 +1,11 @@
 ## Değişiklik
 
-Ne değiştiğini ve hangi belgeyi etkilediğini kısa biçimde yaz.
+Hangi belge veya bileşenin değiştiğini kısa biçimde yaz.
 
 ## Doğrulama
 
-- [ ] `npm run check`
-- [ ] `npm run build`
-- [ ] Kod örnekleri GuildGate'in belgelenen sürümüyle uyumlu
+- [ ] `npm run validate`
+- [ ] Kod örnekleri belgelenen GuildGate sürümüyle uyumlu
 - [ ] Yeni veya değişen bağlantılar açıldı
-- [ ] Metin Türkçe yazı standardına göre gözden geçirildi
+- [ ] Metin yazı standardına göre okundu
+- [ ] Komut laboratuvarı değiştiyse izin listesi ve güvenlik testleri güncellendi

@@ -1,11 +1,13 @@
 ---
-title: action() işlem hattı
-description: Korunan yönetim paneli işlemlerinin tanımı.
+title: action() işlem tanımı
+description: Korunan yönetim paneli işlemlerinin tek tanımda kurulması.
 ---
 
-# `action()` işlem hattı
+import CommandPlayground from '@site/src/components/CommandPlayground';
 
-`gate.action()` bir yönetim paneli yazma işleminin sınırlarını tek tanımda toplar. Ayrı ara katman sırasına güvenmek yerine doğrulama, kaynak, sınır, yetki ve çalıştırma adımları aynı yerde görünür.
+# `action()` işlem tanımı
+
+`gate.action()` bir yazma işleminin giriş, kaynak, sınır, yetki ve çalıştırma adımlarını aynı tanımda gösterir. Kontrollerin sırası uç nokta dosyalarına dağılmaz.
 
 ```ts
 const updateSettings = gate.action({
@@ -48,12 +50,18 @@ const updateSettings = gate.action({
 
 ## Adımlar
 
-`parse` ham girdiyi doğrular ve dar bir veri şekline çevirir. `resource` işlemin hangi kaynağa bağlı olduğunu söyler. `authorize` kullanıcının bu kaynak üzerinde işlem yapıp yapamayacağını belirler. `execute` yalnızca önceki kontroller geçerse çalışır.
+`parse` ham girdiyi doğrular ve gerekli alanlara indirger. `resource` hedef kaynağı tanımlar. `authorize` kullanıcının bu kaynak üzerinde işlem yapıp yapamayacağını belirler. `execute`, önceki kontroller geçerse çağrılır.
 
 ## Tekrarlı istek koruması
 
-İstemci aynı yazma isteğini ağ sorunu nedeniyle yeniden gönderdiğinde aynı tekrarlı istek anahtarı tekrar işlem üretmemelidir. Kapsam değerini kullanıcı ve kaynakla sınırlandırmak, farklı kullanıcıların aynı anahtarı paylaşmasını önler.
+İstemci ağ sorunu nedeniyle aynı yazma isteğini yeniden gönderebilir. Aynı tekrarlı istek anahtarı ikinci kez kayıt üretmemelidir. Kapsamı kullanıcı ve kaynakla sınırlandırmak, farklı kullanıcıların aynı anahtarı paylaşmasını engeller.
 
 ## Kaynak kilidi
 
-`concurrency.key`, aynı sunucu ayarına eşzamanlı yazmaları sıraya alır veya reddeder. Bu, revision kontrolünün yerine geçmez; ikisi farklı yarış koşullarını ele alır.
+`concurrency.key`, aynı sunucu ayarına eşzamanlı yazmaları sıraya alır veya reddeder. Bu kontrol revision denetiminin yerine geçmez. Kilit eşzamanlı yazmayı, revision ise eski veriyle güncelleme yapılmasını ele alır.
+
+## İşlem sırasını dene
+
+Aşağıdaki terminal gerçek uç noktaya bağlanmaz. `action test` komutunu izin listesi üzerinde çalıştırır.
+
+<CommandPlayground compact />
