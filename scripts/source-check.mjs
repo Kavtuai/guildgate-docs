@@ -15,6 +15,10 @@ const required = [
   `${englishDocsRoot}/referans/public-api.mdx`,
   'src/components/CommandPlayground/index.js',
   'src/components/CommandPlayground/styles.module.css',
+  'src/components/DocSearch/index.js',
+  'src/components/DocSearch/styles.module.css',
+  'src/data/search-index.json',
+  'scripts/build-search-index.mjs',
   'src/lib/command-engine.mjs',
   'src/theme/Root.js',
   '.github/workflows/deploy-pages.yml',
@@ -45,7 +49,7 @@ for (const removed of [
 
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 if (!packageJson.dependencies?.['bootstrap-icons']) errors.push('Bootstrap Icons bağımlılığı eksik.');
-if (packageJson.version !== '0.3.0') errors.push('Dokümantasyon sürümü 0.3.0 değil.');
+if (packageJson.version !== '0.3.1') errors.push('Dokümantasyon sürümü 0.3.1 değil.');
 if (!String(packageJson.engines?.node ?? '').includes('22')) errors.push('Node.js 22 motor şartı eksik.');
 
 const config = fs.readFileSync('docusaurus.config.js', 'utf8');
@@ -56,22 +60,35 @@ for (const expected of [
   '/docs/araclar/dogrulama-konsolu',
   'img/favicon.png',
   'img/guildgate-social-card.png',
+  'https://mxyouone.me/contact?category=website&website=GuildGate',
 ]) {
   if (!config.includes(expected)) errors.push(`Docusaurus yapılandırmasında beklenen değer yok: ${expected}`);
 }
 
 const root = fs.readFileSync('src/theme/Root.js', 'utf8');
 if (!root.includes('bootstrap-icons/font/bootstrap-icons.css')) errors.push('Bootstrap Icons yerel olarak yüklenmiyor.');
+if (!root.includes('DocSearch')) errors.push('Genel doküman araması Root bileşenine bağlanmamış.');
 
 const commandEngine = fs.readFileSync('src/lib/command-engine.mjs', 'utf8');
 for (const forbidden of ['eval(', 'new Function', 'child_process', 'execFile(', 'execSync(', 'spawn(', 'fetch(', 'WebSocket(', 'dangerouslySetInnerHTML']) {
   if (commandEngine.includes(forbidden)) errors.push(`Komut motorunda yasak kullanım bulundu: ${forbidden}`);
 }
 
+
+const searchComponent = fs.readFileSync('src/components/DocSearch/index.js', 'utf8');
+for (const forbidden of ['dangerouslySetInnerHTML', 'eval(', 'new Function', 'fetch(', 'XMLHttpRequest', 'WebSocket(', 'localStorage', 'sessionStorage']) {
+  if (searchComponent.includes(forbidden)) errors.push(`Arama bileşeninde yasak kullanım bulundu: ${forbidden}`);
+}
+if (!searchComponent.includes("event.key.toLowerCase() === 'k'")) errors.push('Ctrl+K arama kısayolu eksik.');
+if (!searchComponent.includes("language === 'all'")) errors.push('Arama dil filtresi eksik.');
+const searchStyles = fs.readFileSync('src/components/DocSearch/styles.module.css', 'utf8');
+if (!searchStyles.includes('left:50%') || !searchStyles.includes('translateX(-50%)')) errors.push('Header arama düğmesi ortalanmamış.');
+
 const playground = fs.readFileSync('src/components/CommandPlayground/index.js', 'utf8');
 for (const forbidden of ['dangerouslySetInnerHTML', 'eval(', 'new Function', 'fetch(', 'WebSocket(', 'localStorage', 'sessionStorage']) {
   if (playground.includes(forbidden)) errors.push(`Komut bileşeninde yasak kullanım bulundu: ${forbidden}`);
 }
+if (/Tarayıcıda güvenli|Safe in your browser/u.test(playground)) errors.push('Kaldırılan konsol rozeti yeniden eklenmiş.');
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -104,7 +121,7 @@ const residueReferencePages = new Set([
 
 for (const rootDir of textRoots) {
   for (const file of walk(rootDir)) {
-    if (!textExtensions.has(path.extname(file)) || residueReferencePages.has(path.normalize(file))) continue;
+    if (!textExtensions.has(path.extname(file)) || residueReferencePages.has(path.normalize(file)) || path.normalize(file) === path.normalize('src/data/search-index.json')) continue;
     const text = fs.readFileSync(file, 'utf8');
     for (const [label, pattern] of bannedVisibleResidue) {
       if (pattern.test(text)) errors.push(`${file}: ${label}`);

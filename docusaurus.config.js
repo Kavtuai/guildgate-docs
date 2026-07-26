@@ -103,6 +103,7 @@ const config = {
           {label: 'npm paketi', href: 'https://www.npmjs.com/package/@kavtuai/guildgate'},
           {label: 'Kaynak kodu', href: 'https://github.com/Kavtuai/guildgate'},
           {label: 'Güvenlik bildirimi', href: 'https://github.com/Kavtuai/guildgate/security'},
+          {label: 'İletişim', href: 'https://mxyouone.me/contact?category=website&website=GuildGate'},
         ]},
       ],
       copyright: `© ${new Date().getFullYear()} GuildGate. MIT lisansı ile yayımlanır.`,

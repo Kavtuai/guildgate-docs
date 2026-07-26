@@ -7,7 +7,6 @@ import styles from './styles.module.css';
 const COPY = {
   tr: {
     title: 'Doğrulama konsolu',
-    badge: 'Tarayıcıda güvenli',
     notice: 'Bu konsol bir kabuk açmaz ve girdini sunucuya göndermez. GuildGate’in belgelenmiş karar kurallarını tarayıcıda kontrol eder.',
     ready: 'Konsol hazır.',
     readyDetail: '`help` ile komutları aç veya aşağıdaki örneklerden birini seç.',
@@ -21,7 +20,6 @@ const COPY = {
   },
   en: {
     title: 'Verification console',
-    badge: 'Safe in your browser',
     notice: 'This console does not open a shell or send your input to a server. It checks GuildGate’s documented decision rules in your browser.',
     ready: 'Console ready.',
     readyDetail: 'Run `help` or choose one of the examples below.',
@@ -143,7 +141,6 @@ export default function CommandPlayground({compact = false}) {
       <div className={styles.topbar}>
         <div className={styles.brandMark} aria-hidden="true"><i className="bi bi-terminal" /></div>
         <div className={styles.title}>{text.title}</div>
-        <div className={styles.isolation}><i className="bi bi-shield-check" aria-hidden="true" /> {text.badge}</div>
       </div>
 
       <div className={styles.notice}>

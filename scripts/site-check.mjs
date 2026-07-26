@@ -92,6 +92,33 @@ for (const match of sidebars.matchAll(/'([a-z0-9ğüşöçıİ/-]+)'/giu)) {
   }
 }
 
+
+const searchIndexFile = 'src/data/search-index.json';
+if (!fs.existsSync(searchIndexFile)) {
+  errors.push('Arama dizini bulunamadı.');
+} else {
+  try {
+    const searchIndex = JSON.parse(fs.readFileSync(searchIndexFile, 'utf8'));
+    if (searchIndex.length !== trIds.length + enIds.length) {
+      errors.push(`Arama dizini kayıt sayısı yanlış: ${searchIndex.length}`);
+    }
+    const searchIds = new Set(searchIndex.map((entry) => entry.id));
+    for (const id of trIds.map((file) => `tr:${file.replace(/\.mdx?$/u, '')}`)) {
+      if (!searchIds.has(id)) errors.push(`Arama dizininde Türkçe belge yok: ${id}`);
+    }
+    for (const id of enIds.map((file) => `en:${file.replace(/\.mdx?$/u, '')}`)) {
+      if (!searchIds.has(id)) errors.push(`Arama dizininde İngilizce belge yok: ${id}`);
+    }
+    for (const entry of searchIndex) {
+      if (!entry.title || !entry.description || !entry.route || !['tr', 'en'].includes(entry.locale)) {
+        errors.push(`Arama dizininde eksik kayıt: ${entry.id ?? 'kimliksiz'}`);
+      }
+    }
+  } catch (error) {
+    errors.push(`Arama dizini okunamadı: ${error.message}`);
+  }
+}
+
 function inspectPng(file, expectedWidth, expectedHeight) {
   if (!fs.existsSync(file)) {
     errors.push(`Görsel bulunamadı: ${file}`);
@@ -122,4 +149,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Site kontrolü tamam: ${trIds.length} belge × 2 dil, sosyal kart ve favicon seti doğrulandı.`);
+console.log(`Site kontrolü tamam: ${trIds.length} belge × 2 dil, arama dizini, sosyal kart ve favicon seti doğrulandı.`);

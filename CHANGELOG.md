@@ -1,5 +1,13 @@
 # Değişiklik günlüğü
 
+## 0.3.1 — 2026-07-26
+
+- Ana sayfa başlığı kısaltıldı; Türkçe ve İngilizce açıklamalar sadeleştirildi.
+- Doğrulama konsolundaki tarayıcı rozeti kaldırıldı.
+- Header ortasına iki dilli arama eklendi; `Ctrl+K`, klavye gezintisi, dil ve bölüm filtreleri destekleniyor.
+- Arama dizini Türkçe ve İngilizce belgelerden derleme sırasında oluşturuluyor.
+- Footer'a GuildGate iletişim bağlantısı eklendi.
+
 ## 0.3.0
 
 - GuildGate paket sürümü `1.0.0` olarak belgelendi.

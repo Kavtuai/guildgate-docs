@@ -39,7 +39,7 @@ const intentionalReferencePages = new Set([
 
 const files = roots
   .flatMap(walk)
-  .filter((file) => extensions.has(path.extname(file)) && !intentionalReferencePages.has(path.normalize(file)));
+  .filter((file) => extensions.has(path.extname(file)) && !intentionalReferencePages.has(path.normalize(file)) && path.normalize(file) !== path.normalize('src/data/search-index.json'));
 
 const failures = [];
 for (const file of files) {

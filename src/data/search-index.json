@@ -1,0 +1,1020 @@
+[
+  {
+    "id": "tr:araclar/dogrulama-konsolu",
+    "locale": "tr",
+    "title": "Doğrulama konsolu",
+    "description": "GuildGate kurallarını tarayıcıda güvenli komutlarla incele.",
+    "category": "Araçlar",
+    "headings": [
+      "Kullanılabilir kontroller",
+      "Güvenlik sınırları"
+    ],
+    "route": "/docs/araclar/dogrulama-konsolu",
+    "content": "Doğrulama konsolu Konsol bir işletim sistemi kabuğu açmaz, JavaScript çalıştırmaz ve girdiyi sunucuya göndermez. Belgelenmiş GuildGate kararlarını sabit bir komut listesi üzerinden değerlendirir. Kullanılabilir kontroller Komut İncelediği konu --- --- doctor Örnek production profili config check Development ve production farkları origin check Tam origin eşleşmesi session policy TTL, idle, rotasyon ve açık oturum sınırı store check Kalıcı ve kısa ömürlü store yerleşimi action test Korunan yazma sırası rate-limit test Sabit pencere hesabı realtime check Taşıma, sequence ve replay security explain CSRF, origin, oturum ve kilit açıklaması Güvenlik sınırları - Tek satır ve en fazla 240 karakter - Dakikada 20 değerlendirme - Kabuk operatörü, yönlendirme ve command substitution reddi - GitHub, API, MFA, JWT ve bot token biçimlerini engelleme - En fazla 60 geçmiş kaydı; yalnızca açık sekmenin belleğinde - Çıktıyı düz metin olarak render etme - Beklenmeyen hatada tek, güvenli kullanıcı mesajı Gerçek projenin ortamını kontrol etmek için tarayıcı konsolu yerine guildgate-doctor komutunu çalıştır."
+  },
+  {
+    "id": "tr:baslangic/bes-dakikada-basla",
+    "locale": "tr",
+    "title": "Beş dakikada başla",
+    "description": "Bellek store'larıyla çalışan ilk GuildGate örneğini kur.",
+    "category": "Başlangıç",
+    "headings": [
+      "1. Ortam değerlerini hazırla",
+      "2. Gate oluştur",
+      "3. İlk işlemi tanımla",
+      "4. Doctor çalıştır",
+      "5. Üretime hazırlık"
+    ],
+    "route": "/docs/baslangic/bes-dakikada-basla",
+    "content": "Beş dakikada başla Bu örnek geliştirme ortamında çalışan küçük bir çekirdek kurar. Bellek store'ları süreç kapanınca temizlenir; üretimde bunları değiştireceksin. 1. Ortam değerlerini hazırla 2. Gate oluştur 3. İlk işlemi tanımla execute, önceki kontroller geçmeden çağrılmaz. HTTP bağdaştırıcısı oturum, origin ve CSRF bağlamını işleme aktarır. 4. Doctor çalıştır Geliştirme profili localhost ve bellek store'ları için uyarı vermez. Aynı değerleri production ortamıyla çalıştırırsan doctor bunları risk olarak işaretler. 5. Üretime hazırlık - Oturum, OAuth kimlik bilgisi, audit, outbox ve politika store'larını kalıcı depoya bağla. - Rate limit, idempotency, cache ve dağıtık kilitleri Redis'e taşı. - baseUrl, callback ve origin değerlerinde HTTPS kullan. - OAuth token'ları için uygulama tarafından sağlanan anahtar halkasını ekle. Store ayrımı için depo sözleşmelerine, yazma sırası için işlem yaşam döngüsüne geç."
+  },
+  {
+    "id": "tr:baslangic/ilk-yapilandirma",
+    "locale": "tr",
+    "title": "İlk yapılandırma",
+    "description": "createGuildGate seçeneklerini geliştirme ve üretim için düzenle.",
+    "category": "Başlangıç",
+    "headings": [
+      "Uygulama alanları",
+      "Oturum politikası",
+      "Üretim korumaları"
+    ],
+    "route": "/docs/baslangic/ilk-yapilandirma",
+    "content": "İlk yapılandırma createGuildGate() uygulama kimliğini, güvenlik sınırlarını, dilleri ve store paketini tek nesnede alır. Uygulama alanları Alan Karar --- --- app.name Log ve operatör ekranlarında görünen uygulama adı app.environment Güvenlik varsayımlarını ve store ad alanlarını ayıran ortam app.baseUrl Dashboard'un dışarıdan erişilen temel adresi owners Sahip işlemlerini kullanabilen Discord kullanıcı kimlikleri locale.default Varsayılan hata ve durum dili locale.messages Uygulamaya ait hata kodu metinleri Oturum politikası ttlMs mutlak sınırı, idleTimeoutMs kullanılmayan oturumun kapanma süresini, rotateAfterMs belirteç yenileme aralığını, maximumSessionsPerUser ise açık oturum üst sınırını belirler. Süreleri birbirinden bağımsız düşünme. Çok uzun mutlak süre ve çok kısa yenileme, ele geçirilen oturumu tek başına durdurmaz; iptal store'u da çalışır durumda olmalı. Üretim korumaları GuildGate production profilinde şunları reddeder: - HTTP baseUrl - boş origin listesi - HTTP veya localhost origin - Secure özelliği kapalı oturum çerezi - HTTP Discord callback adresi - kısa CSRF veya audit hashing sırrı Tüm seçenekler için yapılandırma referansını aç."
+  },
+  {
+    "id": "tr:baslangic/kurulum",
+    "locale": "tr",
+    "title": "Kurulum",
+    "description": "GuildGate 1.0.0'ı projeye ekle ve paket koşullarını kontrol et.",
+    "category": "Başlangıç",
+    "headings": [
+      "Gereksinimler",
+      "Paketi ekle",
+      "Kurulumu doğrula",
+      "Import kontrolü",
+      "Sonraki adım"
+    ],
+    "route": "/docs/baslangic/kurulum",
+    "content": "Kurulum Gereksinimler - Node.js 22.12.0 veya üzeri - Sunucu tarafında çalışan TypeScript ya da modern JavaScript projesi - Discord OAuth uygulaması - Üretimde HTTPS Paketi ekle Paket TypeScript bildirimlerini kendi içinde taşır. Fastify, Express, Hono, Redis istemcisi ve veritabanı sürücüsü proje seçimine bağlı kaldığı için bunları ayrıca kurarsın. Kurulumu doğrula Paket komutu node modules/.bin üzerinden görünüyorsa kısa biçimi de kullanabilirsin: JSON çıktısı: Doctor komutu ortam değerlerini yerel süreçte okur. Sırları dışarı göndermez ve değerlerin kendisini rapora yazmaz. Import kontrolü Dahili src/ veya dist/ yollarından import yapma. Yayımlanan ana paket ve alt yolları kullan. Sonraki adım Beş dakikalık kurulum, çalışan bir geliştirme örneği kurar. Üretim ayarları için ilk yapılandırma ve güvenlik kontrol listesi sayfalarını birlikte oku."
+  },
+  {
+    "id": "tr:baslangic/ornekler",
+    "locale": "tr",
+    "title": "Örnek projeler",
+    "description": "GuildGate bağdaştırıcılarını, store sözleşmelerini ve realtime katmanını küçük örneklerle incele.",
+    "category": "Başlangıç",
+    "headings": [
+      "HTTP bağdaştırıcıları",
+      "Discord.js",
+      "PostgreSQL ve özel store",
+      "Realtime",
+      "Status ve ölçüm",
+      "Örneği projene alırken"
+    ],
+    "route": "/docs/baslangic/ornekler",
+    "content": "Örnek projeler Paket deposundaki examples/ klasörü her konuyu küçük bir entegrasyon üzerinden gösterir. Örneği kopyalamadan önce kullandığı store ve güvenlik varsayımlarını oku. HTTP bağdaştırıcıları - examples/fastify/: Fastify route ve action handler bağlantısı - examples/hono/server.ts: Hono üzerinde sunucu kurulumu - Express bağdaştırıcısı: @kavtuai/guildgate/express export'u ile aynı action tanımını kullanır Framework yalnızca HTTP taşımasını üstlenir. Parse, resource çözümü, authorization, idempotency, kilit, transaction ve audit kararı action tanımında kalır. Discord.js examples/discordjs/adapter.ts, Discord kullanıcı ve bot izinlerini GuildGate yetkilendirme bağlamına çevirir. Dashboard'da görülen kullanıcı yetkisi ile botun gerçekten uygulayabileceği yetkiyi ayrı tut. PostgreSQL ve özel store - examples/postgres/setup.ts: kalıcı store kurulumu - examples/custom-store/postgres-audit-store.ts: yalnızca bir store sözleşmesini özel olarak uygulama Özel store eklerken önce sözleşme testlerini çalıştır. Atomik consume, compare-and-set, TTL ve fencing davranışlarını sürücü varsayımı olarak bırakma. Realtime examples/realtime/ws.ts, WebSocket taşımasını createRealtimeHub() ile bağlar. Bağlantı açılışında oturum ve guild erişimi çözülür; sequence ve replay canlı teslimden önce tamamlanır. Status ve ölçüm examples/analytics/status-monitor.ts, toplu durum verisi üretirken kullanıcı veya sır bilgisini dışarı taşımayan bir örnek sunar. Örneği projene alırken 1. Paket sürümünü sabitle. 2. Bellek store'larını production store'larıyla değiştir. 3. baseUrl, origin ve Discord callback değerlerini kendi ortamınla eşleştir. 4. Kullanıcı ve bot izinlerini gerçek action adına göre tanımla. 5. Doctor, test ve canary adımlarını çalıştır."
+  },
+  {
+    "id": "tr:baslangic/sorumluluk-sinirlari",
+    "locale": "tr",
+    "title": "Sorumluluk sınırları",
+    "description": "GuildGate'in koruduğu alanları ve uygulamanın üstlenmesi gereken kararları ayır.",
+    "category": "Başlangıç",
+    "headings": [
+      "GuildGate'in sınırı",
+      "Uygulamanın sınırı",
+      "Güvenlik iddiasını doğru kur"
+    ],
+    "route": "/docs/baslangic/sorumluluk-sinirlari",
+    "content": "Sorumluluk sınırları GuildGate güvenlik kontrollerini düzenler; altyapının tamamına sahip olmaz. Üretim güvenliği iki tarafın da kendi sınırını korumasına bağlıdır. GuildGate'in sınırı - Opak oturum üretimi, rotasyonu ve iptali - OAuth state ve tarayıcı nonce bağlantısı - Origin ve CSRF doğrulaması - Discord izin bitlerinin BigInt ile çözülmesi - İstek sınırı, idempotency, kilit, retry, timeout ve circuit breaker sözleşmeleri - Audit, outbox ve realtime olay sözleşmeleri - Fastify, Express ve Hono bağlantı katmanları Uygulamanın sınırı - Reverse proxy arkasında güvenilir istemci IP'sini doğru çözmek - Sırları kaynak kodu ve istemci paketinden uzak tutmak - Kalıcı değişiklikleri transaction içinde tamamlamak - Eski revision ile gelen güncellemeyi reddetmek - Discord rol hiyerarşisini ve ürün kuralını tanımlamak - Yedekleme, saklama süresi ve veri silme politikasını uygulamak - Abort/cancellation sinyalini veritabanı ve HTTP çağrılarına taşımak - Discord izin ve API değişikliklerini büyük sürüm öncesinde gözden geçirmek Güvenlik iddiasını doğru kur Bir action'ın authorize adımından geçmesi, veritabanı değişikliğinin otomatik olarak tutarlı olduğu anlamına gelmez. Kaynak kilidi eş zamanlı istekleri düzenler; transaction ve revision kontrolü kayıt düzeyindeki tutarlılığı korur. Tehdit modeli, bu sınırların hangi saldırıları ele aldığını ayrıntılandırır."
+  },
+  {
+    "id": "tr:cli/doctor",
+    "locale": "tr",
+    "title": "guildgate-doctor",
+    "description": "Dağıtım ayarlarını sırları yazdırmadan denetle.",
+    "category": "CLI",
+    "headings": [
+      "Kontrol başlıkları",
+      "Çıktı güvenliği",
+      "CI kullanımı"
+    ],
+    "route": "/docs/cli/doctor",
+    "content": "guildgate-doctor Doctor, GuildGate için gerekli ortam ve güvenlik koşullarını yerel süreçte kontrol eder. Makine tarafından okunabilir çıktı: Kontrol başlıkları - Node.js sürümü - environment ve baseUrl - HTTPS callback - origin listesi - CSRF ve audit hashing sırrı - oturum çerezi - store yerleşimi - Redis ad alanı - token cipher/keyring - owner kimlikleri Çıktı güvenliği Doctor bir sırrın varlığını ve uzunluk koşulunu kontrol edebilir; değerin kendisini rapora yazmaz. JSON çıktısını CI log'unda kullanmadan önce yine de platform log saklama politikanı gözden geçir. CI kullanımı Doctor risk bulduğunda sıfırdan farklı çıkış kodu vermelidir. Dağıtım adımını bu sonuçla durdur:"
+  },
+  {
+    "id": "tr:cli/writing-check",
+    "locale": "tr",
+    "title": "guildgate-writing-check",
+    "description": "Paket ve doküman metinlerinde placeholder, araç artığı ve tanıtım kalıplarını tara.",
+    "category": "CLI",
+    "headings": [
+      "Ne arar?"
+    ],
+    "route": "/docs/cli/writing-check",
+    "content": "guildgate-writing-check Bu komut kullanıcıya açık metinlerde unutulan placeholder, model aracı artığı, bozuk atıf biçimi ve proje tarafından yasaklanan tanıtım kalıplarını tarar. Ne arar? - , TODO CONTENT ve geçici metinler - contentReference, oaicite, turn... gibi araç işaretleri - bozuk sağlayıcı citation kalıpları - teslim cümleleri ve kaynakta kalmış sohbet notları - boş önem iddiaları ve reklam dili Bu tarama bir “AI dedektörü” değildir. Metnin doğruluğunu, kaynağını veya yazarını belirlemez. Ama yayıma girmemesi gereken kalıntıları CI aşamasında yakalar."
+  },
+  {
+    "id": "tr:dayaniklilik/audit-outbox-telemetri",
+    "locale": "tr",
+    "title": "Audit, outbox ve telemetri",
+    "description": "Güvenlik kararlarını kaydet, olay teslimini ayır ve ölçümleri sır sızdırmadan üret.",
+    "category": "Dayanıklılık",
+    "headings": [
+      "Audit",
+      "Outbox",
+      "OpenTelemetry",
+      "Analytics ve status izleme"
+    ],
+    "route": "/docs/dayaniklilik/audit-outbox-telemetri",
+    "content": "Audit, outbox ve telemetri Bu üç kanal farklı sorulara cevap verir: - Audit: Kim, hangi kaynakta, hangi sonucu aldı? - Outbox: Başarılı değişiklikten sonra hangi olay teslim edilmeli? - Telemetri: Sistem nerede yavaşlıyor veya hata veriyor? Audit Audit satırı değiştirilemez bir olay kaydı gibi ele alınmalı. Kullanıcıya dönen hata metnini değil, sabit hata kodunu ve action adını sakla. Outbox Dashboard ayarı kaydedildiğinde realtime, webhook veya iş kuyruğu olayı göndermek isteyebilirsin. Harici teslimi transaction içinde bekletme. Uygulama değişikliğiyle outbox satırını birlikte commit et; ayrı worker teslimi tamamlasın. OpenTelemetry GuildGate hook'ları action süresini, retry sayısını, store gecikmesini ve breaker durumunu mevcut OpenTelemetry altyapına aktarabilir. Span attribute alanlarına token, cookie, request body veya ham IP yazma. Analytics ve status izleme examples/analytics/status-monitor.ts, güvenlik kontrollerini devre dışı bırakmadan durum ve toplu ölçüm üretme biçimini gösterir. Grafik veya status endpoint'i kişisel veri taşımamalı."
+  },
+  {
+    "id": "tr:dayaniklilik/kilit-retry-circuit-breaker",
+    "locale": "tr",
+    "title": "Kilit, retry ve circuit breaker",
+    "description": "Eş zamanlı yazmaları ve geçici bağımlılık hatalarını kontrollü biçimde ele al.",
+    "category": "Dayanıklılık",
+    "headings": [
+      "Kaynak kilidi",
+      "Retry",
+      "Circuit breaker",
+      "Timeout"
+    ],
+    "route": "/docs/dayaniklilik/kilit-retry-circuit-breaker",
+    "content": "Kilit, retry ve circuit breaker Dayanıklılık ayarları her hatayı tekrar denemek için değil, hangi hatanın güvenle tekrar denenebileceğini açıkça tanımlamak için vardır. Kaynak kilidi Aynı sunucu ayarına gelen eş zamanlı yazmaları tek anahtar altında sırala: Kilit süresi action timeout değerinden uzun olmalı. Uzun işlemlerde lock renewal kullan. Store, fencing token ile eski kilit sahibinin geç kalan yazısını reddetmeli. Retry Ağ kesintisi, 429 ve bazı 5xx yanıtları tekrar denenebilir. Doğrulama, yetki, revision veya ürün kuralı hatalarını tekrar deneme. Retry politikası şu sınırları taşımalı: - düşük deneme sayısı - jitter eklenmiş backoff - ortak timeout bütçesi - abort sinyaline saygı - idempotent olmayan yazmalarda idempotency anahtarı Circuit breaker Discord API veya store sürekli hata veriyorsa yeni çağrıları kısa süre durdur. Breaker durumunu kullanıcıya iç hata adıyla gösterme; sabit hata kodu ve uygun yeniden deneme süresi döndür. Timeout Action timeout değeri yalnızca Promise yarışını bitirmemeli. Abort sinyalini Discord istemcisine, Redis çağrısına ve veritabanı sorgusuna aktar."
+  },
+  {
+    "id": "tr:depolama/bellek-redis",
+    "locale": "tr",
+    "title": "Bellek ve Redis",
+    "description": "Geliştirme store'larını ve kısa ömürlü Redis kayıtlarını doğru yerde kullan.",
+    "category": "Depolama",
+    "headings": [
+      "Bellek store'ları",
+      "Redis store'ları",
+      "Ad alanı",
+      "Kilit güvenliği"
+    ],
+    "route": "/docs/depolama/bellek-redis",
+    "content": "Bellek ve Redis Bellek store'ları createMemoryStoreBundle() yerel geliştirme, örnek ve birim testi için hızlı bir başlangıç sağlar. Süreç kapanınca tüm kayıtlar silinir. Birden fazla instance aynı veriyi paylaşmaz. Bu nedenle production oturumu, OAuth kaydı, audit, outbox veya dağıtık kilit için bellek store'u kullanma. Redis store'ları createRedisEphemeralStores() rate limit, cache, idempotency, OAuth state ve kilit gibi kısa ömürlü kayıtları merkezi Redis'e bağlar. Ad alanı Production, staging ve test aynı Redis'i kullanıyorsa ayrı prefix seç. Paket sürümü yerine ortam ve uygulama kimliğini kullan; sürüm yükseltmesi eski kayıtları gereksiz yere erişilmez bırakmasın. Kilit güvenliği Redis kilidi TTL ile bırakıp unutulan basit bir anahtar olmamalı. Yenileme ve fencing token desteği, geciken iş sahibinin yeni sahibin ardından yazmasını engeller."
+  },
+  {
+    "id": "tr:depolama/depo-sozlesmeleri",
+    "locale": "tr",
+    "title": "Depo sözleşmeleri",
+    "description": "GuildGateStores içindeki store arayüzlerini veri ömrüne göre yerleştir.",
+    "category": "Depolama",
+    "headings": [
+      "Birleştirme",
+      "Sözleşme testi"
+    ],
+    "route": "/docs/depolama/depo-sozlesmeleri",
+    "content": "Depo sözleşmeleri GuildGateStores, veri türlerini tek büyük veritabanı sınıfına bağlamaz. Her store kendi atomiklik ve yaşam süresi koşulunu taşır. Store Veri Üretim yerleşimi --- --- --- SessionStore Opak oturum özeti, süre, kullanıcı bağı Kalıcı veritabanı veya güvenilir merkezi store OAuthStateStore Tek kullanımlık login state Redis ya da TTL ve atomik consume sunan store OAuthCredentialStore Şifreli Discord token kayıtları Kalıcı veritabanı RateLimitStore Sayaç ve pencere Redis CacheStore Kısa ömürlü Discord ve kaynak cache'i Redis IdempotencyStore Tekrarlı istek sonucu Redis veya TTL destekli merkezi store LockStore Yenilenebilir dağıtık kilit Redis veya fencing destekli kilit servisi AuditStore Değişmez denetim satırları Kalıcı veritabanı OutboxStore Teslim bekleyen olaylar Uygulama transaction'ıyla aynı veritabanı PolicyStore Bakım, blok ve operatör politikaları Kalıcı ve ortak store Birleştirme composeStores() farklı kaynaklardan gelen store uygulamalarını tek paket altında toplar. Öncelik ve eksik store davranışını kurulu sürümün tiplerinden kontrol et. Aynı store'u iki farklı pakette tanımlama. Sözleşme testi Özel store yazarken yalnızca TypeScript tipini karşılamak yeterli değildir. Atomik consume, compare-and-set, TTL, lock renewal ve fencing davranışlarını yarış koşulu testleriyle doğrula."
+  },
+  {
+    "id": "tr:depolama/kalici-kayitlar",
+    "locale": "tr",
+    "title": "Kalıcı kayıtlar ve transaction",
+    "description": "Oturum, OAuth, audit, outbox ve policy verisini tutarlı biçimde sakla.",
+    "category": "Depolama",
+    "headings": [
+      "Kalıcı tutulacak başlıca kayıtlar",
+      "Transaction düzeni",
+      "Audit kaydı",
+      "Retention"
+    ],
+    "route": "/docs/depolama/kalici-kayitlar",
+    "content": "Kalıcı kayıtlar ve transaction Kalıcı store'lar yalnızca süreç yeniden başlayınca veriyi korumaz; güvenlik kararlarının birden fazla instance arasında aynı kalmasını da sağlar. Kalıcı tutulacak başlıca kayıtlar - oturum özeti ve iptal durumu - şifreli OAuth credential kaydı - audit olayı - outbox teslim kaydı - operatör ve bakım politikası - gerektiğinde optimistic revision Transaction düzeni Revision uyuşmazsa transaction'ı kapat ve kullanıcıya güncel veriyi yeniden yüklemesini söyle. Kaynak kilidi bu kontrolü kaldırmaz. Audit kaydı Audit satırı şu bağlamı taşıyabilir: - action adı - aktör kullanıcı kimliği - kaynak türü ve kimliği - istek/correlation kimliği - sonuç kodu - önceki ve yeni revision - hashlenmiş IP bağlamı - zaman Token, çerez, OAuth code, şifreleme anahtarı ve ham IP kayda girmemeli. Retention Oturum ve OAuth state TTL ile temizlenir. Audit ve outbox için ürün, hukuk ve operasyon gereksinimine göre ayrı saklama süreleri tanımla."
+  },
+  {
+    "id": "tr:depolama/ozel-depolar",
+    "locale": "tr",
+    "title": "Özel store yazma",
+    "description": "Mevcut ORM veya veritabanı katmanını GuildGate store sözleşmelerine bağla.",
+    "category": "Depolama",
+    "headings": [
+      "Önce veri türünü ayır",
+      "Audit store örneği",
+      "Transaction kancası",
+      "Test matrisi"
+    ],
+    "route": "/docs/depolama/ozel-depolar",
+    "content": "Özel store yazma GuildGate veritabanı seçmez. Mevcut repository veya ORM katmanını küçük store arayüzleriyle bağlayabilirsin. Önce veri türünü ayır Kısa ömürlü sayaç ile kalıcı denetim kaydını aynı soyutlamaya sıkıştırma. Her store için şu soruları cevapla: - Kayıt ne kadar yaşar? - Atomik consume veya compare-and-set gerekir mi? - Aynı transaction içinde başka kayıtlarla commit olmalı mı? - Birden fazla instance aynı veriyi görmeli mi? - Retention veya yasal silme kuralı var mı? Audit store örneği Paket örneklerinde examples/custom-store/postgres-audit-store.ts bulunur. Uygulamanın DB istemcisini kullanır ve GuildGate'in audit sözleşmesini kendi tablo yapısına çevirir. Transaction kancası Uygulama değişikliği, audit ve outbox satırı aynı veritabanındaysa tek transaction aç. Action context içine transaction istemcisini aktar ve tüm store çağrılarını bu istemciyle tamamla. Test matrisi - Aynı OAuth state iki kez tüketilemez. - Süresi dolan oturum bulunamaz. - Rotasyon eski token özetini geçersiz kılar. - Idempotency aynı scope ve anahtarda aynı sonucu döndürür. - Lock renewal yalnızca kilit sahibine izin verir. - Eski fencing token yazmayı tamamlayamaz. - Outbox kaydı uygulama değişikliğiyle birlikte rollback olur. Store arayüzlerinin tam adları için public API referansına bak."
+  },
+  {
+    "id": "tr:gercek-zamanli/realtime-hub",
+    "locale": "tr",
+    "title": "Realtime hub",
+    "description": "WebSocket ve SSE aboneliklerini oturum, yetki, sıra ve geri basınç ile koru.",
+    "category": "Gerçek zamanlı erişim",
+    "headings": [
+      "Bağlantı açılışı",
+      "WebSocket",
+      "SSE",
+      "Sıra ve replay",
+      "Oturum iptali"
+    ],
+    "route": "/docs/gercek-zamanli/realtime-hub",
+    "content": "Realtime hub createRealtimeHub() bağlantı taşıyıcısından bağımsız bir abonelik merkezi kurar. RealtimeConnection her bağlantının kimlik, abonelik ve teslim durumunu taşır. Bağlantı açılışı 1. Opak oturumu doğrula. 2. Kullanıcının istediği sunucuya erişimini çöz. 3. Abonelik konusunu izin listesiyle karşılaştır. 4. Son görülen sıra numarasını kontrol et. 5. Kaçırılan olayları yeniden gönder. 6. Canlı teslimi başlat. WebSocket Paket örneklerinde examples/realtime/ws.ts bulunur. Hatalı JSON, bağlantıyı invalid-data close code ile kapatır. İç parse hatası veya stack trace istemciye gitmez. SSE SSE bağdaştırıcısı event kimliği ve data satırlarını doğru biçimde yazar. İstemci okumayı bıraktığında kuyruk sınırsız büyümez; geri basınç sınırı aşılırsa bağlantı kapanır. Sıra ve replay Her olay artan bir sequence değeri taşır. İstemci yeniden bağlanırken son gördüğü değeri verir. Hub, retention penceresinde kalan olayları sırayla gönderir ve ardından canlı akışa geçer. Oturum iptali Kullanıcı oturumu iptal edildiğinde aktif bağlantıları kapat. Yalnızca yeni aboneliklerde kontrol yapmak yeterli değildir."
+  },
+  {
+    "id": "tr:giris",
+    "locale": "tr",
+    "title": "GuildGate nedir?",
+    "description": "GuildGate 1.0.0'ın görevini, sınırlarını ve uygulamadaki yerini tanı.",
+    "category": "Referans",
+    "headings": [
+      "Ne kazandırır?",
+      "Neyi üstlenmez?"
+    ],
+    "route": "/docs/giris",
+    "content": "GuildGate nedir? GuildGate, Discord bot dashboard'larının sunucu tarafı için yazılmış bir TypeScript kütüphanesidir. Paket; OAuth girişi, opak oturum, CSRF, tam origin eşleşmesi, kullanıcı ve bot yetkisi, istek sınırı, idempotency, kaynak kilidi, denetim kaydı ve gerçek zamanlı abonelikler için ortak sözleşmeler sunar. Bu belgeler @kavtuai/guildgate paketinin 1.0.0 sürümünü izler. Paket Node.js 22 veya üzerini ister. Dashboard karar vermez Tarayıcıdan gelen rol, sunucu ve yetki bilgisini doğru kabul etme. Yazma isteği geldiğinde bu bilgileri sunucu tarafında yeniden çöz. Ne kazandırır? - Yazma istekleri aynı kontrol sırasını izler. - Oturum belirteçleri sunucu tarafında iptal edilebilir. - Discord OAuth state kaydı tek tarayıcıya bağlanır ve bir kez tüketilir. - Redis, kalıcı veritabanı ve özel store uygulamaları aynı sözleşmelerle çalışır. - Fastify, Express ve Hono kullanan projeler çekirdeği kendi HTTP katmanına bağlar. - WebSocket ve SSE abonelikleri de oturum ve sunucu yetkisi ister. Neyi üstlenmez? GuildGate bir dashboard arayüzü üretmez. Veritabanı şemana sahip olmaz. Rol hiyerarşini, ürün kurallarını veya Discord botunun komutlarını yönetmez. Bu kararlar uygulamanda kalır. Kuruluma geçmek için beş dakikalık rehberi aç. Mimari kararları önce görmek istersen genel bakıştan devam et."
+  },
+  {
+    "id": "tr:istek-katmani/action",
+    "locale": "tr",
+    "title": "action() işlem tanımı",
+    "description": "Korunan bir dashboard yazmasını tek işlem yaşam döngüsünde tanımla.",
+    "category": "İstek katmanı",
+    "headings": [
+      "parse",
+      "resource",
+      "authorize",
+      "execute",
+      "Denetim sırası"
+    ],
+    "route": "/docs/istek-katmani/action",
+    "content": "action() işlem tanımı gate.action() bir yazma isteğinin girdi, kaynak, yetki, dayanıklılık ve kayıt kararlarını aynı tanımda tutar. parse Ham gövdeyi dar bir tipe çevir. Bilinmeyen alanları at, uzunluk ve enum sınırlarını burada uygula. Yetki kontrolünden önce veri doğrulaması yapman, gereksiz Discord ve store çağrılarını azaltır. resource Rate limit, idempotency, kilit, audit ve realtime olayları aynı kaynağı kullanır. Kaynak kimliğini kullanıcı girdisinden olduğu gibi loglama; önce doğrula. authorize Kullanıcının Discord sunucusuna erişimini ve gerekli izin bitini yazma anında yeniden çöz. Botun aynı işlem için gereken iznini ayrıca kontrol et. execute Uygulama değişikliği burada çalışır. Transaction, optimistic revision ve Discord rol hiyerarşisi uygulama servisinin sorumluluğunda kalır. Denetim sırası Konsolda action test guild.settings.update komutunu kullanarak origin, oturum, CSRF ve izin kararlarını değiştirebilirsin."
+  },
+  {
+    "id": "tr:istek-katmani/framework-bagdastiricilari",
+    "locale": "tr",
+    "title": "Framework bağdaştırıcıları",
+    "description": "GuildGate action'larını Fastify, Express ve Hono rotalarına bağla.",
+    "category": "İstek katmanı",
+    "headings": [
+      "Fastify",
+      "Express",
+      "Hono",
+      "Uygulamanın vermesi gerekenler"
+    ],
+    "route": "/docs/istek-katmani/framework-bagdastiricilari",
+    "content": "Framework bağdaştırıcıları GuildGate çekirdeği framework nesnelerine doğrudan bağlı kalmaz. Bağdaştırıcılar istek, çerez, header, IP, abort sinyali ve yanıt biçimini çekirdek bağlamına çevirir. Fastify fastifyActionHandler action'ı Fastify route handler olarak kullanır. Express expressActionHandler aynı action'ı Express middleware zincirine bağlar. Hono Paket Hono için de bağdaştırıcı içerir. Kurulu sürümün exports alanı ve TypeScript otomatik tamamlaması üzerinden alt yol adını doğrula; dahili dosya yoluna bağlanma. Uygulamanın vermesi gerekenler - Güvenilir istemci IP çözümü - Oturum ve CSRF header/çerez eşlemesi - Abort sinyalinin aşağı katmanlara aktarılması - Hata kodunun kullanıcı mesajına çevrilmesi - Framework log'una sır veya iç hata ayrıntısı yazmama Bağdaştırıcıyı ince tut. Ürün kuralını route dosyasına geri taşıma; action ve servis katmanında tut."
+  },
+  {
+    "id": "tr:istek-katmani/yetkilendirme",
+    "locale": "tr",
+    "title": "Discord yetkilendirmesi",
+    "description": "Kullanıcı ve bot izinlerini BigInt ile güncel veriden kontrol et.",
+    "category": "İstek katmanı",
+    "headings": [
+      "Kullanıcı izni",
+      "Bot izni ve rol hiyerarşisi",
+      "Cache kullanımı",
+      "Sahip işlemleri"
+    ],
+    "route": "/docs/istek-katmani/yetkilendirme",
+    "content": "Discord yetkilendirmesi Dashboard'da bir sunucunun görünmesi, kullanıcının o sunucuda her ayarı değiştirebileceği anlamına gelmez. Her action gereken kullanıcı ve bot iznini açıkça tanımlamalı. Kullanıcı izni Discord permission bitfield değerlerini JavaScript number ile ayrıştırma. Hassasiyet kaybını önlemek için BigInt kullan. Bot izni ve rol hiyerarşisi Kullanıcı MANAGE ROLES iznine sahip olsa bile bot hedef rolün altında kalıyorsa rol değişikliği başarısız olur. Action iki ayrı karar vermeli: - Kullanıcı bu işlemi talep edebilir mi? - Bot Discord tarafında bu işlemi tamamlayabilir mi? Cache kullanımı Guild listesi ve izinler kısa süreli cache'e alınabilir, fakat yazma isteği yalnızca eski tarayıcı verisine dayanmaz. Kritik işlemlerde güncel Discord verisini veya kısa ve kontrollü cache süresini kullan. Sahip işlemleri owners listesi operatör işlemlerini açar. Sahip olmak origin, session, CSRF, rate limit ve audit kontrollerini kapatmaz. Discord.js kullanan projeler paket içindeki authorization bağdaştırıcısını kullanabilir. Örnek proje yapısında examples/discordjs/adapter.ts bulunur."
+  },
+  {
+    "id": "tr:katki/yazi-standardi",
+    "locale": "tr",
+    "title": "Yazı standardı",
+    "description": "GuildGate belgelerinde kısa, doğrulanabilir ve doğal teknik metin yaz.",
+    "category": "Katkı",
+    "headings": [
+      "Tercih edilen dil",
+      "Kaçınılan kalıplar",
+      "Kaynak doğrulama",
+      "Otomatik kontrol"
+    ],
+    "route": "/docs/katki/yazi-standardi",
+    "content": "Yazı standardı Doküman kullanıcıya bir işi tamamlatmalı. Cümle, gerçek bir karar veya sonuç taşımıyorsa çıkar. Tercih edilen dil - Etken fiil kullan: “Origin değerini karşılaştır.” - Sınırı doğrudan yaz: “Production profilinde localhost reddedilir.” - Soyut övgü yerine davranış belirt: “State kaydı bir kez tüketilir.” - Bir paragrafta tek ana fikir tut. - Aynı terim için sürekli eş anlamlı değiştirme. Kaçınılan kalıplar - konuya gereksiz önem yükleyen girişler - “kritik rol”, “dönüm noktası”, “geniş ekosistem” gibi kanıtsız önem cümleleri - tanıtım broşürü tonu - yüzeysel “böylece güvenliği artırır” sonuçları - belirsiz “uzmanlar”, “kaynaklar” ve “genel görüş” atıfları - her paragrafı üçlü listeye zorlama - gereksiz kalın yazı, emoji ve başlık yığını - kullanıcıya hitap eden sohbet artıkları - placeholder, araç citation ve model işaretleri Kaynak doğrulama Kaynak bağlantısını aç. Başlık, yazar, tarih ve ilgili iddiayı gerçekten desteklediğini kontrol et. UTM parametresini kaldır. Var olmayan DOI, ISBN veya sayfa numarası üretme. Otomatik kontrol Bu kontroller yazar tespiti yapmaz. Yayıma girmemesi gereken kalıp ve artıkları bulur; teknik doğruluk için kod, test ve kaynak incelemesi yine gerekir."
+  },
+  {
+    "id": "tr:kimlik/csrf-origin",
+    "locale": "tr",
+    "title": "CSRF ve origin",
+    "description": "Yazma isteklerinde exact-origin ve oturuma bağlı CSRF kontrolünü uygula.",
+    "category": "Kimlik ve oturum",
+    "headings": [
+      "Tam origin eşleşmesi",
+      "Oturuma bağlı CSRF",
+      "Production retleri",
+      "Proxy notu"
+    ],
+    "route": "/docs/kimlik/csrf-origin",
+    "content": "CSRF ve origin GuildGate iki ayrı kontrol kullanır: tam origin eşleşmesi ve oturuma bağlı CSRF belirteci. Biri diğerinin yerine geçmez. Tam origin eşleşmesi https://panel.example.com, aşağıdaki adreslerle aynı origin değildir: - http://panel.example.com - https://admin.panel.example.com - https://panel.example.com:8443 - https://panel.example.com.evil.test Origin değerini substring, suffix veya düzenli ifadeyle gevşetme. URL ayrıştırıcısından çıkan origin alanını izin kümesiyle birebir karşılaştır. Oturuma bağlı CSRF CSRF belirteci oturum kimliğiyle kriptografik olarak bağlanır. Başka oturumdan alınan geçerli görünümlü değer kabul edilmez. İstemci yazma isteğinde: 1. Oturum çerezini otomatik gönderir. 2. CSRF değerini özel header ile ekler. 3. Sunucu origin, session ve CSRF bağını doğrular. Production retleri GuildGate production profilinde boş origin listesi, HTTP origin, localhost origin ve kısa CSRF sırrını reddeder. Proxy notu Origin kontrolü istemci IP'sine bağlı değildir. IP tabanlı rate limit veya audit hashing kullanıyorsan yalnızca güvenilir proxy zincirinden gelen adresi kabul et."
+  },
+  {
+    "id": "tr:kimlik/discord-oauth",
+    "locale": "tr",
+    "title": "Discord OAuth",
+    "description": "Yetkilendirme kodu girişini state, nonce ve şifreli token saklama ile kur.",
+    "category": "Kimlik ve oturum",
+    "headings": [
+      "Giriş sırası",
+      "State store",
+      "OAuth credential store",
+      "Callback kuralları"
+    ],
+    "route": "/docs/kimlik/discord-oauth",
+    "content": "Discord OAuth GuildGate, Discord girişini authorization code modeliyle ele alır. Login başlangıcında kısa ömürlü bir state kaydı açar ve tarayıcıya ayrı bir nonce çerezi verir. Callback sırasında state, nonce, süre ve tek kullanımlık tüketim birlikte kontrol edilir. Giriş sırası State store OAuthStateStore şu özellikleri korumalıdır: - tek kullanımlık tüketim - kısa yaşam süresi - tarayıcı nonce bağı - aynı state için atomik consume - hata durumunda tekrar kullanılmama OAuth credential store OAuthCredentialStore, erişim ve yenileme token'larını düz metin tutmamalı. GuildGate şifreleme işini çağıranın sağladığı token cipher veya keyring ile yürütür. Anahtar sürümü kayıtla birlikte tutulursa eski token'ları yeni anahtarla kademeli olarak çevirebilirsin. Callback kuralları - Production callback adresi HTTPS kullanmalı. - Discord Developer Portal ve uygulama ayarı birebir eşleşmeli. - Callback hatası kullanıcıya token, state, nonce veya Discord yanıt gövdesi göstermemeli. - Başarılı girişten sonra eski oturumu döndürmek yerine yeni opak oturum aç. Oturum politikasını oturumlar sayfasında tamamla."
+  },
+  {
+    "id": "tr:kimlik/oturumlar",
+    "locale": "tr",
+    "title": "Opak oturumlar",
+    "description": "Oturum ömrü, rotasyon, kullanıcı sınırı ve iptal düzenini kur.",
+    "category": "Kimlik ve oturum",
+    "headings": [
+      "Oturum kuralları",
+      "Rotasyon",
+      "İptal",
+      "Çerez ayarı"
+    ],
+    "route": "/docs/kimlik/oturumlar",
+    "content": "Opak oturumlar Tarayıcı, kullanıcı kimliği ve yetki verisi taşıyan okunabilir bir token almaz. GuildGate rastgele bir oturum değeri üretir; store tarafında ham değeri değil karşılaştırma özetini tutar. Oturum kuralları Kural Amaç --- --- ttlMs Oturum için mutlak kapanma zamanı idleTimeoutMs Kullanılmayan oturumu erken kapatma rotateAfterMs Düzenli olarak yeni opak değer üretme maximumSessionsPerUser Eski veya fazla oturumları sınırlama Rotasyon Rotasyon sırasında yeni değer istemciye verilir ve eski değer kısa geçiş penceresinden sonra geçersizleşir. Aynı anda gelen isteklerin oturumu yanlışlıkla düşürmemesi için store atomik güncelleme sağlamalıdır. İptal gate.revokeUserSessions() kullanıcıya ait açık oturumları iptal eder. Şifre değişikliği, hesap bağlantısı değişikliği, erişim şüphesi veya operatör kararı gibi durumlarda bu işlemi kullan. Oturum iptali realtime bağlantılarına da yansımalı. Hub, iptal olayını aldıktan sonra ilgili bağlantıları kapatır veya yeniden kimlik doğrulaması ister. Çerez ayarı Production çerezi en az şu sınırları korumalıdır: SameSite, CSRF kontrolünün yerine geçmez. Yazma isteklerinde origin ve CSRF birlikte doğrulanır."
+  },
+  {
+    "id": "tr:mimari/genel-bakis",
+    "locale": "tr",
+    "title": "Mimariye genel bakış",
+    "description": "GuildGate çekirdeğini kimlik, action, store ve realtime katmanlarıyla tanı.",
+    "category": "Mimari ve güvenlik",
+    "headings": [
+      "Kimlik katmanı",
+      "Action katmanı",
+      "Store katmanı",
+      "Realtime katmanı",
+      "Bağdaştırıcılar"
+    ],
+    "route": "/docs/mimari/genel-bakis",
+    "content": "Mimariye genel bakış GuildGate dört ana parçayı birbirine bağlar: kimlik, korunan işlemler, store sözleşmeleri ve olay dağıtımı. Kimlik katmanı Discord OAuth girişini başlatır, tek kullanımlık state kaydını tarayıcı nonce değeriyle eşleştirir, OAuth token'larını uygulamanın anahtar halkasıyla şifreler ve opak oturum açar. Action katmanı gate.action() şu sırayı görünür tutar: 1. Girdiyi doğrula. 2. Hedef kaynağı çöz. 3. HTTP yöntemi, origin, oturum ve CSRF kontrolünü tamamla. 4. Kullanıcı ve bot izinlerini doğrula. 5. İstek sınırı, idempotency ve kaynak kilidini al. 6. Transaction kancasını aç. 7. Uygulama değişikliğini çalıştır. 8. Audit/outbox kaydı yaz ve önbelleği temizle. Store katmanı GuildGateStores, her veri türü için küçük bir arayüz tanımlar. composeStores() farklı uygulamaları tek paket altında birleştirir. Bu sayede oturumu PostgreSQL'de, rate limit ve kilidi Redis'te, audit kaydını mevcut ORM katmanında tutabilirsin. Realtime katmanı createRealtimeHub() yetkili abonelikleri yönetir. RealtimeConnection oturum, sunucu erişimi, sıra numarası, yeniden oynatma ve geri basınç kararlarını bağlantı taşıyıcısından ayırır. Bağdaştırıcılar HTTP bağdaştırıcısı framework nesnelerini GuildGate bağlamına çevirir. Çekirdek, Fastify veya Express'e ait route kararlarını sahiplenmez; uygulama rotayı ve yanıt biçimini seçer. Bir yazma isteğinin tam sırasını işlem yaşam döngüsünde görebilirsin."
+  },
+  {
+    "id": "tr:mimari/islem-yasam-dongusu",
+    "locale": "tr",
+    "title": "İşlem yaşam döngüsü",
+    "description": "Korunan bir yazma isteğinin kabul, ret ve kayıt sırasını izle.",
+    "category": "Mimari ve güvenlik",
+    "headings": [
+      "Ret noktaları",
+      "Transaction sınırı",
+      "Kilit kaybı",
+      "Başarılı yanıt"
+    ],
+    "route": "/docs/mimari/islem-yasam-dongusu",
+    "content": "İşlem yaşam döngüsü Bir action, uygulama kodunu ancak ön koşullar tamamlandıktan sonra çağırır. Ret noktaları Her ret kararı sabit bir hata kodu döndürür. Kullanıcı mesajı yerelleştirilebilir; stack trace, store anahtarı, token, şifreleme ayrıntısı veya iç hata nesnesi yanıta girmez. Transaction sınırı Action yaşam döngüsü transaction kancası sunar, fakat transaction'ı store uygulaman açar. Uygulama değişikliği, audit/outbox kaydı ve optimistic revision kontrolü aynı transaction içinde çalışabiliyorsa birlikte commit et. Kilit kaybı Dağıtık kilit yenilenemezse action yazmayı sürdürmemeli. Fencing token, eski kilit sahibinin geç kalan yazısını store katmanında reddetmek için kullanılır. Başarılı yanıt Başarı, cache temizliği ve olay sıralaması tamamlandıktan sonra döner. Outbox kullanan projeler dış sistem teslimini daha sonra yapabilir; uygulama kaydı ve outbox satırı aynı transaction içinde kalır. Uygulama örneği için action() sayfasına geç."
+  },
+  {
+    "id": "tr:mimari/tehdit-modeli",
+    "locale": "tr",
+    "title": "Tehdit modeli",
+    "description": "GuildGate'in ele aldığı saldırıları ve dışarıda bıraktığı riskleri incele.",
+    "category": "Mimari ve güvenlik",
+    "headings": [
+      "Ele alınan riskler",
+      "Paketin tek başına durduramayacağı riskler",
+      "Varsayımlar"
+    ],
+    "route": "/docs/mimari/tehdit-modeli",
+    "content": "Tehdit modeli Bu model, internete açık bir Discord dashboard API'sini ve oturum çerezini kullanan tarayıcı istemcisini temel alır. Ele alınan riskler Risk Karşılık --- --- Çalınan oturum belirteci Ham belirteci depolamama, rotasyon, idle/mutlak süre, kullanıcı oturumlarını iptal etme Login CSRF ve OAuth replay Tek kullanımlık state, tarayıcı nonce bağı, süre sınırı Cross-site yazma isteği Tam origin eşleşmesi ve oturuma bağlı CSRF belirteci Eski Discord yetkisi Yazma anında kullanıcı ve bot iznini yeniden çözme Aynı isteğin tekrar gönderilmesi Idempotency store ve kaynak kapsamlı anahtar Aynı kaynağa eş zamanlı yazma Yenilenebilir dağıtık kilit ve fencing token Discord veya store geçici hatası Timeout, sınırlı retry ve circuit breaker Yetkisiz realtime aboneliği Bağlantı ve abonelik başında oturum/sunucu yetkisi Denetim kaydının kaybolması Transaction kancası ve outbox sözleşmesi Paketin tek başına durduramayacağı riskler - Sunucunun ele geçirilmesi - Kaynak koduna yazılmış sırlar - Yanlış reverse proxy veya istemci IP ayarı - Hatalı ürün yetki kuralı - Transaction kullanmayan uygulama servisi - Discord bot rolünün hedef rolün altında kalması - Zayıf anahtar yönetimi veya yedekleme politikası Varsayımlar - TLS bağlantısını güvenilir proxy veya uygulama sonlandırır. - Store uygulamaları sözleşmedeki atomiklik koşullarını korur. - Uygulama, iptal ve timeout sinyalini alt katmanlara taşır. - Operatör işlemleri ayrı yetki ve audit kaydı kullanır. Üretim öncesinde kontrol listesini kendi altyapınla birlikte değerlendir."
+  },
+  {
+    "id": "tr:referans/gecis-ve-surumleme",
+    "locale": "tr",
+    "title": "Geçiş ve sürümleme",
+    "description": "Semver, store değişiklikleri ve üretim geçişlerini kontrollü biçimde yönet.",
+    "category": "Referans",
+    "headings": [
+      "Sürüm yükseltmeden önce",
+      "Store geçişi",
+      "Anahtar rotasyonu",
+      "Geri dönüş"
+    ],
+    "route": "/docs/referans/gecis-ve-surumleme",
+    "content": "Geçiş ve sürümleme GuildGate yayımlanan export yüzeyinde semver kullanır. Dahili dosyalar bu güvenceye dahil değildir. Sürüm yükseltmeden önce - changelog ve migration notlarını oku - npm run typecheck çalıştır - store sözleşme testlerini yeniden çalıştır - Discord izin ve API değişikliklerini kontrol et - canary ortamında doctor ve korunan mutation testini çalıştır - realtime replay ve session revocation senaryolarını doğrula Store geçişi Yeni store alanı eklendiğinde önce şemayı geriye uyumlu biçimde dağıt, ardından uygulamayı yükselt. Eski ve yeni instance aynı anda çalışacaksa iki sürümün okuyabileceği kayıt biçimini koru. Anahtar rotasyonu OAuth token keyring birden fazla anahtar sürümü taşıyabilir. Yeni yazmaları aktif anahtarla şifrele; eski kayıtları okunduğunda veya arka plan göreviyle yeniden şifrele. Geri dönüş Rollback planı yalnızca npm sürümünü düşürmekten ibaret olmamalı. Store şeması, outbox worker'ı, Redis prefix'i ve realtime sequence uyumluluğunu da kapsamalı."
+  },
+  {
+    "id": "tr:referans/hatalar-ve-diller",
+    "locale": "tr",
+    "title": "Hatalar ve diller",
+    "description": "Sabit hata kodlarını güvenli Türkçe ve İngilizce kullanıcı mesajlarına çevir.",
+    "category": "Referans",
+    "headings": [
+      "Kullanıcı mesajı ne içermemeli?",
+      "HTTP eşlemesi",
+      "Dil seçimi"
+    ],
+    "route": "/docs/referans/hatalar-ve-diller",
+    "content": "Hatalar ve diller GuildGate iç kararları sabit hata kodlarıyla temsil eder. Kullanıcıya gösterilecek metni locale.messages üzerinden seçebilirsin. Kullanıcı mesajı ne içermemeli? - stack trace - store veya Redis anahtarı - token, çerez, nonce veya OAuth code - Discord ham hata gövdesi - veritabanı sorgusu - iç sınıf veya dosya yolu HTTP eşlemesi Uygulama sabit hata kodunu uygun HTTP durumuna çevirir. Aynı kodu hem log hem kullanıcı mesajı olarak kullanma; operatör bağlamı ile son kullanıcı metni ayrı kalmalı. Dil seçimi Dil kaynağını sırayla belirleyebilirsin: 1. kullanıcı tercihi 2. Discord locale 3. dashboard locale 4. locale.default İstemciden gelen serbest dil etiketini dosya yolu veya dinamik import için kullanma; desteklenen dillerden birine eşleştir."
+  },
+  {
+    "id": "tr:referans/public-api",
+    "locale": "tr",
+    "title": "Dışa açık API",
+    "description": "GuildGate 1.0.0 ana export ve store sözleşmelerini hızlıca bul.",
+    "category": "Referans",
+    "headings": [
+      "Çekirdek",
+      "Store tipleri",
+      "Redis",
+      "HTTP",
+      "Gate yöntemleri"
+    ],
+    "route": "/docs/referans/public-api",
+    "content": "Dışa açık API Bu sayfa 1.0.0 sürümündeki doğrulanmış ana export'ları özetler. Parametre ve dönüş tiplerinde kurulu paketin TypeScript bildirimlerini esas al. Çekirdek Export Görev --- --- createGuildGate Ana çekirdeği oluşturur createMemoryStoreBundle Geliştirme ve test store'larını kurar composeStores Birden fazla store paketini birleştirir createRealtimeHub Yetkili realtime abonelik merkezini kurar RealtimeConnection Bir bağlantının kimlik ve teslim bağlamını temsil eder Store tipleri - GuildGateStores - SessionStore - OAuthStateStore - OAuthCredentialStore - RateLimitStore - CacheStore - IdempotencyStore - LockStore - AuditStore - OutboxStore - PolicyStore Redis Export Import yolu Görev --- --- --- createRedisEphemeralStores @kavtuai/guildgate/redis Kısa ömürlü store paketini kurar fromNodeRedis @kavtuai/guildgate/redis Node Redis istemcisini gereken sözleşmeye çevirir HTTP Export Import yolu --- --- fastifyActionHandler @kavtuai/guildgate/fastify expressActionHandler @kavtuai/guildgate/express Paket Hono ve discord.js bağdaştırıcıları da içerir. Tam export adını kurulu sürümün exports alanı ve IDE otomatik tamamlamasıyla doğrula. Gate yöntemleri Doğrulanmış yüzeyde şu işlemler bulunur: - gate.action(...) - gate.owner.setMaintenance(...) - gate.owner.block(...) - gate.owner.unblock(...) - gate.revokeUserSessions(...) Dahili dosya yollarından import yapma; semver güvencesi yalnızca yayımlanan export yüzeyi için geçerlidir."
+  },
+  {
+    "id": "tr:referans/yapilandirma",
+    "locale": "tr",
+    "title": "Yapılandırma referansı",
+    "description": "createGuildGate ana seçeneklerini ve production koşullarını incele.",
+    "category": "Referans",
+    "headings": [
+      "app",
+      "owners",
+      "locale",
+      "security",
+      "stores",
+      "İleri ayarlar"
+    ],
+    "route": "/docs/referans/yapilandirma",
+    "content": "Yapılandırma referansı app Alan Açıklama --- --- name Uygulama ve audit bağlamındaki ad environment Geliştirme, staging veya production ayrımı baseUrl Dışarıdan erişilen dashboard adresi owners Sahip işlemlerini kullanabilen Discord kullanıcı kimlikleri. Sahip olmak session, origin, CSRF, rate limit veya audit kontrolünü kapatmaz. locale Alan Açıklama --- --- default Varsayılan mesaj dili messages Hata kodu bazlı TR/EN veya özel dil metinleri security Alan Açıklama --- --- allowedOrigins Tam eşleşmeyle kabul edilen origin listesi csrfSecret CSRF imzası için ayrı sır auditIpSalt Ham IP saklamadan bağlam üretmek için ayrı salt session.ttlMs Mutlak oturum süresi session.idleTimeoutMs Boşta kalma sınırı session.rotateAfterMs Opak belirteç yenileme aralığı session.maximumSessionsPerUser Kullanıcı başına açık oturum üst sınırı stores GuildGateStores sözleşmesini karşılayan paket. createMemoryStoreBundle() yalnızca geliştirme/test için uygundur. Production store yerleşimi için depo sözleşmelerine bak. İleri ayarlar 1.0.0 action yüzeyi transaction hook, cache invalidation, retry, timeout, circuit breaker, dağıtık kilit ve fencing token davranışlarını destekler. Bu alanların tam tipini kurulu paketin TypeScript bildirimlerinden al."
+  },
+  {
+    "id": "tr:sorun-giderme",
+    "locale": "tr",
+    "title": "Sorun giderme",
+    "description": "Kurulum, OAuth, session, origin, store ve realtime sorunlarını daralt.",
+    "category": "Referans",
+    "headings": [
+      "Production başlangıçta kapanıyor",
+      "Discord callback uyuşmuyor",
+      "Her yazma isteği CSRF hatası veriyor",
+      "Origin izin listesinde görünüyor ama reddediliyor",
+      "Birden fazla instance farklı sonuç veriyor",
+      "Kilit sürekli kayboluyor",
+      "Realtime olayları eksik",
+      "Kullanıcıya iç hata görünüyor"
+    ],
+    "route": "/docs/sorun-giderme",
+    "content": "Sorun giderme Production başlangıçta kapanıyor Önce doctor çalıştır: HTTP baseUrl, localhost origin, kısa sır, Secure olmayan çerez veya eksik kalıcı store production profilinde başlangıcı durdurabilir. Discord callback uyuşmuyor Developer Portal'daki callback ile uygulamadaki adresi karakter karakter karşılaştır. Protokol, port, path ve trailing slash farkı uyuşmazlık üretir. Her yazma isteği CSRF hatası veriyor - CSRF değerini doğru header ile gönder. - Oturum çereziyle aynı origin üzerinden istek yap. - Rotasyon sonrası eski CSRF değerini kullanma. - Proxy'nin özel header'ı silmediğini kontrol et. Origin izin listesinde görünüyor ama reddediliyor URL'nin origin değerini yazdır ve tam karşılaştır. Path izin listesine dahil değildir; protokol ve port dahildir. Birden fazla instance farklı sonuç veriyor Bellek store'u production'da kalmış olabilir. Session, rate limit, idempotency, cache ve lock verisini instance'lar arasında ortaklaştır. Kilit sürekli kayboluyor Action timeout, kilit TTL ve renewal aralığını birlikte kontrol et. Uzun DB sorgusu abort sinyalini dinlemiyorsa kilit süresi dolduktan sonra yazma devam edebilir. Realtime olayları eksik Sequence değerini, replay retention süresini ve istemcinin son gördüğü cursor'u kontrol et. Session revocation veya geri basınç kapanması da yeniden bağlanma gerektirir. Kullanıcıya iç hata görünüyor Framework bağdaştırıcısındaki error mapper'ı kontrol et. Kullanıcı yanıtına error.message, stack veya store hatasını doğrudan koyma; sabit GuildGate kodunu yerelleştirilmiş metne çevir."
+  },
+  {
+    "id": "tr:surum-notlari",
+    "locale": "tr",
+    "title": "Sürüm notları",
+    "description": "GuildGate belgeleri ve paket yüzeyindeki önemli değişiklikleri izle.",
+    "category": "Referans",
+    "headings": [
+      "GuildGate 1.0.0",
+      "Doküman sitesi 0.3.0"
+    ],
+    "route": "/docs/surum-notlari",
+    "content": "Sürüm notları GuildGate 1.0.0 Kararlı yüzey şu başlıkları kapsar: - guarded writes ve optimistic concurrency - transaction hook, cache invalidation ve outbox - yenilenebilir dağıtık kilit ve fencing token - timeout, retry ve circuit breaker - operator ve session yönetimi - WebSocket, SSE, sequence ve replay - Fastify, Express, Hono ve discord.js bağdaştırıcıları - PostgreSQL, Redis ve özel store sözleşmeleri - OpenTelemetry hook'ları, status izleme ve analytics örnekleri - migration, operating limits ve security response belgeleri Doküman sitesi 0.3.0 - Türkçe ve İngilizce sayfalar aynı bilgi mimarisine taşındı. - Paket sürümü 1.0.0 olarak düzeltildi. - Doğrulama konsolu iki dilde çalışacak şekilde yeniden yazıldı. - Doğrulama konsolunun tarayıcı sınırları ve veri işleme davranışı doğrudan açıklandı. - Mimari, tehdit modeli, store sözleşmeleri, dayanıklılık, telemetri, geçiş ve test sayfaları eklendi. - Sosyal paylaşım görseli ve favicon yeni GuildGate görselleriyle değiştirildi."
+  },
+  {
+    "id": "tr:uretim/guvenlik-kontrol-listesi",
+    "locale": "tr",
+    "title": "Üretim güvenlik kontrol listesi",
+    "description": "GuildGate dağıtımını açmadan önce kimlik, store, proxy ve gözlem sınırlarını doğrula.",
+    "category": "Üretim",
+    "headings": [
+      "Kimlik ve sırlar",
+      "Oturum",
+      "Store",
+      "Uygulama",
+      "Doğrulama"
+    ],
+    "route": "/docs/uretim/guvenlik-kontrol-listesi",
+    "content": "Üretim güvenlik kontrol listesi Kimlik ve sırlar - [ ] baseUrl ve Discord callback HTTPS kullanıyor. - [ ] Origin listesinde HTTP, localhost ve wildcard yok. - [ ] CSRF sırrı ile audit salt farklı ve yeterince uzun. - [ ] OAuth token keyring kaynak kodunun dışında tutuluyor. - [ ] Bot token, client secret ve store bağlantıları istemci bundle'ına girmiyor. Oturum - [ ] Çerez HttpOnly ve Secure. - [ ] Mutlak süre, idle süre, rotasyon ve kullanıcı oturum sınırı tanımlı. - [ ] Kullanıcı oturumlarını topluca iptal etme yolu test edildi. - [ ] Oturum iptali WebSocket/SSE bağlantılarını da kapatıyor. Store - [ ] Session, OAuth credential, audit, outbox ve policy kalıcı store kullanıyor. - [ ] Rate limit, idempotency, cache ve kilit tüm instance'lar tarafından paylaşılıyor. - [ ] OAuth state consume işlemi atomik. - [ ] Kilit renewal ve fencing testi geçti. - [ ] Audit/outbox uygulama değişikliğiyle aynı transaction'a girebiliyor. Uygulama - [ ] Kullanıcı ve bot izinleri ayrı kontrol ediliyor. - [ ] Optimistic revision eski güncellemeyi reddediyor. - [ ] Abort sinyali Discord, Redis ve DB çağrılarına taşınıyor. - [ ] Kullanıcı yanıtları stack trace ve iç hata ayrıntısı içermiyor. - [ ] Reverse proxy güven sınırı açıkça yapılandırıldı. Doğrulama"
+  },
+  {
+    "id": "tr:uretim/test-ve-yayin",
+    "locale": "tr",
+    "title": "Test ve yayın",
+    "description": "GuildGate entegrasyonunu test et ve paket yükseltmesini güvenli biçimde dağıt.",
+    "category": "Üretim",
+    "headings": [
+      "Asgari testler",
+      "Paket kontrolleri",
+      "Canary",
+      "Trusted publishing"
+    ],
+    "route": "/docs/uretim/test-ve-yayin",
+    "content": "Test ve yayın Asgari testler - Korunan mutation oturum ve CSRF olmadan reddedilir. - OAuth state yalnızca bağlı tarayıcıda ve bir kez tüketilir. - Oturum rotasyonu eski belirteci geçersiz kılar. - Kullanıcı ve bot izni ayrı ayrı hata üretebilir. - Transaction hook, retry ve fencing token action context'e ulaşır. - Operator işlemleri session, policy ve owner rate reset kayıtlarını yönetir. - WebSocket aboneliği yetki ister ve kaçırılan olayları yeniden oynatır. - SSE geri basınç sınırında bağlantıyı kapatır. - Hatalı realtime JSON invalid-data koduyla kapanır. Paket kontrolleri pack:check, yayımlanan tarball içinde gerekli export, tip, CLI, docs ve örneklerin bulunduğunu doğrulamalı. Canary Önce tek instance veya staging ortamında şu akışı dene: 1. Discord login 2. session rotasyonu 3. korunan settings mutation 4. idempotent tekrar 5. eş zamanlı iki yazma 6. audit/outbox kaydı 7. realtime replay 8. session revocation Trusted publishing npm trusted publisher kullanıyorsan workflow kimliğini ve tag kuralını sınırlı tut. Uzun ömürlü npm token'ını CI sırlarına ekleme."
+  },
+  {
+    "id": "en:araclar/dogrulama-konsolu",
+    "locale": "en",
+    "title": "Verification console",
+    "description": "Inspect GuildGate decisions through a constrained command set in the browser.",
+    "category": "Tools",
+    "headings": [
+      "Available checks",
+      "Safety boundaries"
+    ],
+    "route": "/en/docs/araclar/dogrulama-konsolu",
+    "content": "Verification console The console does not open an operating-system shell, execute arbitrary JavaScript, or send input to a server. It evaluates documented GuildGate rules through a fixed command set. Available checks Command What it inspects --- --- doctor A sample production profile config check Development and production differences origin check Exact origin matching session policy TTL, idle timeout, rotation, and open-session limits store check Persistent and short-lived store placement action test The guarded write order rate-limit test A fixed-window calculation realtime check Transport, sequence, and replay choices security explain CSRF, origin, sessions, and locks Safety boundaries - one line, up to 240 characters - 20 evaluations per minute - shell operators, redirection, and command substitution are rejected - common GitHub, API, MFA, JWT, and bot-token formats are blocked - up to 60 history entries, kept only in the current tab's memory - output is rendered as text - unexpected failures return one safe user-facing message Use guildgate-doctor when you need to inspect a real project environment."
+  },
+  {
+    "id": "en:baslangic/bes-dakikada-basla",
+    "locale": "en",
+    "title": "Start in five minutes",
+    "description": "Create the first GuildGate instance with memory stores.",
+    "category": "Getting started",
+    "headings": [
+      "1. Prepare environment values",
+      "2. Create the gate",
+      "3. Define the first action",
+      "4. Run the doctor",
+      "5. Prepare production stores"
+    ],
+    "route": "/en/docs/baslangic/bes-dakikada-basla",
+    "content": "Start in five minutes This example creates a small development setup. Memory stores are cleared when the process stops; replace them before production. 1. Prepare environment values 2. Create the gate 3. Define the first action execute does not run until the earlier checks pass. The HTTP adapter adds session, origin and CSRF context. 4. Run the doctor The development profile accepts localhost and memory stores. The production profile flags the same values as unsafe. 5. Prepare production stores - Move sessions, OAuth credentials, audit, outbox and policies to persistent storage. - Move rate limits, idempotency, cache and distributed locks to Redis. - Use HTTPS for the base URL, callback and allowed origins. - Add the application-owned keyring for OAuth tokens. Read store contracts and the action lifecycle next."
+  },
+  {
+    "id": "en:baslangic/ilk-yapilandirma",
+    "locale": "en",
+    "title": "Initial configuration",
+    "description": "Configure createGuildGate for development and production.",
+    "category": "Getting started",
+    "headings": [
+      "Application fields",
+      "Session policy",
+      "Production guards"
+    ],
+    "route": "/en/docs/baslangic/ilk-yapilandirma",
+    "content": "Initial configuration createGuildGate() receives the application identity, security boundaries, locales and store bundle in one object. Application fields Field Decision --- --- app.name Name used in operator and audit context app.environment Environment boundary for security defaults and store namespaces app.baseUrl Public dashboard URL owners Discord user IDs allowed to use owner operations locale.default Default error and status language locale.messages Application-specific messages by error code Session policy ttlMs sets the absolute limit, idleTimeoutMs closes inactive sessions, rotateAfterMs rotates the opaque value and maximumSessionsPerUser limits open sessions. Treat these controls as a group. Rotation alone does not stop a stolen session; revocation must remain available. Production guards The production profile rejects: - an HTTP baseUrl - an empty origin allowlist - HTTP or localhost origins - session cookies without Secure - an HTTP Discord callback - short CSRF or audit hashing secrets See the configuration reference for the complete overview."
+  },
+  {
+    "id": "en:baslangic/kurulum",
+    "locale": "en",
+    "title": "Installation",
+    "description": "Add GuildGate 1.0.0 and verify the runtime requirements.",
+    "category": "Getting started",
+    "headings": [
+      "Requirements",
+      "Install the package",
+      "Verify the installation",
+      "Check the imports",
+      "Next step"
+    ],
+    "route": "/en/docs/baslangic/kurulum",
+    "content": "Installation Requirements - Node.js 22.12.0 or newer - A server-side TypeScript or modern JavaScript project - A Discord OAuth application - HTTPS in production Install the package The package ships its TypeScript declarations. Fastify, Express, Hono, your Redis client and database driver remain application choices, so install those separately. Verify the installation When the package binary is available through node modules/.bin, you can use: JSON output: The doctor reads environment values inside the local process. It does not upload secrets or print their values. Check the imports Do not import from internal src/ or dist/ paths. Use the published package and subpath exports. Next step The five-minute guide builds a development setup. Read initial configuration and the production security checklist before deployment."
+  },
+  {
+    "id": "en:baslangic/ornekler",
+    "locale": "en",
+    "title": "Example projects",
+    "description": "Review GuildGate adapters, store contracts, and realtime integration through focused examples.",
+    "category": "Getting started",
+    "headings": [
+      "HTTP adapters",
+      "Discord.js",
+      "PostgreSQL and custom stores",
+      "Realtime",
+      "Status and metrics",
+      "Bringing an example into your project"
+    ],
+    "route": "/en/docs/baslangic/ornekler",
+    "content": "Example projects The package repository keeps focused integrations under examples/. Before copying one, read its store and security assumptions. HTTP adapters - examples/fastify/: Fastify routes connected to an action handler - examples/hono/server.ts: server setup with Hono - Express adapter: uses the same action definition through the @kavtuai/guildgate/express export The framework owns HTTP transport. Parsing, resource lookup, authorization, idempotency, locking, transactions, and audit decisions stay in the action definition. Discord.js examples/discordjs/adapter.ts maps Discord user and bot permissions into the GuildGate authorization context. Keep the permission shown for the user separate from the permission the bot actually has. PostgreSQL and custom stores - examples/postgres/setup.ts: persistent store setup - examples/custom-store/postgres-audit-store.ts: implementing one store contract independently Run contract tests before using a custom store. Atomic consumption, compare-and-set, TTL, and fencing behavior should be explicit rather than assumed from the driver. Realtime examples/realtime/ws.ts connects a WebSocket transport to createRealtimeHub(). Session and guild access are resolved when the connection opens; sequence and replay finish before live delivery starts. Status and metrics examples/analytics/status-monitor.ts shows aggregate status data without exposing user records or secrets. Bringing an example into your project 1. Pin the package version. 2. Replace memory stores with production stores. 3. Match baseUrl, origins, and the Discord callback to your environment. 4. Define user and bot permissions for the real action name. 5. Run the doctor command, tests, and canary sequence."
+  },
+  {
+    "id": "en:baslangic/sorumluluk-sinirlari",
+    "locale": "en",
+    "title": "Responsibility boundaries",
+    "description": "Separate GuildGate controls from application-owned decisions.",
+    "category": "Getting started",
+    "headings": [
+      "GuildGate owns",
+      "The application owns",
+      "State the guarantee accurately"
+    ],
+    "route": "/en/docs/baslangic/sorumluluk-sinirlari",
+    "content": "Responsibility boundaries GuildGate organizes security checks; it does not own the whole infrastructure. Production security depends on both sides keeping their boundary clear. GuildGate owns - Opaque session creation, rotation and revocation - OAuth state and browser nonce binding - Origin and CSRF validation - Discord permission parsing with BigInt - Rate-limit, idempotency, lock, retry, timeout and circuit-breaker contracts - Audit, outbox and realtime event contracts - Fastify, Express and Hono integration layers The application owns - Reliable client IP resolution behind trusted proxies - Secret storage outside source control and client bundles - Transactional persistent writes - Optimistic revision checks - Discord role hierarchy and product policy - Retention, backups and deletion policy - Cancellation propagation to database and HTTP calls - Review of Discord permission and API changes before major releases State the guarantee accurately Passing authorize does not make the database write automatically consistent. A resource lock controls concurrent work; transactions and revision checks protect record-level consistency. The threat model maps these boundaries to concrete risks."
+  },
+  {
+    "id": "en:cli/doctor",
+    "locale": "en",
+    "title": "guildgate-doctor",
+    "description": "Check deployment settings without printing secret values.",
+    "category": "CLI",
+    "headings": [
+      "Checks",
+      "Safe output",
+      "CI use"
+    ],
+    "route": "/en/docs/cli/doctor",
+    "content": "guildgate-doctor The doctor command checks the environment and security conditions required by GuildGate in the local process. Machine-readable output: Checks - Node.js version - environment and baseUrl - HTTPS callbacks - allowed origins - CSRF secret and audit hashing salt - session cookies - store placement - Redis namespace - token cipher and keyring - owner IDs Safe output The command may check whether a secret exists and whether it meets a length rule, but it does not include the secret value in its report. Review your CI log-retention policy before storing JSON output. CI use The doctor command should return a non-zero exit code when it finds a release-blocking issue:"
+  },
+  {
+    "id": "en:cli/writing-check",
+    "locale": "en",
+    "title": "guildgate-writing-check",
+    "description": "Scan package and documentation copy for placeholders, tool artifacts, and banned promotional patterns.",
+    "category": "CLI",
+    "headings": [
+      "What it catches"
+    ],
+    "route": "/en/docs/cli/writing-check",
+    "content": "guildgate-writing-check This command scans user-facing text for forgotten placeholders, model-tool artifacts, malformed citation syntax, and promotional phrases that the project does not accept. What it catches - , TODO CONTENT, and temporary copy - artifacts such as contentReference, oaicite, and turn... - malformed provider citation patterns - chat remnants left in source files - empty claims of importance and brochure-style language This is not an authorship detector. It cannot establish who wrote a text or whether its claims are correct. It catches publishing residue; code review, source checking, and technical tests remain separate work."
+  },
+  {
+    "id": "en:dayaniklilik/audit-outbox-telemetri",
+    "locale": "en",
+    "title": "Audit, outbox, and telemetry",
+    "description": "Record security decisions, separate event delivery, and measure behavior without leaking secrets.",
+    "category": "Resilience",
+    "headings": [
+      "Audit",
+      "Outbox",
+      "OpenTelemetry",
+      "Analytics and status monitoring"
+    ],
+    "route": "/en/docs/dayaniklilik/audit-outbox-telemetri",
+    "content": "Audit, outbox, and telemetry These channels answer different questions: - Audit: Who requested what, against which resource, and what was the decision? - Outbox: Which event must be delivered after a successful change? - Telemetry: Where is the system slow or failing? Audit Treat an audit row as an append-only security record. Store the action name and stable error code, not the localized message returned to the user. Avoid raw tokens, cookies, OAuth codes, request bodies, and unredacted IP addresses. Use a separate salt when you need a stable, privacy-conscious IP-derived context value. Outbox A saved dashboard setting may need to trigger realtime delivery, a webhook, or a background job. Do not wait for that external delivery inside the transaction. Commit the application change and its outbox row together, then let a worker deliver the event. The worker should record attempts, next retry time, and final disposition without modifying the original application result. OpenTelemetry GuildGate hooks can send action duration, retry count, store latency, and breaker state to your existing OpenTelemetry setup. Keep secret material and full user payloads out of span attributes. Analytics and status monitoring examples/analytics/status-monitor.ts shows how to publish aggregate status data without bypassing security controls. A public status endpoint should contain service health, not personal data or operator-only details."
+  },
+  {
+    "id": "en:dayaniklilik/kilit-retry-circuit-breaker",
+    "locale": "en",
+    "title": "Locks, retries, and circuit breakers",
+    "description": "Control concurrent writes and temporary dependency failures without hiding real errors.",
+    "category": "Resilience",
+    "headings": [
+      "Resource locks",
+      "Retries",
+      "Circuit breaker",
+      "Timeouts"
+    ],
+    "route": "/en/docs/dayaniklilik/kilit-retry-circuit-breaker",
+    "content": "Locks, retries, and circuit breakers Resilience settings are not an excuse to retry every failure. They define which failures are safe to repeat and how much time the operation may spend doing so. Resource locks Serialize concurrent writes to the same guild resource under one key: The lock TTL must exceed the action timeout. Renew long-running locks, and use fencing tokens so a stale lock holder cannot commit a late write. Retries A network interruption, a 429 response, and selected 5xx responses may be retried. Validation, authorization, revision, and business-rule failures should return immediately. Keep the policy bounded: - a small attempt count - backoff with jitter - one shared timeout budget - respect for the abort signal - an idempotency key for writes that are not naturally idempotent Circuit breaker When Discord or a store keeps failing, stop new calls for a short period. Do not expose the breaker implementation or an internal exception name to the user. Return a stable error code and an appropriate retry delay. Timeouts An action timeout should cancel work, not only stop waiting for a Promise. Pass the abort signal to Discord requests, Redis calls, and database queries."
+  },
+  {
+    "id": "en:depolama/bellek-redis",
+    "locale": "en",
+    "title": "Memory and Redis",
+    "description": "Use development stores and short-lived Redis records in the right place.",
+    "category": "Storage",
+    "headings": [
+      "Memory stores",
+      "Redis stores",
+      "Namespaces",
+      "Lock safety"
+    ],
+    "route": "/en/docs/depolama/bellek-redis",
+    "content": "Memory and Redis Memory stores createMemoryStoreBundle() is useful for local development, examples and unit tests. All records disappear when the process stops, and multiple instances do not share data. Do not use memory stores for production sessions, OAuth records, audit, outbox or distributed locks. Redis stores createRedisEphemeralStores() connects short-lived records such as rate limits, cache, idempotency, OAuth state and locks to shared Redis. Namespaces Use separate prefixes for production, staging and tests. Prefer application and environment identity over a package version so upgrades do not orphan valid records. Lock safety A Redis lock needs renewal and fencing support. A simple key that expires silently cannot stop a stale owner from writing after a new owner acquires the lock."
+  },
+  {
+    "id": "en:depolama/depo-sozlesmeleri",
+    "locale": "en",
+    "title": "Store contracts",
+    "description": "Place GuildGateStores interfaces according to data lifetime and atomicity.",
+    "category": "Storage",
+    "headings": [
+      "Compose stores",
+      "Contract testing"
+    ],
+    "route": "/en/docs/depolama/depo-sozlesmeleri",
+    "content": "Store contracts GuildGateStores does not force every record through one database class. Each store carries its own lifetime and atomicity requirements. Store Data Production placement --- --- --- SessionStore Opaque-session digest, expiry and user binding Persistent database or trusted central store OAuthStateStore One-time login state Redis or a store with TTL and atomic consume OAuthCredentialStore Encrypted Discord tokens Persistent database RateLimitStore Counters and windows Redis CacheStore Short-lived Discord and resource cache Redis IdempotencyStore Duplicate-request result Redis or another central TTL store LockStore Renewable distributed lock Redis or a fencing-capable lock service AuditStore Append-only audit events Persistent database OutboxStore Events waiting for delivery Same database as the application transaction PolicyStore Maintenance, block and operator policy Persistent shared store Compose stores composeStores() combines implementations from different sources. Confirm precedence and missing-store behavior from the installed package types. Do not define the same store twice. Contract testing Matching the TypeScript interface is not enough. Test atomic consume, compare-and-set, TTL behavior, lock renewal and fencing under race conditions."
+  },
+  {
+    "id": "en:depolama/kalici-kayitlar",
+    "locale": "en",
+    "title": "Persistent records and transactions",
+    "description": "Store sessions, OAuth, audit, outbox and policies consistently.",
+    "category": "Storage",
+    "headings": [
+      "Records that normally persist",
+      "Transaction layout",
+      "Audit record",
+      "Retention"
+    ],
+    "route": "/en/docs/depolama/kalici-kayitlar",
+    "content": "Persistent records and transactions Persistent stores do more than survive restarts; they keep security decisions consistent across instances. Records that normally persist - session digest and revocation state - encrypted OAuth credentials - audit events - outbox delivery records - operator and maintenance policies - optimistic revision values where needed Transaction layout On a revision conflict, roll back and ask the client to reload current data. A resource lock does not replace this check. Audit record A useful record may include: - action name - actor user ID - resource type and ID - request/correlation ID - result code - previous and new revision - hashed IP context - timestamp Do not store tokens, cookies, OAuth codes, encryption keys or raw IP values. Retention Sessions and OAuth state expire with TTL. Define separate retention periods for audit and outbox data according to product, legal and operational needs."
+  },
+  {
+    "id": "en:depolama/ozel-depolar",
+    "locale": "en",
+    "title": "Custom stores",
+    "description": "Connect an existing ORM or database layer to GuildGate store contracts.",
+    "category": "Storage",
+    "headings": [
+      "Classify the data first",
+      "Audit-store example",
+      "Transaction hook",
+      "Test matrix"
+    ],
+    "route": "/en/docs/depolama/ozel-depolar",
+    "content": "Custom stores GuildGate does not choose a database. Connect an existing repository or ORM through the small store interfaces. Classify the data first For each store, answer: - How long does the record live? - Does it need atomic consume or compare-and-set? - Must it commit with another record in the same transaction? - Must every application instance see it? - Does it have a retention or deletion rule? Audit-store example The source package includes examples/custom-store/postgres-audit-store.ts. It adapts an application database client to the GuildGate audit contract. Transaction hook When the application write, audit row and outbox row share a database, open one transaction and pass the transaction client through action context. Test matrix - The same OAuth state cannot be consumed twice. - Expired sessions cannot be found. - Rotation invalidates the previous token digest. - Idempotency returns the same result for the same scope and key. - Only the lock owner can renew. - A stale fencing token cannot commit a write. - Outbox rows roll back with the application write. See the public API for the store interface names."
+  },
+  {
+    "id": "en:gercek-zamanli/realtime-hub",
+    "locale": "en",
+    "title": "Realtime hub",
+    "description": "Protect WebSocket and SSE subscriptions with sessions, authorization, ordering, replay, and backpressure.",
+    "category": "Realtime access",
+    "headings": [
+      "Opening a connection",
+      "WebSocket",
+      "SSE",
+      "Sequence and replay",
+      "Session revocation"
+    ],
+    "route": "/en/docs/gercek-zamanli/realtime-hub",
+    "content": "Realtime hub createRealtimeHub() creates a transport-neutral subscription center. RealtimeConnection tracks identity, subscriptions, delivery position, and connection state. Opening a connection 1. Validate the opaque session. 2. Resolve the user's access to the requested guild. 3. Match the topic against an allowlist. 4. Check the last sequence number seen by the client. 5. Replay retained events in order. 6. Start live delivery. WebSocket The package includes examples/realtime/ws.ts. Invalid JSON should close the connection with an invalid-data close code. Parsing details and stack traces stay in operator logs. Authenticate before accepting subscriptions, and recheck access when policy or session state changes. SSE The SSE adapter writes event IDs and data lines in the expected format. If the client stops reading, the queue must not grow without a bound. Close the connection when the backpressure limit is reached and let the client reconnect with its last event ID. Sequence and replay Every event carries an increasing sequence value. A reconnecting client sends the last value it processed. The hub replays events still inside the retention window, then switches to the live stream. Session revocation Close active WebSocket and SSE connections when a session is revoked. Checking only at subscription time leaves an already-open connection active after logout or an operator action."
+  },
+  {
+    "id": "en:giris",
+    "locale": "en",
+    "title": "What is GuildGate?",
+    "description": "Understand the role, boundaries and placement of GuildGate 1.0.0.",
+    "category": "Reference",
+    "headings": [
+      "What does it add?",
+      "What does it not own?"
+    ],
+    "route": "/en/docs/giris",
+    "content": "What is GuildGate? GuildGate is a TypeScript library for the server side of Discord bot dashboards. It provides shared contracts for OAuth login, opaque sessions, CSRF, exact origin matching, user and bot authorization, rate limits, idempotency, resource locks, audit records and realtime subscriptions. These docs cover @kavtuai/guildgate 1.0.0. The package requires Node.js 22 or newer. The dashboard does not make the final decision Do not trust role, guild or permission data sent by the browser. Resolve it again on the server when a protected write arrives. What does it add? - Protected writes follow one validation order. - Server-side sessions can be rotated and revoked. - Discord OAuth state is bound to one browser and consumed once. - Redis, persistent databases and custom stores implement the same contracts. - Fastify, Express and Hono projects connect the core to their own HTTP layer. - WebSocket and SSE subscriptions require a session and guild authorization. What does it not own? GuildGate does not render a dashboard. It does not own your database schema, role hierarchy, product rules or Discord commands. Those decisions stay in your application. Open the five-minute guide for a working setup, or read the architecture overview first."
+  },
+  {
+    "id": "en:istek-katmani/action",
+    "locale": "en",
+    "title": "action() definitions",
+    "description": "Define a protected dashboard write in one lifecycle.",
+    "category": "Request layer",
+    "headings": [
+      "parse",
+      "resource",
+      "authorize",
+      "execute",
+      "Try the validation order"
+    ],
+    "route": "/en/docs/istek-katmani/action",
+    "content": "action() definitions gate.action() keeps input, resource, authorization, resilience and persistence decisions in one definition. parse Reduce the raw body to a narrow type. Reject unknown fields and apply length and enum limits before authorization. resource Rate limits, idempotency, locks, audit records and realtime events can use the same resource identity. Validate it before logging. authorize Resolve the user's guild access and required permission at write time. Check the bot permission separately. execute Application persistence happens here. Transactions, optimistic revisions and Discord role hierarchy remain application responsibilities. Try the validation order Run action test guild.settings.update and change the origin, session, CSRF or permission flags."
+  },
+  {
+    "id": "en:istek-katmani/framework-bagdastiricilari",
+    "locale": "en",
+    "title": "Framework adapters",
+    "description": "Connect GuildGate actions to Fastify, Express and Hono routes.",
+    "category": "Request layer",
+    "headings": [
+      "Fastify",
+      "Express",
+      "Hono",
+      "Application responsibilities"
+    ],
+    "route": "/en/docs/istek-katmani/framework-bagdastiricilari",
+    "content": "Framework adapters The core stays independent from framework request objects. Adapters convert headers, cookies, IP context, abort signals and responses into GuildGate context. Fastify Express Hono The package also includes a Hono adapter. Confirm the exact subpath from the installed package exports field and TypeScript autocomplete; do not depend on internal files. Application responsibilities - Resolve client IP only through a trusted proxy boundary. - Map session and CSRF headers/cookies correctly. - Forward abort signals to lower layers. - Map error codes to user-facing messages. - Keep secrets and internal error objects out of framework logs and responses. Keep adapters thin. Product rules belong in actions and services, not route files."
+  },
+  {
+    "id": "en:istek-katmani/yetkilendirme",
+    "locale": "en",
+    "title": "Discord authorization",
+    "description": "Check current user and bot permissions with BigInt.",
+    "category": "Request layer",
+    "headings": [
+      "User permissions",
+      "Bot permissions and role hierarchy",
+      "Caching",
+      "Owner actions"
+    ],
+    "route": "/en/docs/istek-katmani/yetkilendirme",
+    "content": "Discord authorization Seeing a guild in the dashboard does not grant permission to change every setting. Each action should state the required user and bot permissions. User permissions Do not parse Discord permission bitfields with JavaScript number. Use BigInt to avoid precision loss. Bot permissions and role hierarchy A user may have MANAGE ROLES while the bot remains below the target role. Keep two decisions separate: - May the user request the action? - Can the bot complete the action on Discord? Caching Guild lists and permission data may use a short cache, but a protected write should not trust stale browser state. Resolve current Discord data or use a deliberately short cache window. Owner actions The owners list unlocks operator actions. It does not bypass session, origin, CSRF, rate-limit or audit checks. Discord.js projects can use the package authorization adapter. The source package includes examples/discordjs/adapter.ts."
+  },
+  {
+    "id": "en:katki/yazi-standardi",
+    "locale": "en",
+    "title": "Writing standard",
+    "description": "Write GuildGate documentation with direct, verifiable, and natural technical language.",
+    "category": "Contribution",
+    "headings": [
+      "Preferred style",
+      "Patterns to avoid",
+      "Source checking",
+      "Automated checks"
+    ],
+    "route": "/en/docs/katki/yazi-standardi",
+    "content": "Writing standard A documentation sentence should help the reader make a decision or complete a task. Remove it when it carries neither. Preferred style - Use active verbs: “Compare the origin value.” - State boundaries directly: “Production rejects localhost origins.” - Describe behavior instead of praising it: “The state record can be consumed once.” - Keep one main idea per paragraph. - Use one term consistently instead of rotating synonyms for variety. - Put the consequence near the rule that causes it. Patterns to avoid - introductions that inflate the subject's importance - unsupported claims such as “critical role,” “landmark,” or “wider ecosystem” - brochure copy and generic claims of seamlessness - shallow conclusions that only say a feature “improves security” - vague references to experts, sources, or general opinion - forcing every explanation into groups of three - excessive bold text, emoji, title case, dividers, or heading stacks - chat remnants addressed to the user - placeholders, model-tool citation syntax, and provider artifacts - hidden implementation messages in user-facing copy Source checking Open the source. Confirm that its title, author, date, and relevant passage support the claim. Remove tracking parameters. Do not invent a DOI, ISBN, page number, benchmark, or quotation. Automated checks These checks do not determine authorship. They catch residue and project-specific style violations. Technical accuracy still depends on source review, code review, and tests."
+  },
+  {
+    "id": "en:kimlik/csrf-origin",
+    "locale": "en",
+    "title": "CSRF and origins",
+    "description": "Apply exact-origin and session-bound CSRF validation to writes.",
+    "category": "Identity and sessions",
+    "headings": [
+      "Exact origin matching",
+      "Session-bound CSRF",
+      "Production rejections",
+      "Proxy note"
+    ],
+    "route": "/en/docs/kimlik/csrf-origin",
+    "content": "CSRF and origins GuildGate uses two separate controls: exact origin matching and a session-bound CSRF token. Neither replaces the other. Exact origin matching https://panel.example.com is different from: - http://panel.example.com - https://admin.panel.example.com - https://panel.example.com:8443 - https://panel.example.com.evil.test Do not weaken the check with substring or suffix matching. Compare the parsed URL origin against an explicit set. Session-bound CSRF The CSRF value is cryptographically bound to the session. A valid-looking value from another session is rejected. For a protected write, the client: 1. Sends the session cookie. 2. Adds the CSRF value in a dedicated header. 3. Lets the server validate origin, session and token binding. Production rejections The production profile rejects an empty origin list, HTTP origins, localhost origins and short CSRF secrets. Proxy note Origin validation does not depend on the client IP. If you use IP-based rate limits or audit hashing, trust addresses only from a configured proxy chain."
+  },
+  {
+    "id": "en:kimlik/discord-oauth",
+    "locale": "en",
+    "title": "Discord OAuth",
+    "description": "Build authorization-code login with state, nonce and encrypted token storage.",
+    "category": "Identity and sessions",
+    "headings": [
+      "Login sequence",
+      "State store",
+      "OAuth credential store",
+      "Callback rules"
+    ],
+    "route": "/en/docs/kimlik/discord-oauth",
+    "content": "Discord OAuth GuildGate handles Discord login with the authorization-code flow. It creates a short-lived state record and a separate browser nonce cookie. The callback checks state, nonce, expiry and one-time consumption together. Login sequence State store OAuthStateStore must provide: - one-time consumption - short expiry - browser nonce binding - atomic consume for the same state - no reuse after an error OAuth credential store OAuthCredentialStore should not store access or refresh tokens as plaintext. GuildGate uses an application-supplied token cipher or keyring. Store the key version with the record so older tokens can be re-encrypted gradually. Callback rules - Production callbacks use HTTPS. - The Discord Developer Portal redirect matches the application value exactly. - Callback errors do not expose tokens, state, nonce or raw Discord responses. - A successful login creates a new opaque session instead of returning authorization data to the browser. Continue with the session guide."
+  },
+  {
+    "id": "en:kimlik/oturumlar",
+    "locale": "en",
+    "title": "Opaque sessions",
+    "description": "Configure session lifetime, rotation, per-user caps and revocation.",
+    "category": "Identity and sessions",
+    "headings": [
+      "Session controls",
+      "Rotation",
+      "Revocation",
+      "Cookie settings"
+    ],
+    "route": "/en/docs/kimlik/oturumlar",
+    "content": "Opaque sessions The browser does not receive a readable token containing identity or authorization data. GuildGate generates a random session value and stores a comparison digest rather than the raw value. Session controls Control Purpose --- --- ttlMs Absolute session expiry idleTimeoutMs Early expiry for inactive sessions rotateAfterMs Regular opaque-value rotation maximumSessionsPerUser Cap open sessions per user Rotation Rotation sends a new value to the browser and invalidates the old value after a short handover window. The store needs atomic updates so concurrent requests do not break an active session. Revocation gate.revokeUserSessions() revokes open sessions for a user. Use it after account-link changes, suspected access, operator action or other security events. Revocation should also reach realtime connections. The hub can close affected connections or require fresh authentication. Cookie settings A production cookie should include: SameSite does not replace CSRF protection. Validate origin and CSRF on writes."
+  },
+  {
+    "id": "en:mimari/genel-bakis",
+    "locale": "en",
+    "title": "Architecture overview",
+    "description": "Learn how identity, actions, stores and realtime delivery fit together.",
+    "category": "Architecture and security",
+    "headings": [
+      "Identity layer",
+      "Action layer",
+      "Store layer",
+      "Realtime layer",
+      "Adapters"
+    ],
+    "route": "/en/docs/mimari/genel-bakis",
+    "content": "Architecture overview GuildGate connects four parts: identity, protected actions, store contracts and event delivery. Identity layer It starts Discord OAuth, binds a one-time state record to a browser nonce, encrypts OAuth tokens with the application-owned keyring and creates an opaque session. Action layer gate.action() keeps this order visible: 1. Parse input. 2. Resolve the target resource. 3. Check method, origin, session and CSRF. 4. Check user and bot permissions. 5. Apply rate limits, idempotency and the resource lock. 6. Open the transaction hook. 7. Run the application write. 8. Record audit/outbox data and invalidate caches. Store layer GuildGateStores defines a small interface for each data type. composeStores() combines implementations. Sessions may live in PostgreSQL while rate limits and locks use Redis and audit records use an existing ORM. Realtime layer createRealtimeHub() manages authorized subscriptions. RealtimeConnection separates session, guild access, sequence, replay and backpressure decisions from the transport. Adapters An HTTP adapter converts framework objects into GuildGate context. The core does not own route structure or response shape. Read the action lifecycle for the full write path."
+  },
+  {
+    "id": "en:mimari/islem-yasam-dongusu",
+    "locale": "en",
+    "title": "Action lifecycle",
+    "description": "Follow the accept, reject and persistence path for a protected write.",
+    "category": "Architecture and security",
+    "headings": [
+      "Rejection points",
+      "Transaction boundary",
+      "Lock loss",
+      "Successful response"
+    ],
+    "route": "/en/docs/mimari/islem-yasam-dongusu",
+    "content": "Action lifecycle An action calls application code only after its preconditions pass. Rejection points Each rejection uses a stable error code. The user-facing message may be localized, but stack traces, store keys, tokens, encryption details and internal error objects stay out of the response. Transaction boundary The action lifecycle exposes a transaction hook; the store implementation opens the transaction. Keep the application write, audit/outbox record and optimistic revision check in one transaction when they share a database. Lock loss If the distributed lock cannot renew, the action should stop. A fencing token lets the store reject a late write from a stale owner. Successful response Return success after cache invalidation and event sequencing complete. An outbox worker may deliver external events later, while the application row and outbox row remain in one commit. See action() for an implementation example."
+  },
+  {
+    "id": "en:mimari/tehdit-modeli",
+    "locale": "en",
+    "title": "Threat model",
+    "description": "Review the attacks GuildGate addresses and the risks left to the application.",
+    "category": "Architecture and security",
+    "headings": [
+      "Addressed risks",
+      "Risks outside the package boundary",
+      "Assumptions"
+    ],
+    "route": "/en/docs/mimari/tehdit-modeli",
+    "content": "Threat model This model assumes an internet-facing Discord dashboard API and a browser client using a session cookie. Addressed risks Risk Control --- --- Stolen session token No raw-token storage, rotation, idle/absolute expiry and revocation Login CSRF and OAuth replay One-time state, browser nonce binding and expiry Cross-site write request Exact origin matching and a session-bound CSRF token Stale Discord authorization Re-resolve user and bot permissions on protected writes Duplicate delivery Idempotency store with a resource-scoped key Concurrent writes Renewable distributed lock and fencing token Temporary Discord/store failure Timeout, bounded retry and circuit breaker Unauthorized realtime subscription Session and guild checks at connection and subscription time Lost audit event Transaction hook and outbox contract Risks outside the package boundary - A compromised server - Secrets committed to source code - Incorrect reverse-proxy trust - Incorrect product authorization rules - Application services that skip transactions - A bot role below the target role - Weak key management or backups Assumptions - TLS terminates at a trusted proxy or the application. - Store implementations keep the required atomic behavior. - The application forwards cancellation and timeout signals. - Operator actions use separate authorization and audit records. Use the production checklist to evaluate the whole deployment."
+  },
+  {
+    "id": "en:referans/gecis-ve-surumleme",
+    "locale": "en",
+    "title": "Migration and versioning",
+    "description": "Manage semver, store changes, key rotation, and production rollbacks deliberately.",
+    "category": "Reference",
+    "headings": [
+      "Before an upgrade",
+      "Store migration",
+      "Key rotation",
+      "Rollback"
+    ],
+    "route": "/en/docs/referans/gecis-ve-surumleme",
+    "content": "Migration and versioning GuildGate follows semver for its published export surface. Internal file paths are not part of that guarantee. Before an upgrade - read the changelog and migration notes - run npm run typecheck - rerun store contract tests - review Discord permission and API changes - run the doctor command and one guarded mutation in a canary environment - verify realtime replay and session revocation Store migration When a release adds a store field, deploy the backward-compatible schema first and then upgrade the application. If old and new instances may run together, keep a record format both versions can read. Key rotation An OAuth token keyring can hold more than one key version. Encrypt new writes with the active key, then re-encrypt older records when they are read or through a controlled background task. Rollback A rollback plan needs more than an older npm version. Include store schema compatibility, outbox workers, Redis prefixes, realtime sequence handling, and any keyring changes."
+  },
+  {
+    "id": "en:referans/hatalar-ve-diller",
+    "locale": "en",
+    "title": "Errors and locales",
+    "description": "Map stable error codes to safe Turkish and English user messages.",
+    "category": "Reference",
+    "headings": [
+      "Keep these out of user messages",
+      "HTTP mapping",
+      "Locale selection"
+    ],
+    "route": "/en/docs/referans/hatalar-ve-diller",
+    "content": "Errors and locales GuildGate represents decisions with stable error codes. Choose the user-facing text through locale.messages. Keep these out of user messages - stack traces - store names or Redis keys - tokens, cookies, nonces, or OAuth codes - raw Discord error bodies - database queries - internal class names and file paths HTTP mapping Map a stable GuildGate code to an appropriate HTTP status. Do not use the same string for both operator logs and the user response. Operator context can be detailed; user copy should be safe and actionable. Locale selection A practical priority order is: 1. saved user preference 2. Discord locale 3. dashboard locale 4. locale.default Map arbitrary client input to a supported locale. Do not use a free-form locale value as a file path or dynamic import target."
+  },
+  {
+    "id": "en:referans/public-api",
+    "locale": "en",
+    "title": "Public API",
+    "description": "Find the main GuildGate 1.0.0 exports, store contracts, adapters, and gate methods.",
+    "category": "Reference",
+    "headings": [
+      "Core",
+      "Store contracts",
+      "Redis",
+      "HTTP adapters",
+      "Gate methods"
+    ],
+    "route": "/en/docs/referans/public-api",
+    "content": "Public API This page summarizes the verified public surface in 1.0.0. Use the TypeScript declarations shipped with the installed package for exact parameter and return types. Core Export Purpose --- --- createGuildGate Creates the configured gate instance createMemoryStoreBundle Creates an in-memory store bundle for development and tests composeStores Combines store implementations into one GuildGateStores object createRealtimeHub Creates the transport-neutral realtime hub RealtimeConnection Represents connection identity and delivery state Store contracts - GuildGateStores - SessionStore - OAuthStateStore - OAuthCredentialStore - RateLimitStore - CacheStore - IdempotencyStore - LockStore - AuditStore - OutboxStore - PolicyStore Redis Export Import path Purpose --- --- --- createRedisEphemeralStores @kavtuai/guildgate/redis Creates the short-lived store set fromNodeRedis @kavtuai/guildgate/redis Adapts a Node Redis client to the required contract HTTP adapters Export Import path --- --- fastifyActionHandler @kavtuai/guildgate/fastify expressActionHandler @kavtuai/guildgate/express The package also includes Hono and discord.js adapters. Confirm exact export names through the installed package's exports field and your IDE completion. Gate methods The verified surface includes: - gate.action(...) - gate.owner.setMaintenance(...) - gate.owner.block(...) - gate.owner.unblock(...) - gate.revokeUserSessions(...) Do not import internal file paths. Semver guarantees apply to published exports."
+  },
+  {
+    "id": "en:referans/yapilandirma",
+    "locale": "en",
+    "title": "Configuration reference",
+    "description": "Review the main createGuildGate options and production requirements.",
+    "category": "Reference",
+    "headings": [
+      "app",
+      "owners",
+      "locale",
+      "security",
+      "stores",
+      "Advanced action options"
+    ],
+    "route": "/en/docs/referans/yapilandirma",
+    "content": "Configuration reference app Field Meaning --- --- name Application name used in audit and operational context environment Development, staging, or production profile baseUrl Public dashboard URL owners Discord user IDs allowed to perform owner operations. Owner status does not bypass session, origin, CSRF, rate-limit, policy, or audit checks. locale Field Meaning --- --- default Default message locale messages Error-code-based Turkish, English, or custom locale copy security Field Meaning --- --- allowedOrigins Exact origins accepted for browser requests csrfSecret Separate secret for CSRF signing auditIpSalt Separate salt for IP-derived audit context session.ttlMs Absolute session lifetime session.idleTimeoutMs Idle timeout session.rotateAfterMs Opaque token rotation interval session.maximumSessionsPerUser Maximum open sessions per user stores A bundle implementing GuildGateStores. createMemoryStoreBundle() is suitable for development and tests, not a multi-instance production deployment. See store contracts. Advanced action options The 1.0.0 action surface supports transaction hooks, cache invalidation, retries, timeouts, circuit breakers, distributed locks, and fencing behavior. Read the installed TypeScript declarations for the complete typed shape."
+  },
+  {
+    "id": "en:sorun-giderme",
+    "locale": "en",
+    "title": "Troubleshooting",
+    "description": "Narrow down installation, OAuth, session, origin, store, and realtime problems.",
+    "category": "Reference",
+    "headings": [
+      "Production exits during startup",
+      "Discord callback mismatch",
+      "Every write returns a CSRF error",
+      "An allowed origin is still rejected",
+      "Instances disagree",
+      "A lock keeps expiring",
+      "Realtime events are missing",
+      "Users can see an internal error"
+    ],
+    "route": "/en/docs/sorun-giderme",
+    "content": "Troubleshooting Production exits during startup Run the doctor command first: An HTTP baseUrl, localhost origin, short secret, insecure cookie, or missing persistent store can block the production profile. Discord callback mismatch Compare the Developer Portal callback and application URL character by character. Protocol, port, path, and trailing slash differences matter. Every write returns a CSRF error - Send the CSRF value through the configured header. - Make the request from the same allowed origin as the session cookie. - Do not reuse an old CSRF value after session rotation. - Confirm that the reverse proxy keeps the custom header. An allowed origin is still rejected Print the URL's origin value and compare it exactly. The path is not part of an origin; the protocol and port are. Instances disagree An in-memory store may still be active in production. Share session, rate-limit, idempotency, cache, and lock data across instances. A lock keeps expiring Review the action timeout, lock TTL, and renewal interval together. A database call that ignores the abort signal can keep writing after the lock expires. Realtime events are missing Check sequence values, replay retention, and the last cursor stored by the client. Session revocation and backpressure closure also require a reconnect. Users can see an internal error Review the framework adapter's error mapper. Never pass error.message, a stack trace, a store error, or a Discord response body directly to the client. Map the stable GuildGate code to localized copy."
+  },
+  {
+    "id": "en:surum-notlari",
+    "locale": "en",
+    "title": "Release notes",
+    "description": "Track notable changes to the GuildGate package surface and documentation.",
+    "category": "Reference",
+    "headings": [
+      "GuildGate 1.0.0",
+      "Documentation site 0.3.0"
+    ],
+    "route": "/en/docs/surum-notlari",
+    "content": "Release notes GuildGate 1.0.0 The stable surface covers: - guarded writes and optimistic concurrency - transaction hooks, cache invalidation, and outbox records - renewable distributed locks and fencing tokens - timeouts, retries, and circuit breakers - operator and session management - WebSocket, SSE, sequencing, and replay - Fastify, Express, Hono, and discord.js adapters - PostgreSQL, Redis, and custom store contracts - OpenTelemetry hooks, status monitoring, and analytics examples - migration guidance, operating limits, and security response material Documentation site 0.3.0 - Turkish and English content now share one information architecture. - Package references use version 1.0.0. - The verification console works in both languages. - The verification console now states its browser boundary and data-handling behavior directly. - Architecture, threat model, store contracts, resilience, telemetry, migration, and testing pages were added. - The social card and favicon use the supplied GuildGate artwork."
+  },
+  {
+    "id": "en:uretim/guvenlik-kontrol-listesi",
+    "locale": "en",
+    "title": "Production security checklist",
+    "description": "Verify identity, stores, proxy boundaries, errors, and observability before launch.",
+    "category": "Production",
+    "headings": [
+      "Identity and secrets",
+      "Sessions",
+      "Stores",
+      "Application",
+      "Release checks"
+    ],
+    "route": "/en/docs/uretim/guvenlik-kontrol-listesi",
+    "content": "Production security checklist Identity and secrets - [ ] baseUrl and the Discord callback use HTTPS. - [ ] The origin list contains no HTTP, localhost, or wildcard entries. - [ ] The CSRF secret and audit salt are different and sufficiently long. - [ ] The OAuth token keyring is stored outside source control. - [ ] Bot tokens, client secrets, and store credentials never enter the browser bundle. Sessions - [ ] The cookie is HttpOnly and Secure. - [ ] Absolute TTL, idle timeout, rotation, and per-user session limit are configured. - [ ] Bulk session revocation has been tested. - [ ] Revocation closes active WebSocket and SSE connections. Stores - [ ] Sessions, OAuth credentials, audit, outbox, and policy use persistent stores. - [ ] Rate limits, idempotency, cache, and locks are shared by all instances. - [ ] OAuth state consumption is atomic. - [ ] Lock renewal and fencing tests pass. - [ ] Audit and outbox rows can commit with the application change. Application - [ ] User and bot permissions are checked separately. - [ ] An old optimistic revision cannot overwrite a newer value. - [ ] Abort signals reach Discord, Redis, and database calls. - [ ] User responses contain no stack traces or internal dependency errors. - [ ] The reverse-proxy trust boundary is explicit. Release checks"
+  },
+  {
+    "id": "en:uretim/test-ve-yayin",
+    "locale": "en",
+    "title": "Testing and release",
+    "description": "Test a GuildGate integration and roll out package upgrades with a controlled canary.",
+    "category": "Production",
+    "headings": [
+      "Minimum scenarios",
+      "Package checks",
+      "Canary sequence",
+      "Trusted publishing"
+    ],
+    "route": "/en/docs/uretim/test-ve-yayin",
+    "content": "Testing and release Minimum scenarios - A guarded mutation is rejected without a session or CSRF proof. - OAuth state can be consumed once and only by the bound browser context. - Session rotation invalidates the previous opaque token. - User and bot permission failures are distinguishable. - Transaction hooks, retries, and fencing data reach the action context. - Operator actions manage session, policy, and owner-rate-reset records. - A WebSocket subscription requires authorization and replays missed events. - SSE closes when the backpressure limit is reached. - Invalid realtime JSON closes with an invalid-data code. Package checks pack:check should verify that the tarball contains the expected exports, declarations, CLI binaries, documentation, and examples. Canary sequence Run the upgrade first on one instance or in staging: 1. Discord login 2. session rotation 3. guarded settings mutation 4. idempotent repeat 5. two concurrent writes 6. audit and outbox commit 7. realtime replay 8. session revocation Trusted publishing When using npm trusted publishing, keep the workflow identity and tag rule narrow. Do not add a long-lived npm token to CI secrets."
+  }
+]

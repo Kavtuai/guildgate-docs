@@ -58,5 +58,9 @@
   "link.item.label.Örnek projeler": {
     "message": "Example projects",
     "description": "The label of footer link Örnek projeler"
+  },
+  "link.item.label.İletişim": {
+    "message": "Contact",
+    "description": "The label of footer link İletişim"
   }
 }
