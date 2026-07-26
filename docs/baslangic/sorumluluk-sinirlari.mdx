@@ -1,0 +1,33 @@
+---
+title: Sorumluluk sınırları
+description: GuildGate ve uygulamanın ayrı ayrı üstlendiği işler.
+---
+
+# Sorumluluk sınırları
+
+GuildGate'i doğru konumlandırmak, güvenlik kadar bakım maliyetini de etkiler.
+
+## GuildGate'in üstlendiği işler
+
+- Oturum yaşam döngüsü ve iptal
+- Discord OAuth sırasında `state` (durum) ve `nonce` denetimi
+- CSRF ve origin kontrolü
+- İşlem başına hız sınırı
+- İdempotent yazma desteği
+- Kaynak kilidi ve istek süresi
+- Yetkilendirme kancaları
+- Denetim kaydı, önbellek etiketi ve gerçek zamanlı olay sözleşmesi
+
+## Uygulamada kalan işler
+
+- Yönetim paneli arayüzü
+- Veritabanı şeması ve migration'lar
+- Discord bot komutları
+- Sunucu ayarlarının iş kuralları
+- Kalıcı depo uygulamaları
+- Hata izleme ve altyapı metrikleri
+- Fastify, Express veya başka bir HTTP çatısının kurulumu
+
+## Neden bu ayrım var?
+
+Bir güvenlik kütüphanesi ürün kararlarını bilmez. Örneğin “bu rol seçilebilir mi?” sorusunun cevabı botunun rol hiyerarşisine ve ürün kuralına bağlıdır. GuildGate bu kararı verecek `authorize` adımını zorunlu düzene sokar; kararı senin adına uydurmaz.

@@ -1,0 +1,37 @@
+---
+title: Fastify ve Express
+description: GuildGate işlemlerini HTTP uç noktalarına bağlama.
+---
+
+# Fastify ve Express
+
+GuildGate bu çatıları kurmaz. Bağdaştırıcılar, mevcut uç noktanın istek ve yanıt nesnelerini GuildGate işlem hattına taşır.
+
+## Fastify
+
+```ts
+import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
+
+fastify.patch(
+  "/api/guilds/:guildId/settings",
+  fastifyActionHandler(gate, updateSettings),
+);
+```
+
+## Express
+
+```ts
+import {expressActionHandler} from "@kavtuai/guildgate/express";
+
+app.patch(
+  "/api/guilds/:guildId/settings",
+  expressActionHandler(gate, updateSettings),
+);
+```
+
+## Endpoint öncesi kararlar
+
+- Proxy arkasındaysan istemci IP'sini güvenilir biçimde çöz.
+- JSON gövde sınırını HTTP çatısında da ayarla.
+- Genel hata yakalayıcıda dahili stack trace'i kullanıcıya gönderme.
+- Kimlik doğrulama çerezlerini HTTPS dışında üretimde açma.

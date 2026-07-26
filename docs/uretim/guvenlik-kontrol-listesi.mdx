@@ -1,0 +1,49 @@
+---
+title: Üretim güvenlik listesi
+description: Yayına çıkmadan önce doğrulanacak maddeler.
+---
+
+# Üretim güvenlik listesi
+
+## Adres ve proxy
+
+- Yönetim paneli ve OAuth geri dönüş adresleri HTTPS.
+- `allowedOrigins` içinde localhost yok.
+- Reverse proxy güven ayarı yalnızca bilinen proxy katmanı için açık.
+- İstemci IP'si doğrudan gelen sahte header'dan alınmıyor.
+
+## Sırlar
+
+- Bot belirteci, OAuth istemci sırrı ve şifreleme anahtarları yalnızca sunucuda.
+- CSRF sırrı ile audit salt farklı değerler.
+- `.env` Git geçmişinde yok.
+- Anahtar rotasyonu ve eski anahtarla çözme süresi planlı.
+
+## Oturum
+
+- Çerez `HttpOnly` ve `Secure`.
+- Toplam ömür, boşta kalma ve rotasyon sınırları tanımlı.
+- Çıkış sunucudaki oturumu iptal ediyor.
+- Kullanıcı başına oturum üst sınırı var.
+
+## Yazma işlemleri
+
+- Her işlem girdiyi doğruluyor.
+- Her işlem kaynak ve yetki tanımlıyor.
+- İstek sınırı ve zaman aşımı var.
+- Tekrarlanabilen işlemlerde tekrarlı istek koruması kullanılıyor.
+- Aynı kaynağa yazmada kilit ve sürüm kontrolü var.
+- Denetim kaydı başarısız işlemleri de ayırt ediyor.
+
+## Veri
+
+- Kalıcı depolar yeniden başlatmada veri kaybetmiyor.
+- Redis prefix'i ortam bazında ayrılmış.
+- Retention görevleri düzenli çalışıyor.
+- Hassas OAuth alanları şifreli.
+
+## Gerçek zamanlı bağlantılar
+
+- Origin ve oturum kontrolü bağlantı açılırken yapılıyor.
+- Kanal aboneliğinde yeniden yetki kontrolü var.
+- Mesaj boyutu, hız, bağlantı ömrü ve abonelik sınırı belirli.

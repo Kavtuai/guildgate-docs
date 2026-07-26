@@ -1,0 +1,59 @@
+---
+title: action() işlem hattı
+description: Korunan yönetim paneli işlemlerinin tanımı.
+---
+
+# `action()` işlem hattı
+
+`gate.action()` bir yönetim paneli yazma işleminin sınırlarını tek tanımda toplar. Ayrı ara katman sırasına güvenmek yerine doğrulama, kaynak, sınır, yetki ve çalıştırma adımları aynı yerde görünür.
+
+```ts
+const updateSettings = gate.action({
+  name: "guild.settings.update",
+  parse(value) {
+    const body = parseBody(value);
+    return {
+      guildId: body.guildId,
+      revision: body.revision,
+      settings: body.settings,
+    };
+  },
+  resource: (input) => ({
+    type: "guild",
+    id: input.guildId,
+  }),
+  rateLimit: {
+    limit: 20,
+    windowMs: 60_000,
+    key: (context, input) => `${context.userId}:${input.guildId}`,
+  },
+  idempotency: {
+    ttlMs: 10 * 60_000,
+    scope: (context, input) => `${context.userId}:${input.guildId}`,
+  },
+  concurrency: {
+    key: (_context, input) => `guild-settings:${input.guildId}`,
+    ttlMs: 8_000,
+    waitMs: 500,
+  },
+  timeoutMs: 5_000,
+  authorize: async (context, input) => {
+    return canManageGuild(context.userId, input.guildId);
+  },
+  execute: async (context, input) => {
+    return saveGuildSettings(context, input);
+  },
+});
+```
+
+## Adımlar
+
+`parse` ham girdiyi doğrular ve dar bir veri şekline çevirir. `resource` işlemin hangi kaynağa bağlı olduğunu söyler. `authorize` kullanıcının bu kaynak üzerinde işlem yapıp yapamayacağını belirler. `execute` yalnızca önceki kontroller geçerse çalışır.
+
+## Tekrarlı istek koruması
+
+İstemci aynı yazma isteğini ağ sorunu nedeniyle yeniden gönderdiğinde aynı tekrarlı istek anahtarı tekrar işlem üretmemelidir. Kapsam değerini kullanıcı ve kaynakla sınırlandırmak, farklı kullanıcıların aynı anahtarı paylaşmasını önler.
+
+## Kaynak kilidi
+
+`concurrency.key`, aynı sunucu ayarına eşzamanlı yazmaları sıraya alır veya reddeder. Bu, revision kontrolünün yerine geçmez; ikisi farklı yarış koşullarını ele alır.

@@ -1,0 +1,53 @@
+---
+sidebar_position: 1
+title: GuildGate nedir?
+description: GuildGate'in çözdüğü sorunlar ve uygulamadaki yeri.
+slug: /giris
+---
+
+# GuildGate nedir?
+
+GuildGate, Discord bot yönetim panellerinin sunucu tarafında çalışan bir TypeScript kütüphanesidir. Oturum açma, CSRF kontrolü, origin doğrulaması, yetki kararı, istek sınırı ve denetim kaydı gibi parçaları ortak bir sözleşmede toplar.
+
+Paketin güncel sürümü `0.1.0`'dır ve Node.js 22 veya üzerini ister.
+
+## Ne yapar?
+
+- Kimliği tarayıcıda saklanan okunabilir oturum verilerine bağlamak yerine sunucu tarafında opak oturumlar kullanır.
+- Discord yetkilendirme kodu girişinde tek kullanımlık `state` kayıtları ve `nonce` çerezi kullanır.
+- Yazma isteklerini oturuma bağlı CSRF belirteci ve tam origin eşleşmesiyle denetler.
+- Uç nokta düzeyinde istek sınırı, tekrarlı istek koruması, kaynak kilidi, süre sınırı, denetim kaydı, önbellek etiketi ve gerçek zamanlı olay üretimi sağlar.
+- Fastify ve Express için ince bağdaştırıcılar sunar.
+- Kısa ömürlü kayıtları Redis'e taşıyabilir.
+
+## Ne yapmaz?
+
+GuildGate bir yönetim paneli çizmez, veritabanı seçmez ve Discord botunun iş kurallarını devralmaz. Kullanıcı arayüzü, kalıcı veri modeli ve asıl `execute` işlemi uygulamanda kalır.
+
+Bu ayrım bilinçlidir: güvenlik kuralları tek yerde kalır, ürün mantığı sana ait olmaya devam eder.
+
+## Paketin yeri
+
+```text
+Tarayıcı
+   │
+   ▼
+Fastify / Express uç noktası
+   │
+   ▼
+GuildGate işlem katmanı
+   ├─ oturum ve origin
+   ├─ CSRF
+   ├─ istek sınırı
+   ├─ tekrarlı istek koruması
+   ├─ kaynak kilidi
+   ├─ yetkilendirme
+   └─ denetim / önbellek / gerçek zamanlı bildirim
+   │
+   ▼
+Uygulamanın servis ve veritabanı katmanı
+```
+
+:::tip Sonraki adım
+Yeni bir projede başlıyorsan önce [kurulum](/docs/baslangic/kurulum), sonra [ilk yapılandırma](/docs/baslangic/ilk-yapilandirma) sayfasını uygula.
+:::

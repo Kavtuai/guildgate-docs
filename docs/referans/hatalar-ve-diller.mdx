@@ -1,0 +1,35 @@
+---
+title: Hatalar ve diller
+description: Hata kodları, Türkçe/İngilizce mesajlar ve güvenli yanıtlar.
+---
+
+# Hatalar ve diller
+
+GuildGate Türkçe ve İngilizce hata metinleriyle kullanılabilir. Projene özel bir metni hata kodu üzerinden değiştirebilirsin.
+
+```ts
+locale: {
+  default: "tr",
+  messages: {
+    tr: {
+      MAINTENANCE_MODE: "Ayarlar bakım sırasında geçici olarak kapalı.",
+    },
+  },
+}
+```
+
+## Kullanıcıya gösterilecek bilgi
+
+Yanıtta kısa bir hata kodu ve anlaşılır mesaj ver. Şunları dışarı çıkarma:
+
+- OAuth belirteci
+- Oturum belirteci
+- CSRF sırrı
+- Bot belirteci
+- Veritabanı sorgusu
+- Stack trace
+- Dahili dosya yolu
+
+## Log kaydı
+
+Kullanıcı mesajı kısa kalabilir; sunucu günlüğünde korelasyon kimliği, işlem adı, kaynak, süre ve güvenli hata sınıfı bulunmalıdır. Hassas üstbilgi ve çerezleri günlük filtresinden geçir.

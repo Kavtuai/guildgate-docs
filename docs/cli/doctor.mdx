@@ -1,0 +1,26 @@
+---
+title: guildgate-doctor
+description: Kurulum ve ortam tanı komutu.
+---
+
+# `guildgate-doctor`
+
+Tanı komutu, proje ve çalışma ortamındaki yaygın yapılandırma sorunlarını hızlıca görmeye yarar.
+
+```bash
+npx guildgate-doctor
+```
+
+CI veya başka bir araçta işlemek için JSON çıktısı al:
+
+```bash
+npx guildgate-doctor --json
+```
+
+Yardım:
+
+```bash
+npx guildgate-doctor --help
+```
+
+Tanı sonucu başarılı olsa bile üretim güvenlik kontrol listesini ayrıca uygula. Komut, ürününe özel Discord rol hiyerarşisini veya veritabanı retention kararını bilemez.

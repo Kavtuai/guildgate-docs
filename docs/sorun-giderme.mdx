@@ -1,0 +1,38 @@
+---
+title: Sorun giderme
+description: Kurulum, OAuth, CSRF, oturum ve dağıtık depo sorunları.
+---
+
+# Sorun giderme
+
+## OAuth geri dönüş adresi uyuşmuyor
+
+Discord Developer Portal'daki yönlendirme adresi ile sunucu ayarını karakter karakter karşılaştır. Protokol, yol ve sondaki eğik çizgi farkı önemlidir.
+
+## CSRF hatası alıyorum
+
+- İstek gerçekten yazma yöntemi mi?
+- Oturum açık mı?
+- CSRF değeri aynı oturumdan mı üretildi?
+- Beklenen header gönderiliyor mu?
+- Ön yüz ve API origin adresleri `allowedOrigins` listesiyle birebir eşleşiyor mu?
+
+## Yerelde çalışıyor, iki instance'ta oturum kayboluyor
+
+Bellek deposu kullanıyorsundur. Kısa ömürlü paylaşılan kayıtları Redis'e, kalıcı kayıtları ana veritabanına taşı.
+
+## Aynı ayar iki kez kaydediliyor
+
+İstemci isteği yeniden deniyor olabilir. İşleme tekrarlı istek kapsamı ekle ve istemcinin aynı işlem için aynı anahtarı gönderdiğini doğrula.
+
+## Rol işlemi yetki hatası veriyor
+
+Kullanıcının izni ile botun rol hiyerarşisini ayrı kontrol et. Botun `MANAGE_ROLES` izni olsa bile kendi üstündeki bir rolü yönetemez.
+
+## Gerçek zamanlı bağlantı açılıyor fakat kanal boş
+
+Bağlantı oturumu geçerli olsa da abonelik yetkisi reddedilmiş olabilir. Kanal yetkilendirme geri çağrısını ve hedef `guildId` değerini günlükteki korelasyon kimliği ile izle.
+
+## Site GitHub Pages'te CSS olmadan açılıyor
+
+Özel alan adı henüz etkin değilken `DOCS_DOMAIN=jsorg` kullanma. Depo yolu üzerinden yayında değişkeni kaldır; js.org onayından sonra tekrar ekle.

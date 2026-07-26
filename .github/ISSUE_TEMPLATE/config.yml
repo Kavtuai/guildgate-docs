@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GuildGate kaynak deposu
+    url: https://github.com/Kavtuai/guildgate/issues
+    about: Paket hatalarını ana depoda bildir.

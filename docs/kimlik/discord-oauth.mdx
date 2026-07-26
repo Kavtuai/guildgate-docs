@@ -1,0 +1,25 @@
+---
+title: Discord OAuth
+description: Yetkilendirme kodu girişi, durum doğrulaması ve belirteç saklama modeli.
+---
+
+# Discord OAuth
+
+GuildGate, Discord girişini yetkilendirme kodu modeliyle ele alır. Giriş başlangıcında tek kullanımlık ve süreli bir `state` kaydı oluşturulur. Tarayıcıya ayrıca tek kullanımlık nonce çerezi verilir. Geri dönüş isteği geldiğinde iki değer birlikte doğrulanır.
+
+Bu kontrol, başka bir tarayıcıda başlatılan veya daha önce tüketilmiş giriş isteğinin kabul edilmesini engeller.
+
+## Belirteç saklama
+
+OAuth erişim ve yenileme belirteçleri düz metin olarak saklanmamalıdır. GuildGate, uygulamanın sağladığı anahtar halkası üzerinden belirteç şifrelemesini destekler. Anahtar yönetimi uygulamana aittir; anahtar tarayıcı paketine gönderilmez.
+
+## Geri dönüş kuralları
+
+- Üretim geri dönüş adresi HTTPS olmalı.
+- Discord Developer Portal'daki yönlendirme adresiyle uygulama ayarı birebir eşleşmeli.
+- `state` tek kullanımdan sonra tüketilmeli.
+- Geri dönüş hataları kullanıcıya sade bir mesajla dönmeli; belirteç veya dahili hata ayrıntısı gösterilmemeli.
+
+## Oturum açıldıktan sonra
+
+OAuth kimliği doğrulandıktan sonra sunucu tarafında opak oturum açılır. Tarayıcı, kullanıcı ve yetki bilgisini taşıyan okunabilir bir belirteç yerine oturum belirteci alır.

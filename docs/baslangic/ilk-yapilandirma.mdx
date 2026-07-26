@@ -1,0 +1,63 @@
+---
+title: İlk yapılandırma
+description: Bellek deposuyla çalışan yerel GuildGate örneği.
+---
+
+# İlk yapılandırma
+
+Aşağıdaki örnek yerel geliştirme içindir. Bellek deposu süreç kapanınca temizlenir.
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
+
+const stores = createMemoryStoreBundle();
+
+const gate = createGuildGate({
+  app: {
+    name: "GuildGate Yönetim Paneli",
+    environment: "development",
+    baseUrl: "http://localhost:3000",
+  },
+  owners: [process.env.BOT_OWNER_ID!],
+  locale: {
+    default: "tr",
+    messages: {
+      tr: {
+        MAINTENANCE_MODE: "Bakım sırasında ayar değişiklikleri duraklatıldı.",
+      },
+    },
+  },
+  security: {
+    allowedOrigins: ["http://localhost:3000"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+});
+```
+
+## Bu ayarlar neyi belirler?
+
+`app` uygulama adını, çalışma ortamını ve temel adresi tanımlar. `owners` ayrıcalıklı uygulama sahiplerini listeler. `security.allowedOrigins` yalnızca açıkça izin verdiğin origin adreslerini kabul eder.
+
+Oturum bölümü dört ayrı sınır koyar:
+
+| Alan | Görevi |
+| --- | --- |
+| `ttlMs` | Oturumun toplam ömrü |
+| `idleTimeoutMs` | İşlem yapılmadığında oturumun kapanma süresi |
+| `rotateAfterMs` | Oturum belirtecinin yenilenme aralığı |
+| `maximumSessionsPerUser` | Bir kullanıcı için açık oturum üst sınırı |
+
+## Üretime geçmeden önce
+
+Bellek deposunu yalnızca test ve yerel geliştirmede kullan. Yeniden başlatma sonrasında kalması gereken kayıtlar için kendi kalıcı depo uygulamalarını sağla; dağıtık ve kısa ömürlü kayıtları Redis'e taşı.

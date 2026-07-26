@@ -1,0 +1,30 @@
+---
+title: Gerçek zamanlı merkez
+description: Yetkili gerçek zamanlı bağlantıların kurulması.
+---
+
+# Gerçek zamanlı merkez
+
+`createRealtimeHub()` kendi başına bağlantı sunucusu açmaz. Küçük `RealtimeConnection` arayüzü üzerinden `ws`, `uWebSockets.js`, Socket.IO, Bun veya kullandığın başka bir taşıma katmanına bağlanır.
+
+## Bağlantı kabul koşulları
+
+Her bağlantı en az şu kontrollerden geçmelidir:
+
+- İzin verilen `Origin`
+- Geçerli oturum belirteci
+- Kanal bazında yetkilendirme geri çağrısı
+- Mesaj boyutu sınırı
+- Mesaj hızı sınırı
+- Boşta kalma süresi
+- En uzun bağlantı ömrü
+- Abonelik sayısı üst sınırı
+- Yavaş istemci yönetimi
+
+## Kanal yetkisi
+
+Bir kullanıcı yönetim paneline giriş yapmış olsa bile her sunucunun olay kanalına abone olamaz. Abonelik sırasında hedef `guildId` için yetki kontrolü yap.
+
+## Olay üretimi
+
+İşlem tamamlandığında olay yayınlamak, istemci tarafında tahmini güncelleme yapmaktan daha güvenlidir. Başarısız işlem için başarı olayı üretme; veritabanı işlemi tamamlandıktan sonra yayınla.

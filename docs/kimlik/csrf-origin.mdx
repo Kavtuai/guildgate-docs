@@ -1,0 +1,33 @@
+---
+title: CSRF ve origin kontrolü
+description: Yazma isteklerinde uygulanan iki ayrı kontrol.
+---
+
+# CSRF ve origin kontrolü
+
+GuildGate yazma isteklerinde iki ayrı sinyal arar:
+
+1. İstek origin'i izin verilen adreslerden biri olmalı.
+2. CSRF belirteci geçerli oturuma bağlı olmalı.
+
+Tek başına CORS ayarı yeterli değildir. CORS tarayıcının yanıtı okuyup okuyamayacağını etkiler; istek yine sunucuya ulaşabilir. Sunucu tarafındaki exact-origin kontrolü bu nedenle ayrıca yapılır.
+
+## İzin verilen origin'ler
+
+```ts
+security: {
+  allowedOrigins: [
+    "https://panel.example.com",
+  ],
+}
+```
+
+Origin karşılaştırmasında joker karakter kullanma. Protokol, host ve port birlikte değerlendirilmelidir.
+
+## İstemci isteği
+
+Uygulama, oturuma bağlı CSRF değerini sunucudan alıp yazma isteğinde beklenen üstbilgiyle geri gönderir. Üstbilgi adı ve belirteç üretimi için paketin TypeScript tiplerini temel al.
+
+:::note GET güvenli kabul edilmemeli
+Veri değiştiren işlemleri `GET` uç noktasına koyma. Yöntem adı güvenlik kontrolünün yerini tutmaz.
+:::

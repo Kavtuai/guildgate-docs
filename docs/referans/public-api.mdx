@@ -1,0 +1,28 @@
+---
+title: Dışa açık API
+description: GuildGate 0.1.0 dışa aktarımlarının kısa referansı.
+---
+
+# Dışa açık API
+
+Bu sayfa `0.1.0` sürümündeki ana dışa aktarımları özetler. Kesin parametre ve dönüş tiplerinde kurulu paketin TypeScript bildirimlerini esas al.
+
+| Dışa aktarım | Import yolu | Kullanım |
+| --- | --- | --- |
+| `createGuildGate` | `@kavtuai/guildgate` | Ana GuildGate örneğini oluşturur |
+| `createMemoryStoreBundle` | `@kavtuai/guildgate` | Yerel geliştirme ve test depoları |
+| `composeStores` | `@kavtuai/guildgate` | Farklı depo uygulamalarını birleştirir |
+| `createRedisEphemeralStores` | `@kavtuai/guildgate/redis` | Kısa ömürlü Redis depolarını kurar |
+| `fromNodeRedis` | `@kavtuai/guildgate/redis` | Node Redis istemcisini beklenen arayüze uyarlar |
+| `fastifyActionHandler` | `@kavtuai/guildgate/fastify` | İşlemi Fastify rotasına bağlar |
+| `expressActionHandler` | `@kavtuai/guildgate/express` | İşlemi Express rotasına bağlar |
+| `createRealtimeHub` | ana paket dışa aktarımı | Yetkili gerçek zamanlı bağlantı merkezi oluşturur |
+| `createDiscordGuildAuthorizer` | `@kavtuai/guildgate/discord` | Discord kullanıcı ve bot izinlerini denetler |
+
+## Gate üzerinde kullanılan başlıca alanlar
+
+- `gate.action(...)`
+- `gate.cache`
+- Oturum, CSRF, denetim ve gerçek zamanlı servisler
+
+Paket alt yollarını IDE otomatik tamamlama ve yayımlanan `exports` alanıyla doğrula. Dahili dosya yollarından import yapma.

@@ -1,0 +1,37 @@
+{
+  "name": "guildgate-docs",
+  "version": "0.1.1",
+  "private": true,
+  "description": "GuildGate için Türkçe dokümantasyon sitesi",
+  "scripts": {
+    "start": "docusaurus start",
+    "dev": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "deploy": "docusaurus deploy",
+    "editorial:check": "node scripts/editorial-check.mjs",
+    "source:check": "node scripts/source-check.mjs",
+    "validate": "npm run check && npm run build",
+    "site:check": "node scripts/site-check.mjs",
+    "check": "npm run editorial:check && npm run source:check && npm run site:check"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.1",
+    "@docusaurus/preset-classic": "3.10.1",
+    "@mdx-js/react": "^3.1.0",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kavtuai/guildgate-docs.git"
+  },
+  "license": "MIT"
+}

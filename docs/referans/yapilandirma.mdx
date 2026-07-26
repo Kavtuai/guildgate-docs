@@ -1,0 +1,38 @@
+---
+title: Yapılandırma referansı
+description: createGuildGate ana seçeneklerinin açıklaması.
+---
+
+# Yapılandırma referansı
+
+## `app`
+
+| Alan | Açıklama |
+| --- | --- |
+| `name` | Uygulamanın log ve hata bağlamında kullanılan adı |
+| `environment` | `development`, `staging` veya üretim ortamı |
+| `baseUrl` | Yönetim panelinin temel adresi |
+
+## `owners`
+
+Uygulama sahibi kabul edilen Discord kullanıcı ID'leri. Sahip yetkisi güvenlik kontrollerini devre dışı bırakmamalıdır.
+
+## `locale`
+
+`default`, varsayılan hata dilini belirler. `messages`, hata kodları için proje metni tanımlamana izin verir.
+
+## `security`
+
+| Alan | Açıklama |
+| --- | --- |
+| `allowedOrigins` | Tam eşleşmeyle kabul edilen origin adresleri |
+| `csrfSecret` | CSRF belirteçleri için ayrı sır |
+| `auditIpSalt` | IP değerini denetim kaydında doğrudan tutmamak için salt |
+| `session.ttlMs` | Oturumun toplam ömrü |
+| `session.idleTimeoutMs` | Boşta kalma sınırı |
+| `session.rotateAfterMs` | Belirteç rotasyon süresi |
+| `session.maximumSessionsPerUser` | Kullanıcı başına açık oturum sınırı |
+
+## `stores`
+
+Oturum, OAuth durum kaydı, tekrarlı istek koruması, istek sınırı, kilit ve denetim kaydı gibi kayıtların uygulamaları. Yerel örnekte bellek depo paketi kullanılabilir; üretimde kayıt türüne göre kalıcı veritabanı ve Redis tercih edilir.

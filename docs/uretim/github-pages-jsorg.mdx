@@ -1,0 +1,80 @@
+---
+title: GitHub Pages ve js.org
+description: Dokümantasyon sitesini GitHub Actions ile yayımlama ve guildgate.js.org başvurusu.
+---
+
+# GitHub Pages ve js.org
+
+Bu proje iki yayın kipini destekler:
+
+- İlk kurulum: `https://kavtuai.github.io/guildgate-docs/`
+- js.org alan adı: `https://guildgate.js.org/`
+
+## 1. GitHub'a yükle
+
+Yeni bir `Kavtuai/guildgate-docs` deposu aç ve bu klasörün içeriğini gönder.
+
+```bash
+git init
+git add .
+git commit -m "Add GuildGate documentation"
+git branch -M main
+git remote add origin https://github.com/Kavtuai/guildgate-docs.git
+git push -u origin main
+```
+
+## 2. GitHub Pages'i aç
+
+Depo ayarlarında **Pages → Build and deployment → Source** alanını **GitHub Actions** olarak seç. Paketteki iş akışı, her `main` push'unda kontrolleri çalıştırır ve siteyi derler.
+
+`DOCS_DOMAIN` değişkeni yokken ilk yayın şu adreste açılır:
+
+```text
+https://kavtuai.github.io/guildgate-docs/
+```
+
+Sayfaların ve bağlantıların burada düzgün çalıştığını görmeden alan adı başvurusu yapma.
+
+## 3. Özel alan adını GitHub'da tanımla
+
+Depo ayarlarındaki **Pages → Custom domain (Özel alan adı)** alanına şunu yaz:
+
+```text
+guildgate.js.org
+```
+
+Bu proje GitHub Actions ile yayımlandığı için bir `CNAME` dosyasına güvenmez. Özel alan adı kaydı Pages arayüzünde tutulur.
+
+Ardından **Settings → Secrets and variables → Actions → Variables** bölümünde şu depo değişkenini ekle:
+
+```text
+DOCS_DOMAIN=jsorg
+```
+
+İş akışını yeniden çalıştır. Docusaurus artık `baseUrl: /` ve `https://guildgate.js.org` değerleriyle derlenir. DNS kaydı js.org tarafında açılmadan alan adının hemen çalışmaması normaldir.
+
+## 4. js.org başvurusunu gönder
+
+Site içeriği hazır olduktan sonra `js-org/js.org` deposunu çatalla. `cnames_active.js` dosyasına alfabetik konumda şu kaydı ekle:
+
+```js
+"guildgate": "kavtuai.github.io/guildgate-docs",
+```
+
+Değişikliği tek amaçlı bir değişiklik kaydıyla gönder ve çekme isteği açıklamasında şu bilgileri açıkça yaz:
+
+- GuildGate'in JavaScript/TypeScript ekosistemiyle ilişkisi
+- npm paketinin adresi
+- kaynak kod deposu
+- yayınlanmış dokümantasyon önizlemesi
+- istenen alan adı: `guildgate.js.org`
+
+İsmin kesin olarak verilip verilmeyeceğine js.org bakım ekibi karar verir. Aktif kayıt listesinde görünmemesi, bekleyen veya ayrılmış bir kayıt olmadığı anlamına gelmez.
+
+:::warning İçerik başvurudan önce hazır olmalı
+js.org, JavaScript ekosistemiyle doğrudan ilişkili ve kendi başına anlamlı içerik bekler. Boş şablon, yalnızca başka adrese yönlendiren sayfa veya projeyle ilgisiz içerik başvuruyu zayıflatır.
+:::
+
+## Alan adı kabul edilmezse
+
+Dokümantasyon GitHub Pages adresinde çalışmaya devam eder. `DOCS_DOMAIN` değişkenini kaldırıp iş akışını yeniden çalıştırman yeterlidir.

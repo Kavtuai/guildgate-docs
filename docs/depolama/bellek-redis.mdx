@@ -1,0 +1,53 @@
+---
+title: Bellek ve Redis
+description: Yerel geliştirme ve dağıtık kısa ömürlü kayıtlar.
+---
+
+# Bellek ve Redis
+
+Bellek depo paketi hızlı yerel test içindir. Birden fazla sunucu sürecinde durum verisini paylaşmaz ve süreç kapanınca veriyi kaybeder.
+
+Kısa ömürlü, dağıtık kayıtlar için Redis depolarını birleştirebilirsin:
+
+```ts
+import {
+  composeStores,
+  createMemoryStoreBundle,
+} from "@kavtuai/guildgate";
+import {
+  createRedisEphemeralStores,
+  fromNodeRedis,
+} from "@kavtuai/guildgate/redis";
+
+const temporary = createRedisEphemeralStores(
+  fromNodeRedis(redis),
+  {prefix: "mybot:guildgate"},
+);
+
+const stores = composeStores(
+  createMemoryStoreBundle(),
+  {
+    ...temporary,
+  },
+);
+```
+
+## Redis'e uygun kayıtlar
+
+- OAuth `state` (durum) kaydı
+- Kısa süreli `nonce` kayıtları
+- Rate-limit sayaçları
+- Idempotency kayıtları
+- Dağıtık kaynak kilitleri
+- Geçici gerçek zamanlı bağlantı durumu
+
+## Prefix seçimi
+
+Aynı Redis kümesini birden fazla uygulama kullanıyorsa her proje ve ortam için ayrı prefix ver:
+
+```text
+fieldbot:production:guildgate
+fieldbot:staging:guildgate
+```
+
+Bellek fallback'i bileşimi anlatmak için kullanışlıdır. Yeniden başlatma sonrasında korunması gereken her kayıt için üretimde kalıcı bir uygulama sağla.

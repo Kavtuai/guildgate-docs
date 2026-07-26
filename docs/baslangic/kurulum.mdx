@@ -1,0 +1,51 @@
+---
+title: Kurulum
+description: GuildGate paketini kurma ve çalışma koşulları.
+---
+
+# Kurulum
+
+## Gereksinimler
+
+- Node.js `22.12.0` veya üzeri
+- Sunucu tarafında çalışan TypeScript ya da modern JavaScript projesi
+- Discord OAuth uygulaması
+- Üretimde HTTPS
+
+## Paketi ekle
+
+```bash
+npm install @kavtuai/guildgate
+```
+
+Fastify kullanıyorsan ana pakete ek olarak ayrı bir çatı kurulumu yapman gerekmez. GuildGate, Fastify veya Express'i kendi bağımlılığı olarak yüklemez; mevcut sunucunun yapısal istek ve yanıt tiplerini kullanır.
+
+## İlk kontrol
+
+Kurulumdan sonra tanı komutunu çalıştır:
+
+```bash
+npx guildgate-doctor
+```
+
+Makine tarafından okunabilir çıktı için:
+
+```bash
+npx guildgate-doctor --json
+```
+
+## Ortam değişkenleri
+
+İlk yerel örnek için en az iki rastgele sır gerekir:
+
+```env
+GUILDGATE_CSRF_SECRET=uzun-ve-rastgele-bir-deger
+GUILDGATE_AUDIT_IP_SALT=ayri-uzun-ve-rastgele-bir-deger
+BOT_OWNER_ID=discord-kullanici-id
+```
+
+OAuth ve üretim ayarları eklendiğinde Discord istemci bilgilerini, belirteç şifreleme anahtarlarını ve Redis bağlantısını da ortam değişkenlerinde tut. Bu değerleri istemci paketine koyma.
+
+:::warning Kaynak koduna sır yazma
+`.env` dosyasını Git'e ekleme. Üretim sırlarını dağıtım platformunun gizli değişken alanında sakla.
+:::
