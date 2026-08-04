@@ -1,73 +1,73 @@
 ---
-title: Tehdit modeli
-description: GuildGate'in ele aldığı sunucu tarafı tehditleri, varsayımları ve uygulamaya kalan sorumlulukları incele.
+title: Threat model
+description: Review the server-side threats GuildGate addresses, its assumptions, and responsibilities left to the application.
 ---
 
-# Tehdit modeli
+# Threat model
 
-GuildGate, Discord dashboard sunucusunda kimliği doğrulanmış bir kullanıcının yetkili olduğu kaynağa kontrollü yazma yapmasını hedefler. Tarayıcı, istemci JavaScript'i ve gelen tüm istek alanları güvenilmez kabul edilir.
+GuildGate is designed for controlled writes from an authenticated Discord dashboard user to a resource they are authorized to manage. The browser, client-side JavaScript, and every incoming request field are treated as untrusted.
 
-## Ele alınan tehditler
+## Addressed threats
 
-| Tehdit | Uygulanan kontrol |
+| Threat | Control |
 | --- | --- |
-| Sahte origin veya CSRF | Exact-origin allowlist ve oturuma bağlı CSRF doğrulaması |
-| Çalınmış/eskimiş oturum | Hashlenmiş opak token, idle/absolute expiry, rotation, revocation ve cookie temizleme |
-| OAuth state tekrar kullanımı | Atomik tek kullanımlık `consume()` |
-| Token verisi sızıntısı | Uygulama anahtar halkasıyla şifreli credential kaydı ve audit redaction |
-| Yetki kaybından sonra yazma | Action anında yeniden yetkilendirme |
-| Tekrarlanan istek | Idempotency reservation, request hash ve replay |
-| Eşzamanlı güncelleme | Optimistic revision, lease ve fencing token |
-| Eski worker'ın yeni sonucu bozması | Reservation owner compare-and-set |
-| Rate limit yarış koşulu | Atomik store işlemi; PostgreSQL'de advisory lock |
-| Commit sonrası sahte rollback | Commit kesinliği ve ayrılmış `afterCommit` hata yolu |
-| Realtime kanal sızıntısı | Oturum ve kanal yetkisi, periyodik yeniden doğrulama, revocation |
-| Yavaş istemci/kuyruk büyümesi | Payload, queue, buffered byte, abonelik ve bağlantı ömrü sınırları |
-| Outbox olayının iki kez teslimi | At-least-once sözleşmesi ve event ID ile consumer deduplication |
-| Üretimde yerel adres kullanımı | HTTPS ve loopback/unspecified adres reddi |
+| Forged origin or CSRF | Exact-origin allowlist and session-bound CSRF verification |
+| Stolen or stale session | Hashed opaque token, idle/absolute expiry, rotation, revocation, and cookie clearing |
+| OAuth state replay | Atomic single-use `consume()` |
+| Credential disclosure | Application key-ring encryption and audit redaction |
+| Writes after permission loss | Authorization repeated at action time |
+| Repeated request | Idempotency reservation, request hash, and replay |
+| Concurrent update | Optimistic revision, lease, and fencing token |
+| Old worker corrupting a new result | Reservation-owner compare-and-set |
+| Rate-limit race | Atomic store operation; advisory locks in PostgreSQL |
+| False rollback after commit | Commit finality and a separate `afterCommit` failure path |
+| Realtime channel disclosure | Session/channel authorization, periodic revalidation, and revocation |
+| Slow client or unbounded queue | Payload, queue, buffered-byte, subscription, and connection-lifetime limits |
+| Duplicate outbox delivery | At-least-once contract and consumer deduplication by event ID |
+| Local address in production | HTTPS requirement and loopback/unspecified address rejection |
 
-## Güven sınırları
+## Trust boundaries
 
-GuildGate aşağıdaki bileşenlerin doğru yapılandırıldığını varsayar:
+GuildGate assumes these components are configured correctly:
 
-- TLS sonlandırma ve doğru proxy header politikası
-- güvenli secret yönetimi ve anahtar rotasyonu
-- PostgreSQL/Redis erişim kontrolü
-- Discord OAuth uygulama ayarları
-- route seviyesinde doğru action eşlemesi
-- domain yazımlarında fencing ve unique constraint kullanımı
-- log, trace ve hata izleme altyapısı
+- TLS termination and proxy-header policy
+- secret management and key rotation
+- PostgreSQL and Redis access control
+- Discord OAuth application settings
+- correct route-to-action mapping
+- fencing and unique constraints for domain writes
+- logs, traces, and error monitoring
 
-## Bilerek kapsam dışında kalanlar
+## Deliberately out of scope
 
-Paket şunları otomatik çözmez:
+The package does not automatically solve:
 
-- dashboard HTML/React arayüzündeki XSS açıkları
-- Discord bot token'ının işletim sistemi seviyesinde korunması
-- veritabanı yedekleme ve felaket kurtarma
-- üçüncü taraf API'nin erişilebilirliği
-- uygulamaya özel rol hiyerarşisi ve iş kuralları
-- kötü amaçlı dependency veya CI hesabı ele geçirilmesi
+- XSS in the dashboard HTML or React application
+- operating-system protection for the Discord bot token
+- database backup and disaster recovery
+- third-party API availability
+- application-specific role hierarchy and business rules
+- malicious dependencies or compromised CI accounts
 
-## Fail-open ve fail-closed kararları
+## Fail-open and fail-closed choices
 
-Her bağımlılık aynı hata politikasını kullanmaz. Örnekler:
+Not every dependency uses the same failure policy. Examples:
 
-- Yetkilendirme çözülemiyorsa yazma reddedilir.
-- Fail-closed listesinde olan action için audit yazılamıyorsa transaction commit edilmez.
-- Commit sonrasında cache veya realtime yayınlanamazsa domain yazımı başarılı kalır; sorun tekrar kuyruğuna ve telemetriye gider.
-- Harici Discord okuması için retry, timeout ve circuit breaker sınırları action'a göre seçilir.
+- A write is denied when authorization cannot be resolved.
+- For an action in the fail-closed audit list, the transaction cannot commit if audit persistence fails.
+- If cache or realtime publishing fails after commit, the domain write remains successful; the issue goes to retry handling and telemetry.
+- Retry, timeout, and circuit-breaker bounds for Discord reads are selected per action.
 
-## İnceleme kontrolü
+## Review checklist
 
-Bir action eklerken şu soruları cevapla:
+When adding an action, answer these questions:
 
-1. Kaynak kimliği kullanıcı girdisinden nasıl ayrıştırılıyor?
-2. Yetki hangi anda ve hangi Discord verisiyle doğrulanıyor?
-3. İstek tekrar edilirse aynı sonuç güvenli biçimde dönebiliyor mu?
-4. İki worker aynı kaynağı yazarsa hangisi kazanıyor?
-5. Commit sonrası yan etki başarısız olursa nasıl tekrar deneniyor?
-6. Audit kaydı secret veya gereksiz kişisel veri içeriyor mu?
-7. Realtime aboneliği yetki kaybında kapanıyor mu?
+1. How is the resource identity parsed from untrusted input?
+2. When and with which Discord data is authorization checked?
+3. Can a repeated request safely return the same result?
+4. Which worker wins when two workers write the same resource?
+5. How is a failed post-commit side effect retried?
+6. Does the audit event contain secrets or unnecessary personal data?
+7. Does a realtime subscription close after permission loss?
 
-Bu cevapları action tanımında, store sözleşmesinde ve testlerde görünür tut.
+Keep those answers visible in the action definition, store contract, and tests.

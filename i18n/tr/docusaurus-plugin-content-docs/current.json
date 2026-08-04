@@ -1,0 +1,46 @@
+{
+  "version.label": {
+    "message": "Güncel",
+    "description": "The label for version current"
+  },
+  "sidebar.docsSidebar.category.Getting started": {
+    "message": "Başlangıç",
+    "description": "Turkish label for Getting started"
+  },
+  "sidebar.docsSidebar.category.Architecture and security": {
+    "message": "Mimari ve güvenlik",
+    "description": "Turkish label for Architecture and security"
+  },
+  "sidebar.docsSidebar.category.Identity and sessions": {
+    "message": "Kimlik ve oturum",
+    "description": "Turkish label for Identity and sessions"
+  },
+  "sidebar.docsSidebar.category.Request layer": {
+    "message": "İstek katmanı",
+    "description": "Turkish label for Request layer"
+  },
+  "sidebar.docsSidebar.category.Storage": {
+    "message": "Depolama",
+    "description": "Turkish label for Storage"
+  },
+  "sidebar.docsSidebar.category.Resilience and observability": {
+    "message": "Dayanıklılık ve gözlem",
+    "description": "Turkish label for Resilience and observability"
+  },
+  "sidebar.docsSidebar.category.Realtime access": {
+    "message": "Gerçek zamanlı erişim",
+    "description": "Turkish label for Realtime access"
+  },
+  "sidebar.docsSidebar.category.Tools": {
+    "message": "Araçlar",
+    "description": "Turkish label for Tools"
+  },
+  "sidebar.docsSidebar.category.Reference": {
+    "message": "Referans",
+    "description": "Turkish label for Reference"
+  },
+  "sidebar.docsSidebar.category.Production and contribution": {
+    "message": "Üretim ve katkı",
+    "description": "Turkish label for Production and contribution"
+  }
+}

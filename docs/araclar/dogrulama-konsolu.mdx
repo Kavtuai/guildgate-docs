@@ -1,17 +1,17 @@
 ---
-title: Doğrulama konsolu
-description: GuildGate dokümantasyonundaki güvenli tarayıcı konsoluyla action, config, store ve sürüm davranışlarını incele.
+title: Verification console
+description: Inspect GuildGate action, configuration, store, and version behavior in the documentation's safe browser console.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
-# Doğrulama konsolu
+# Verification console
 
-Bu konsol doküman içindeki izinli komutları çalıştırır. Shell başlatmaz, ağ isteği yapmaz, dosya sistemi veya kalıcı tarayıcı depolaması kullanmaz.
+This console runs an allowlisted set of documentation commands. It does not start a shell, make network requests, access the file system, or use persistent browser storage.
 
 <CommandPlayground />
 
-## Sürüm komutları
+## Version commands
 
 ```text
 version
@@ -19,10 +19,10 @@ contracts
 exports
 ```
 
-Beklenen çekirdek bilgileri:
+Expected core information:
 
 ```text
-Package: @kavtuai/guildgate@1.1.0
+Package: @kavtuai/guildgate@1.1.1
 Adapter contract: 1.1
 Action contract: 1.0
 Realtime contract: 1.0
@@ -30,7 +30,7 @@ Public export paths: 16
 CLI commands: 3
 ```
 
-## Action kontrolü
+## Action checks
 
 ```text
 action test guild.settings.update
@@ -40,9 +40,9 @@ action test guild.settings.update --csrf invalid
 action test guild.settings.update --permission deny
 ```
 
-Komutlar gerçek route veya Discord hesabına bağlanmaz. Kontrol sırasını ve üretilen kararlı sonucu belgelenmiş senaryolar üzerinden gösterir.
+Commands do not connect to a real route or Discord account. They show the control order and stable result for documented scenarios.
 
-## Store ve dayanıklılık
+## Stores and reliability
 
 ```text
 store list
@@ -52,14 +52,14 @@ transaction finality
 deadline settlement
 ```
 
-`1.1.0` için şu davranışları inceleyebilirsin:
+For `1.1.0`, review:
 
-- on store üyesi
-- reservation owner compare-and-set
-- atomik session cap
-- opak audit cursor
-- bounded outbox claim
-- commit sonrası callback ayrımı
+- ten store members
+- reservation-owner compare-and-set
+- atomic session caps
+- opaque audit cursors
+- bounded outbox claims
+- post-commit callback separation
 - bounded late settlement
 
 ## Realtime
@@ -70,9 +70,9 @@ realtime transports
 realtime replay
 ```
 
-WebSocket ve Socket.IO aynı inbound kontrol yolunu kullanır. SSE yalnızca server-to-client stream'dir ve bounded queue uygular.
+WebSocket and Socket.IO share the same inbound control path. SSE is a server-to-client stream with a bounded queue.
 
-## CLI yardım özeti
+## CLI help summary
 
 ```text
 cli doctor
@@ -80,7 +80,7 @@ cli writing-check
 cli migration
 ```
 
-Kurulu paket üzerinde gerçek help çıktısını görmek için terminalde:
+For actual installed-package help, use a terminal:
 
 ```bash
 npx guildgate-doctor --help
@@ -88,15 +88,15 @@ npx guildgate-writing-check --help
 npx guildgate-migration --help
 ```
 
-## Güvenlik sınırı
+## Security boundary
 
-Konsol girdisi allowlist ile parse edilir. Şunlar desteklenmez:
+Console input is parsed through an allowlist. It does not support:
 
-- keyfi JavaScript
-- `eval` veya dinamik fonksiyon
-- shell ve process komutu
-- HTTP/WebSocket bağlantısı
-- `localStorage` veya `sessionStorage`
-- secret/token girişi
+- arbitrary JavaScript
+- `eval` or dynamic functions
+- shell or process commands
+- HTTP or WebSocket connections
+- `localStorage` or `sessionStorage`
+- secret or token input
 
-Gerçek config veya secret yapıştırma. Konsol yalnızca belge örnekleri içindir.
+Do not paste real configuration or secrets. The console is only for documentation examples.

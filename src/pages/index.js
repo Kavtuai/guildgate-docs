@@ -6,12 +6,13 @@ import Heading from '@theme/Heading';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CommandPlayground from '../components/CommandPlayground';
 import styles from './index.module.css';
+import {releaseMetadata} from '../data/release-metadata.mjs';
 
 const CONTENT = {
   tr: {
     layoutTitle: 'Discord dashboard güvenlik çekirdeği',
-    layoutDescription: 'GuildGate 1.1.0 için Türkçe ve İngilizce kurulum, güvenlik, depolama, gerçek zamanlı erişim ve API belgeleri.',
-    eyebrow: '@kavtuai/guildgate · 1.1.0',
+    layoutDescription: `GuildGate ${releaseMetadata.packageVersion} için Türkçe ve İngilizce kurulum, güvenlik, depolama, gerçek zamanlı erişim ve API belgeleri.`,
+    eyebrow: `${releaseMetadata.packageName} · ${releaseMetadata.packageVersion}`,
     title: 'Discord dashboard güvenliğini tek yerde yönet.',
     subtitle: 'GuildGate; OAuth, oturum, CSRF, yetki, istek sınırı, denetim kaydı ve realtime kontrollerini sunucuda toplar. Arayüzüne ve veritabanına karışmaz.',
     start: 'Beş dakikada başla',
@@ -72,8 +73,8 @@ const CONTENT = {
   },
   en: {
     layoutTitle: 'Security core for Discord dashboards',
-    layoutDescription: 'English and Turkish documentation for GuildGate 1.1.0, covering setup, security, storage, realtime access and the public API.',
-    eyebrow: '@kavtuai/guildgate · 1.1.0',
+    layoutDescription: `English and Turkish documentation for GuildGate ${releaseMetadata.packageVersion}, covering setup, security, storage, realtime access and the public API.`,
+    eyebrow: `${releaseMetadata.packageName} · ${releaseMetadata.packageVersion}`,
     title: 'Keep Discord dashboard security in one place.',
     subtitle: 'GuildGate keeps OAuth, sessions, CSRF, authorization, rate limits, audit records and realtime checks together on the server. Your UI and database stay under your control.',
     start: 'Start in five minutes',

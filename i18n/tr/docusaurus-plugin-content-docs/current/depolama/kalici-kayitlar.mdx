@@ -1,0 +1,93 @@
+---
+title: PostgreSQL kalıcı kayıtları
+description: GuildGate 1.1.0 PostgreSQL adapter'ında transaction, cursor, rate limit ve outbox davranışını kur.
+---
+
+# PostgreSQL kalıcı kayıtları
+
+`@kavtuai/guildgate/postgres`, resmi store paketi ve transaction adapter'ını tek bağlantı havuzu üzerinden sağlar.
+
+```ts
+import { Pool } from "pg";
+import { createPostgresAdapter } from "@kavtuai/guildgate/postgres";
+
+const postgres = createPostgresAdapter({
+  pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+  prefix: "guildgate",
+});
+
+await postgres.migrate();
+
+const gate = createGuildGate({
+  // app, security, owners
+  stores: postgres.stores,
+  transactions: postgres.transactions,
+});
+```
+
+## Migration SQL
+
+Bağlantı açmadan SQL'i incelemek için:
+
+```bash
+npx guildgate-migration --prefix guildgate
+```
+
+Migration'ı production'da uygulamadan önce transaction, lock süresi, index ve geri dönüş planını incele. Uygulama kullanıcısına yalnızca gereken şema yetkilerini ver.
+
+## Transaction kesinliği
+
+`1.1.0`, PostgreSQL `COMMIT` adımını commit sonrası callback'lerden ayırır. `COMMIT` başarılıysa:
+
+- domain yazımı kesindir
+- callback hatası rollback komutu üretmez
+- callback hatası domain işini tekrar çalıştırmaz
+- sonuç `TransactionPostCommitError` veya action metadata ile gözlemlenir
+
+## İç içe transaction
+
+Aynı transaction context içinde yeni `run()` çağrısı savepoint kullanır:
+
+```text
+SAVEPOINT ...
+-- iç çalışma
+RELEASE SAVEPOINT ...
+```
+
+İç çalışma hata verirse `ROLLBACK TO SAVEPOINT` uygulanır. İç scope isolation ve read-only modunu değiştiremez. `afterCommit` callback'leri savepoint release sonrasında üst scope'a aktarılır.
+
+## Rate limit
+
+PostgreSQL rate-limit store aynı bucket için transaction-scoped advisory lock alır. İlk insert ve sonraki update aynı serialized karar yolundan geçer; iki worker'ın limiti aşan isteği birlikte kabul etmesi önlenir.
+
+## Idempotency
+
+Reservation kimliği tabloya yazılır. Complete, renew ve fail sorguları `reservation_id` ve `state='inflight'` predicate'i kullanır. Etkilenen satır yoksa `idempotency_reservation_lost` üretilir.
+
+## Audit sayfalama
+
+Audit sırası `(created_at DESC, id DESC)` biçimindedir. Opaque cursor bu iki değeri içerir ve sonraki sorgunun predicate'ine uygulanır. Offset pagination kullanma; eşzamanlı eklemelerde kayıt atlayabilir veya tekrar gösterebilir.
+
+## Outbox
+
+Outbox worker:
+
+- sınırlı `limit`
+- worker kimliği
+- claim lease süresi
+- sınırlı concurrency
+
+ile çalışır. Publisher başarılı olunca `markPublished`, hata verince temizlenmiş kısa hata ile `markFailed` çağrılır. Teslimat at-least-once olduğu için consumer event ID ile deduplication yapmalıdır.
+
+## Session ve credential
+
+Session cap store transaction'ı içinde uygulanır. OAuth credential ciphertext olarak saklanır; veritabanı yedeğinin tek başına token'ı açamaması için şifreleme anahtarı ayrı secret sisteminde tutulur.
+
+## Production ayarları
+
+- connection pool boyutunu worker sayısıyla birlikte hesapla
+- statement ve lock timeout belirle
+- slow query ve deadlock loglarını izle
+- migration kullanıcısını runtime kullanıcısından ayır
+- audit/outbox büyümesi için retention ve index bakımı planla
+- restore tatbikatı yap

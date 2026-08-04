@@ -1,0 +1,86 @@
+---
+title: İşlem yaşam döngüsü
+description: Bir GuildGate action isteğinin doğrulamadan commit ve geç tamamlanmaya kadar hangi sırayla yürüdüğünü gör.
+---
+
+# İşlem yaşam döngüsü
+
+Aşağıdaki sıra, `gate.execute()` tarafından yürütülen korunan bir yazma isteğini özetler.
+
+## 1. İstek zarfı
+
+HTTP bağdaştırıcısı yöntemi, yolu, girdiyi, header ve cookie değerlerini `RequestEnvelope` biçimine çevirir. `requestId` verilmemişse çekirdek yeni bir kimlik üretir; dil `tr` veya `en` olarak çözülür.
+
+## 2. Yöntem, origin ve CSRF
+
+- HTTP yöntemi izin verilen dar kümeye çevrilir.
+- Güvensiz yöntemlerde origin tam olarak izin listesiyle karşılaştırılır.
+- Action `csrf: "disabled"` demediği sürece oturuma bağlı CSRF token doğrulanır.
+- Production ortamında HTTPS dışı, loopback, unspecified ve IPv4-mapped loopback adresler başlangıçta reddedilir.
+
+## 3. Oturum ve politika
+
+Oturum token'ı hashlenerek store'da aranır. Süresi dolmuş veya iptal edilmiş oturum bulunursa sonuç metadata'sına `clearSessionCookie` eklenir. Fastify, Express ve Hono bağdaştırıcıları bu bilgiyi temizleme cookie'sine çevirir.
+
+Bakım durumu, kullanıcı/guild/IP engeli ve owner listesi aynı request context içinde değerlendirilir. Owner kimliği action güvenlik zincirini atlamaz.
+
+## 4. Girdi, kaynak ve yetki
+
+`parse` ham girdiyi uygulama tipine çevirir. `resource`, audit ve kilit gibi sonraki adımların kullanacağı kaynak kimliğini üretir. `authorize`, Discord erişimi ve uygulama politikasını son yazma anında doğrular.
+
+## 5. Rate limit ve idempotency
+
+Rate limit store'u sayacı atomik artırır. PostgreSQL bağdaştırıcısı aynı bucket üzerindeki güncellemeleri transaction-scoped advisory lock ile sıralar.
+
+Idempotent action için çekirdek bir reservation kimliği oluşturur. `renew`, `complete` ve `fail` yalnızca aynı reservation sahibi tarafından uygulanabilir. Eski bir worker, süresi dolduktan sonra açılan yeni kaydı tamamlayamaz veya silemez.
+
+## 6. Optimistic revision ve lease
+
+`optimistic.expected` ile güncel revision karşılaştırılır. Fark varsa işlem domain yazımına girmeden `revision_conflict` ile durur.
+
+`concurrency` tanımlandıysa dağıtık lease alınır. Lease store destekliyorsa fencing token context'e eklenir ve işlem sürerken lease yenilenir. Kalıcı yazma katmanı stale fencing token'ı reddetmelidir.
+
+## 7. Deadline, retry ve circuit breaker
+
+`timeoutMs` yalnızca bir iptal isteği değildir. `1.1.0`, süre sınırında yanıtı kesin olarak sonlandırır ve `DeadlineExceededError` üretir. Alttaki promise daha sonra sonuçlanırsa `settlement` üzerinden izlenir.
+
+`reliability.maximumLateSettlementMs`, reservation ve lease sahipliğinin geç sonuç için en fazla ne kadar tutulacağını belirler. Fiziksel işlemin erken durması gerekiyorsa `execute` içindeki I/O çağrıları `context.signal` değerini dinlemelidir.
+
+Retry yalnızca tanımlanan retryable hatalarda ve aynı idempotency/lease sınırı içinde çalışır. Circuit breaker açıkken domain çağrısı başlatılmaz.
+
+## 8. Transaction ve savepoint
+
+Transaction sırası:
+
+1. `transaction.hooks.before`
+2. `execute`
+3. `transaction.hooks.beforeCommit`
+4. Zorunlu audit/outbox kayıtları
+5. Veritabanı `COMMIT`
+6. `afterCommit` callback'leri
+
+İç içe PostgreSQL işlemleri `SAVEPOINT` açar. İç scope başarılıysa callback'leri üst scope'a aktarılır; hata varsa yalnızca ilgili savepoint'e dönülür. İç transaction isolation veya read-only seçimini değiştiremez.
+
+## 9. Commit kesinliği
+
+Başarılı commit'ten sonra domain sonucu kesindir. Cache temizliği, realtime yayını veya gözlem callback'i hata verirse:
+
+- veritabanı rollback edilmez
+- domain yazımı yeniden çalıştırılmaz
+- hata `postCommitIssues` veya telemetriye eklenir
+- idempotency sonucu replay için saklanır
+
+Fail-closed audit yalnızca action audit, idempotency ve required transaction kullanıyorsa açılabilir. Audit yazımı aynı transaction'a katılmalıdır.
+
+## 10. Yanıt metadata'sı
+
+Başarılı veya başarısız sonuçta `meta` şu bilgileri taşıyabilir:
+
+- `requestId`
+- çözülen dil
+- rate limit durumu
+- yenilenmiş session/CSRF token'ı
+- cookie temizleme talebi
+- commit sonrası sorunlar
+
+Bu metadata'yı bağdaştırıcı veya uygulama log katmanında kaybetme.

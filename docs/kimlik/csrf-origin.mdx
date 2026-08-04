@@ -1,13 +1,13 @@
 ---
-title: CSRF ve origin denetimi
-description: Exact-origin allowlist, session-bound CSRF ve production URL korumalarını yapılandır.
+title: CSRF and origin checks
+description: Configure exact-origin allowlists, session-bound CSRF, and production URL guards.
 ---
 
-# CSRF ve origin denetimi
+# CSRF and origin checks
 
-Origin kontrolü ve CSRF aynı tehdidin farklı parçalarını kapatır. Origin isteğin hangi web kaynağından geldiğini sınırlar; CSRF token isteğin aktif session tarafından üretildiğini doğrular.
+Origin checks and CSRF protect different parts of the same boundary. Origin limits which web source may send the request; the CSRF token proves the request was prepared for the active session.
 
-## Exact-origin listesi
+## Exact-origin allowlist
 
 ```ts
 security: {
@@ -19,47 +19,47 @@ security: {
 }
 ```
 
-Origin; protocol, hostname ve port ile normalize edilir. Path allowlist'e dahil değildir. Wildcard, substring veya `endsWith()` kontrolü kullanma.
+An origin is normalized by protocol, hostname, and port. The path is not part of it. Do not use wildcards, substring matching, or `endsWith()` checks.
 
-Şunlar farklı origin'dir:
+These are different origins:
 
 - `https://dashboard.example.com`
 - `https://dashboard.example.com:8443`
 - `http://dashboard.example.com`
 
-## Production URL doğrulaması
+## Production URL validation
 
-`1.1.0` production profilinde şu adresleri reddeder:
+In `1.1.0`, production configuration rejects:
 
-- HTTPS kullanmayan app URL ve origin
-- `localhost` ve `*.localhost`
+- application URLs and origins without HTTPS
+- `localhost` and `*.localhost`
 - `127.0.0.0/8`
 - `0.0.0.0`
-- `::` ve `::1`
-- loopback'e eşlenen IPv4-mapped IPv6 adresleri
+- `::` and `::1`
+- IPv4-mapped IPv6 addresses that resolve to loopback
 
-Aynı kontrol Discord OAuth authorize/token endpoint yapılandırmasına da uygulanır. Bu sayede yanlış environment değişkeniyle yerel endpoint'e production token gönderilmesi engellenir.
+The same guard applies to configured Discord OAuth authorize and token endpoints. This prevents a production token from being sent to a local endpoint after an environment-variable mistake.
 
 ## CSRF secret
 
-`csrfSecret` en az 32 byte olmalıdır. Token, session ID hash'i ve rastgele nonce üzerinden HMAC ile üretilir.
+`csrfSecret` must contain at least 32 bytes. Tokens are HMAC values derived from the session ID hash and a random nonce.
 
 ```ts
 const token = gate.csrf.issue(session.idHash);
 const valid = gate.csrf.verify(session.idHash, tokenFromHeader);
 ```
 
-Secret'ı source control'e koyma. Rotation yapacaksan mevcut session'ların etkisini planla; tek anahtar değişimi mevcut CSRF token'larını geçersiz kılar.
+Do not place the secret in source control. Plan rotation because replacing a single key invalidates existing CSRF tokens.
 
-## Güvensiz yöntemler
+## Unsafe methods
 
-`POST`, `PUT`, `PATCH` ve `DELETE` güvensiz yöntem kabul edilir. Action açıkça `csrf: "disabled"` demedikçe session-bound token gerekir.
+`POST`, `PUT`, `PATCH`, and `DELETE` are unsafe. They require a session-bound token unless the action explicitly sets `csrf: "disabled"`.
 
-GET route içinde veri değiştirme. Cache veya crawler davranışı nedeniyle bu, CSRF korumasının dışında yazma oluşturur.
+Do not modify data from a GET route. Cache and crawler behavior would otherwise create a write outside CSRF protection.
 
-## Header ve cookie düzeni
+## Header and cookie layout
 
-Örnek istemci isteği:
+Example client request:
 
 ```ts
 await fetch("/api/guilds/123/settings", {
@@ -74,20 +74,20 @@ await fetch("/api/guilds/123/settings", {
 });
 ```
 
-CSRF token'ı session cookie içinde aynı değer olarak tutma. Cookie `HttpOnly` kalırken token kontrollü bir bootstrap endpoint veya HTML payload ile istemciye verilebilir.
+Do not store the same CSRF value inside the session cookie. Keep the cookie `HttpOnly` and provide the token through a controlled bootstrap endpoint or HTML payload.
 
-## Proxy notu
+## Proxy note
 
-Origin kontrolü `Host`, `X-Forwarded-Host` veya referrer yerine gerçek `Origin` header'ını esas almalıdır. Reverse proxy'nin header'ları değiştirmediğini ve HTTPS yönlendirmesini doğru yaptığını test et.
+Origin validation should use the actual `Origin` header rather than `Host`, `X-Forwarded-Host`, or referrer. Verify that the reverse proxy preserves it and redirects HTTP to HTTPS correctly.
 
-## Testler
+## Tests
 
-- izinli production origin
-- aynı host, farklı port
-- `http`/`https` farkı
-- origin header yok
-- bozuk URL
-- yanlış session'a ait CSRF token
-- eski rotation token'ı
-- safe ve unsafe yöntem farkı
-- loopback ve IPv4-mapped loopback yapılandırması
+- allowed production origin
+- same host with a different port
+- `http` versus `https`
+- missing origin header
+- malformed URL
+- CSRF token from another session
+- stale rotation token
+- safe versus unsafe methods
+- loopback and IPv4-mapped loopback configuration

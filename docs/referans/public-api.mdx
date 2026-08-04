@@ -1,13 +1,13 @@
 ---
-title: Dışa açık API
-description: GuildGate 1.1.0 çekirdek, adapter, realtime, test ve operasyon export yollarını hızlıca bul.
+title: Public API
+description: Find the GuildGate 1.1.0 core, adapter, realtime, testing, and operations export paths.
 ---
 
-# Dışa açık API
+# Public API
 
-Bu sayfa `@kavtuai/guildgate@1.1.0` paketinin yayımlanan yüzeyini özetler. Tam parametre ve dönüş tipleri için kurulu paketin `.d.ts` dosyalarını ve IDE otomatik tamamlamasını esas al.
+This page summarizes the published surface of `@kavtuai/guildgate@1.1.0`. Use the installed package declarations and IDE completion for complete parameter and return types.
 
-## Sözleşme işaretleri
+## Contract markers
 
 ```ts
 import {
@@ -17,36 +17,36 @@ import {
 } from "@kavtuai/guildgate/contracts";
 ```
 
-| Sözleşme | Sürüm |
+| Contract | Version |
 | --- | --- |
 | Adapter | `1.1` |
 | Action | `1.0` |
 | Realtime | `1.0` |
 
-## 16 public export yolu
+## 16 public export paths
 
-| Import yolu | Ana kullanım |
+| Import path | Main use |
 | --- | --- |
-| `@kavtuai/guildgate` | Çekirdek, action, store tipleri, memory, cache, session, transaction, lock, operator ve telemetri yardımcıları |
-| `@kavtuai/guildgate/discord` | Discord OAuth, yetki ve authorizer yardımcıları |
+| `@kavtuai/guildgate` | Kernel, actions, store types, memory, cache, sessions, transactions, locks, operator, and telemetry helpers |
+| `@kavtuai/guildgate/discord` | Discord OAuth, permissions, and authorization helpers |
 | `@kavtuai/guildgate/fastify` | `fastifyActionHandler` |
 | `@kavtuai/guildgate/express` | `expressActionHandler` |
-| `@kavtuai/guildgate/redis` | Redis ephemeral stores ve istemci dönüştürücüleri |
-| `@kavtuai/guildgate/realtime` | Hub, WebSocket, Socket.IO, SSE, sequence, replay, revocation ve outbox worker |
+| `@kavtuai/guildgate/redis` | Redis ephemeral stores and client adapters |
+| `@kavtuai/guildgate/realtime` | Hub, WebSocket, Socket.IO, SSE, sequence, replay, revocation, and outbox worker |
 | `@kavtuai/guildgate/testing` | `createGuildGateTestHarness` |
-| `@kavtuai/guildgate/analytics` | Store, monitor, collector, query ve SVG chart yardımcıları |
-| `@kavtuai/guildgate/contracts` | Contract sürümleri ve `runStoreContract` |
+| `@kavtuai/guildgate/analytics` | Store, monitor, collector, query, and SVG chart helpers |
+| `@kavtuai/guildgate/contracts` | Contract versions and `runStoreContract` |
 | `@kavtuai/guildgate/discordjs` | `createDiscordJsGuildAdapter` |
 | `@kavtuai/guildgate/hono` | `honoActionHandler` |
-| `@kavtuai/guildgate/operator` | Operator service/action ve `RatePolicyRegistry` |
+| `@kavtuai/guildgate/operator` | Operator service/actions and `RatePolicyRegistry` |
 | `@kavtuai/guildgate/postgres` | `createPostgresAdapter`, `buildPostgresMigration` |
 | `@kavtuai/guildgate/telemetry` | `createOpenTelemetryHooks`, `noopTelemetry` |
-| `@kavtuai/guildgate/transactions` | Adapter, scope, hook, revision ve post-commit tipleri |
-| `@kavtuai/guildgate/locks` | `DistributedLockManager`, lease tipleri ve `isLeaseLockStore` |
+| `@kavtuai/guildgate/transactions` | Adapter, scope, hook, revision, and post-commit types |
+| `@kavtuai/guildgate/locks` | `DistributedLockManager`, lease types, and `isLeaseLockStore` |
 
-Dahili `dist/...` veya `src/...` yolundan import yapma. Semver güvencesi yalnızca `exports` alanındaki yollar için geçerlidir.
+Do not import internal `dist/...` or `src/...` paths. Semver guarantees apply only to paths in the package `exports` field.
 
-## Çekirdek
+## Kernel
 
 ```ts
 import {
@@ -57,25 +57,25 @@ import {
 } from "@kavtuai/guildgate";
 ```
 
-`GuildGateKernel` ana üyeleri:
+Main `GuildGateKernel` members:
 
-| Üye | Görev |
+| Member | Purpose |
 | --- | --- |
-| `config` | Doğrulanmış yapılandırma |
+| `config` | Validated configuration |
 | `sessions` | `SessionManager` |
 | `cache` | `CacheManager` |
-| `cookie` | Çözülen cookie ayarı |
-| `csrf.issue/verify` | Session-bound token üretme/doğrulama |
-| `action` | Action tanımı oluşturma |
-| `execute` | Request envelope yürütme |
-| `createSession` | Session, token, CSRF ve cookie üretme |
-| `revokeSession` | Tek session iptali |
-| `revokeUserSessions` | Kullanıcının tüm session'larını iptal |
-| `owner` | Bakım ve blok politikaları |
+| `cookie` | Resolved cookie settings |
+| `csrf.issue/verify` | Session-bound token creation and verification |
+| `action` | Create an action definition |
+| `execute` | Execute a request envelope |
+| `createSession` | Create session, token, CSRF, and cookie |
+| `revokeSession` | Revoke one session |
+| `revokeUserSessions` | Revoke all sessions for a user |
+| `owner` | Maintenance and block policies |
 
-## Store yüzeyi
+## Store surface
 
-`GuildGateStores` on üye içerir:
+`GuildGateStores` has ten members:
 
 ```ts
 interface GuildGateStores {
@@ -92,13 +92,13 @@ interface GuildGateStores {
 }
 ```
 
-`1.1.0` ile önemli ek yetenekler:
+Important `1.1.0` capabilities:
 
 - `SessionStore.create(record, maximumSessionsPerUser)`
-- reservation owner alanı ve idempotency `renew/complete/fail` sonucu
+- reservation ownership and idempotency `renew/complete/fail` results
 - `AuditStore.listPage()`
 - `OutboxStore.claim()`
-- lease ve fencing token desteği
+- leases and fencing tokens
 
 ## PostgreSQL
 
@@ -109,7 +109,7 @@ import {
 } from "@kavtuai/guildgate/postgres";
 ```
 
-Adapter bundle, `stores`, `transactions`, migration işlevleri ve backend'e özgü yardımcıları sunar.
+The adapter bundle provides `stores`, `transactions`, migration functions, and backend-specific helpers.
 
 ## Redis
 
@@ -121,7 +121,7 @@ import {
 } from "@kavtuai/guildgate/redis";
 ```
 
-`createRedisEphemeralStores` doğrudan Redis command adapter ve isteğe bağlı `{ prefix }` alır.
+`createRedisEphemeralStores` accepts a Redis command adapter directly and an optional `{ prefix }` object.
 
 ## Realtime
 
@@ -138,7 +138,7 @@ import {
 } from "@kavtuai/guildgate/realtime";
 ```
 
-## Operator ve analytics
+## Operator and analytics
 
 ```ts
 import {
@@ -148,20 +148,20 @@ import {
 } from "@kavtuai/guildgate/operator";
 ```
 
-Analytics modülü process/Discord collector, health probe, bucket query, tablo modeli ve güvenli SVG chart üreticilerini içerir.
+The analytics module includes process and Discord collectors, health probes, bucket queries, table models, and safe SVG chart renderers.
 
-## Test yardımcıları
+## Testing helpers
 
 ```ts
 import { createGuildGateTestHarness } from "@kavtuai/guildgate/testing";
 import { runStoreContract } from "@kavtuai/guildgate/contracts";
 ```
 
-Test harness memory store ve varsayılan güvenli config ile çekirdeği hızlı kurar. Production davranışını kanıtlamak için gerçek adapter service testleri ayrıca gereklidir.
+The test harness creates a kernel with memory stores and safe defaults. Real adapter service tests are still required to verify production behavior.
 
-## CLI komutları
+## CLI commands
 
-Paket üç bin yayımlar:
+The package publishes three bins:
 
 ```text
 guildgate-doctor

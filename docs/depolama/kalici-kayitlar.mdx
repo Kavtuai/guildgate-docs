@@ -1,11 +1,11 @@
 ---
-title: PostgreSQL kalıcı kayıtları
-description: GuildGate 1.1.0 PostgreSQL adapter'ında transaction, cursor, rate limit ve outbox davranışını kur.
+title: Persistent PostgreSQL records
+description: Configure transactions, cursors, rate limits, and outbox behavior in the GuildGate 1.1.0 PostgreSQL adapter.
 ---
 
-# PostgreSQL kalıcı kayıtları
+# Persistent PostgreSQL records
 
-`@kavtuai/guildgate/postgres`, resmi store paketi ve transaction adapter'ını tek bağlantı havuzu üzerinden sağlar.
+`@kavtuai/guildgate/postgres` provides the official store bundle and transaction adapter over one connection pool.
 
 ```ts
 import { Pool } from "pg";
@@ -27,67 +27,67 @@ const gate = createGuildGate({
 
 ## Migration SQL
 
-Bağlantı açmadan SQL'i incelemek için:
+Review SQL without opening a connection:
 
 ```bash
 npx guildgate-migration --prefix guildgate
 ```
 
-Migration'ı production'da uygulamadan önce transaction, lock süresi, index ve geri dönüş planını incele. Uygulama kullanıcısına yalnızca gereken şema yetkilerini ver.
+Before production execution, review transaction behavior, lock time, indexes, and rollback planning. Give the application user only the schema privileges it needs.
 
-## Transaction kesinliği
+## Transaction finality
 
-`1.1.0`, PostgreSQL `COMMIT` adımını commit sonrası callback'lerden ayırır. `COMMIT` başarılıysa:
+In `1.1.0`, PostgreSQL `COMMIT` is separated from post-commit callbacks. After a successful `COMMIT`:
 
-- domain yazımı kesindir
-- callback hatası rollback komutu üretmez
-- callback hatası domain işini tekrar çalıştırmaz
-- sonuç `TransactionPostCommitError` veya action metadata ile gözlemlenir
+- the domain write is final
+- a callback failure does not issue rollback
+- a callback failure does not repeat domain work
+- the issue is observable through `TransactionPostCommitError` or action metadata
 
-## İç içe transaction
+## Nested transactions
 
-Aynı transaction context içinde yeni `run()` çağrısı savepoint kullanır:
+A new `run()` inside the same transaction context uses a savepoint:
 
 ```text
 SAVEPOINT ...
--- iç çalışma
+-- nested work
 RELEASE SAVEPOINT ...
 ```
 
-İç çalışma hata verirse `ROLLBACK TO SAVEPOINT` uygulanır. İç scope isolation ve read-only modunu değiştiremez. `afterCommit` callback'leri savepoint release sonrasında üst scope'a aktarılır.
+A nested error runs `ROLLBACK TO SAVEPOINT`. The inner scope cannot change isolation or read-only mode. Its `afterCommit` callbacks join the parent only after savepoint release.
 
-## Rate limit
+## Rate limits
 
-PostgreSQL rate-limit store aynı bucket için transaction-scoped advisory lock alır. İlk insert ve sonraki update aynı serialized karar yolundan geçer; iki worker'ın limiti aşan isteği birlikte kabul etmesi önlenir.
+The PostgreSQL rate-limit store takes a transaction-scoped advisory lock for each bucket. The first insert and later updates use the same serialized decision path, preventing two workers from accepting requests beyond the limit together.
 
 ## Idempotency
 
-Reservation kimliği tabloya yazılır. Complete, renew ve fail sorguları `reservation_id` ve `state='inflight'` predicate'i kullanır. Etkilenen satır yoksa `idempotency_reservation_lost` üretilir.
+The reservation ID is stored in the table. Complete, renew, and fail queries include `reservation_id` and `state='inflight'` predicates. No affected row produces `idempotency_reservation_lost`.
 
-## Audit sayfalama
+## Audit paging
 
-Audit sırası `(created_at DESC, id DESC)` biçimindedir. Opaque cursor bu iki değeri içerir ve sonraki sorgunun predicate'ine uygulanır. Offset pagination kullanma; eşzamanlı eklemelerde kayıt atlayabilir veya tekrar gösterebilir.
+Audit ordering is `(created_at DESC, id DESC)`. The opaque cursor contains those two values and becomes the predicate for the next query. Avoid offset pagination because concurrent inserts can cause skipped or repeated records.
 
 ## Outbox
 
-Outbox worker:
+An outbox worker operates with:
 
-- sınırlı `limit`
-- worker kimliği
-- claim lease süresi
-- sınırlı concurrency
+- bounded `limit`
+- worker identity
+- claim lease duration
+- bounded concurrency
 
-ile çalışır. Publisher başarılı olunca `markPublished`, hata verince temizlenmiş kısa hata ile `markFailed` çağrılır. Teslimat at-least-once olduğu için consumer event ID ile deduplication yapmalıdır.
+On success it calls `markPublished`; on failure it stores a sanitized, short error through `markFailed`. Delivery is at least once, so consumers must deduplicate by event ID.
 
-## Session ve credential
+## Sessions and credentials
 
-Session cap store transaction'ı içinde uygulanır. OAuth credential ciphertext olarak saklanır; veritabanı yedeğinin tek başına token'ı açamaması için şifreleme anahtarı ayrı secret sisteminde tutulur.
+The per-user session cap is applied inside the store transaction. OAuth credentials are ciphertext; keep encryption keys in a separate secret system so a database backup alone cannot reveal tokens.
 
-## Production ayarları
+## Production settings
 
-- connection pool boyutunu worker sayısıyla birlikte hesapla
-- statement ve lock timeout belirle
-- slow query ve deadlock loglarını izle
-- migration kullanıcısını runtime kullanıcısından ayır
-- audit/outbox büyümesi için retention ve index bakımı planla
-- restore tatbikatı yap
+- calculate connection-pool size with worker count
+- configure statement and lock timeouts
+- monitor slow queries and deadlocks
+- separate migration and runtime database users
+- plan retention and index maintenance for audit and outbox growth
+- practice restore procedures

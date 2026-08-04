@@ -1,0 +1,25 @@
+---
+title: Sorumluluk sınırları
+description: GuildGate'in garanti ettiği davranışları uygulama ve altyapı sorumluluklarından ayır.
+---
+
+# Sorumluluk sınırları
+
+GuildGate ortak güvenlik ve dayanıklılık mekanizmalarını uygular; ürünün domain kararlarını devralmaz.
+
+## GuildGate'in sağladığı sınır
+
+- Session token hashing, expiry, rotation ve revocation
+- Exact-origin ve session-bound CSRF doğrulaması
+- Action yaşam döngüsü, deadline, idempotency ve concurrency kontrolleri
+- Store, transaction, lock, realtime ve telemetry sözleşmeleri
+- Sabit kullanıcı hata kodları ve gizli server hata ayrıntıları
+- Production başlangıç kontrolleri
+
+## Uygulamanın sorumluluğu
+
+Kaynak erişimi, user/bot permission eşlemesi, domain validation, schema, migration, retention, backup, Discord API bütçesi, proxy/TLS ve incident response uygulamada kalır.
+
+JavaScript keyfi bir Promise'ı zorla durduramaz. GuildGate deadline'da yanıt verir ve `AbortSignal` sağlar; fiziksel operation daha sonra bitebilir. Lease süresini aşabilen durable write fencing token ile stale worker'ı reddetmelidir.
+
+Transactional outbox at-least-once teslimat sağlar. Harici yan etki uygulayan consumer event ID ile deduplication yapmalıdır.

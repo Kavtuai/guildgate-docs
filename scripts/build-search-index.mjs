@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const targets = [
-  {locale: 'tr', root: path.resolve('docs'), routePrefix: '/docs'},
-  {locale: 'en', root: path.resolve('i18n/en/docusaurus-plugin-content-docs/current'), routePrefix: '/en/docs'},
+  {locale: 'en', root: path.resolve('docs'), routePrefix: '/docs'},
+  {locale: 'tr', root: path.resolve('i18n/tr/docusaurus-plugin-content-docs/current'), routePrefix: '/tr/docs'},
 ];
 
 const categoryLabels = {

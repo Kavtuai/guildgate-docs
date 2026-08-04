@@ -1,21 +1,21 @@
 ---
-title: Sorun giderme
-description: GuildGate 1.1.0 kurulumunda config, session, idempotency, transaction, realtime ve store sorunlarını teşhis et.
+title: Troubleshooting
+description: Diagnose configuration, session, idempotency, transaction, realtime, and store issues in GuildGate 1.1.0.
 ---
 
-# Sorun giderme
+# Troubleshooting
 
-Sorunu düzeltmeden önce action adı, `requestId`, error code, adapter türü ve sürümü kaydet. Secret veya ham token ekleme.
+Before changing anything, record the action name, `requestId`, error code, adapter type, and version. Do not include secrets or raw tokens.
 
-## Production başlangıçta kapanıyor
+## Production exits during startup
 
-Kontrol et:
+Check:
 
-- `app.baseUrl` ve origin değerleri HTTPS mi?
-- localhost, `0.0.0.0`, `::`, `::1` veya IPv4-mapped loopback var mı?
-- CSRF secret en az 32 byte mı?
-- `__Host-` cookie `Secure` ve `Path=/` kullanıyor mu?
-- session süreleri ve maksimum sayı pozitif mi?
+- Do `app.baseUrl` and origins use HTTPS?
+- Is there a localhost, `0.0.0.0`, `::`, `::1`, or IPv4-mapped loopback value?
+- Does the CSRF secret contain at least 32 bytes?
+- Does a `__Host-` cookie use `Secure` and `Path=/`?
+- Are session time values and the maximum count positive?
 
 ```bash
 npx guildgate-doctor --json
@@ -23,97 +23,97 @@ npx guildgate-doctor --json
 
 ## `origin_not_allowed`
 
-Tarayıcı DevTools Network panelindeki gerçek `Origin` değerini config ile protocol, host ve port dahil karşılaştır. Reverse proxy'de origin'i yeniden yazma. CORS allowlist ile GuildGate allowlist'in aynı şeyi ifade ettiğini doğrula.
+Compare the actual browser `Origin` value from DevTools Network with configuration, including protocol, host, and port. Do not rewrite origin in the reverse proxy. Verify the CORS allowlist and GuildGate allowlist express the same boundary.
 
-## CSRF hatası
+## CSRF failure
 
-- CSRF token aktif session için mi üretildi?
-- Session rotation sonrasında yeni token kullanılıyor mu?
-- Header adı bağdaştırıcının okuduğu alanla eşleşiyor mu?
-- İstek `credentials: "include"` kullanıyor mu?
-- Cookie domain/path nedeniyle gönderilmiyor olabilir mi?
+- Was the token issued for the active session?
+- Is the new token used after session rotation?
+- Does the header name match what the adapter reads?
+- Does the request use `credentials: "include"`?
+- Is cookie domain or path preventing delivery?
 
-## Oturum sürekli temizleniyor
+## Session cookie is cleared repeatedly
 
-Store saat değerlerini ve process saat senkronizasyonunu kontrol et. Session kaydındaki `expiresAt`, `idleExpiresAt`, `rotateAfter` değerlerini incele. Redis prefix veya database değiştiyse eski cookie artık kayda erişemeyebilir.
+Check store timestamps and process clock synchronization. Inspect `expiresAt`, `idleExpiresAt`, and `rotateAfter`. If the Redis prefix or database changed, an old cookie may no longer reach its record.
 
-## Session sayısı sınırı aşılıyor
+## Per-user session count exceeds the cap
 
-Custom store `SessionStore.create()` uygulamıyorsa çoklu worker yarışında cap aşılabilir. Ekleme ve eviction işlemini aynı transaction/Lua altında çalıştır.
+A custom store without `SessionStore.create()` may race across workers. Perform insert and eviction under the same transaction or Lua operation.
 
 ## `idempotency_conflict`
 
-Aynı key farklı request body hash'iyle kullanılmıştır. Her kullanıcı niyeti için yeni key üret; ağ retry'ında aynı body ve aynı key'i koru.
+The same key was used with a different request-body hash. Generate a new key for each user intent; preserve the same body and key for a network retry.
 
 ## `idempotency_reservation_lost`
 
-Worker reservation sahipliğini kaybetmiştir. Nedenler:
+The worker lost reservation ownership. Possible causes:
 
-- TTL action süresinden kısa
-- renew store compare-and-set başarısız
-- Redis/PostgreSQL bağlantı kesintisi
-- geç tamamlanma penceresi dolmuş
-- custom store key üzerinden koşulsuz overwrite yapmış
+- TTL shorter than action duration
+- compare-and-set renewal failure
+- Redis or PostgreSQL connectivity loss
+- late-settlement window expired
+- custom store overwrote by key without owner checks
 
-Domain yazımını tekrar çalıştırmadan önce saklanan sonucu ve fencing durumunu kontrol et.
+Before repeating domain work, inspect the stored result and fencing state.
 
-## Timeout oldu ama veri değişti
+## The request timed out but data changed
 
-`1.1.0` response deadline'ı kesin uygular; underlying promise iptal sinyalini dinlemiyorsa daha sonra commit edebilir. Aynı idempotency key ile status/replay isteği yap. Uygulama I/O'suna `context.signal` aktar ve `maximumLateSettlementMs` değerini gözden geçir.
+`1.1.0` enforces the response deadline, but underlying work may commit later when it ignores cancellation. Query status or replay with the same idempotency key. Forward `context.signal` to application I/O and review `maximumLateSettlementMs`.
 
-## Commit başarılı ama UI güncellenmedi
+## Commit succeeded but the UI did not update
 
-Başarılı action sonucunda `meta.postCommitIssues` kontrol et. Cache veya realtime stage sorunu olabilir. Domain yazımını geri alma veya action'ı körlemesine tekrar etme. Outbox backlog, publisher ve hub bağlantı loglarını incele.
+Check `meta.postCommitIssues` on the successful result. Cache or realtime processing may have failed. Do not roll back the domain write or blindly repeat the action. Inspect outbox backlog, publisher status, and hub connection logs.
 
-## Transaction callback hatası rollback gibi görünüyor
+## Transaction callback failure looks like a rollback
 
-Custom adapter commit sonrasında callback exception'ını rollback catch bloğuna düşürüyor olabilir. Commit ve callback yürütmesini ayır; `TransactionPostCommitError`/`onPostCommitError` davranışını uygula.
+A custom adapter may be routing a post-commit callback exception into its rollback catch block. Separate commit from callback execution and implement `TransactionPostCommitError` or `onPostCommitError` behavior.
 
-## Realtime subscribe reddediliyor
+## Realtime subscription is denied
 
-- handshake origin/session doğru mu?
-- kanal parser doğru guild ID çıkarıyor mu?
-- kullanıcı yetkisi güncel mi?
-- `maximumSubscriptions` dolmuş mu?
-- async authorization sırasında bağlantı kapanmış mı?
-- Socket.IO event'i doğru `guildgate:subscribe` adıyla mı gönderiliyor?
+- Are handshake origin and session valid?
+- Does the channel parser resolve the correct guild ID?
+- Is user authorization current?
+- Is `maximumSubscriptions` full?
+- Did the connection close during asynchronous authorization?
+- Does Socket.IO send the `guildgate:subscribe` event name?
 
-## Realtime bağlantı hemen kapanıyor
+## Realtime connection closes immediately
 
-Close code ve reason kaydet:
+Record close code and reason:
 
-- `1007`: bozuk JSON
-- `1008`: auth, rate veya subscription policy
-- `1009`: mesaj çok büyük
-- `1013`: istemci backpressure sınırını aştı
+- `1007`: invalid JSON
+- `1008`: authentication, rate, or subscription policy
+- `1009`: message too large
+- `1013`: client exceeded backpressure bound
 
-Socket.IO transport `writable=false` ise buffered durum yavaş istemci olarak değerlendirilir.
+For Socket.IO, a transport with `writable=false` is treated as a slow client.
 
-## Audit sayfasında kayıt atlanıyor
+## Audit paging skips records
 
-Offset pagination kullanma. `listPage()` cursor'ını aynen geri gönder ve sort'u `(createdAt DESC, id DESC)` olarak uygula. Aynı timestamp kayıtlarını yalnızca tarih üzerinden sayfalama.
+Do not use offset pagination. Return the `listPage()` cursor unchanged and order by `(createdAt DESC, id DESC)`. Do not page records with identical timestamps using the date alone.
 
-## Redis tag temizliği eksik
+## Redis tag invalidation misses entries
 
-Custom adapter set/retag işlemini atomik yapmıyor olabilir. Eski tag membership, yeni entry ve yeni tag membership tek script içinde değişmelidir. Tag index TTL'ini entry ömründen kısa tutma.
+A custom adapter may not update tags atomically. Old tag membership, the new entry, and new tag membership must change in one script. Do not give the tag index a TTL shorter than the entry lifetime.
 
-## CI ile yerel sonuç farklı
+## CI and local results differ
 
-- Node sürümü 22 veya 24 mü?
-- `npm ci` lockfile kullanıyor mu?
-- service test environment değişkenleri mevcut mu?
-- PostgreSQL 17 ve Redis 8 hazır mı?
-- local testte atlanan iki live-service tanımı CI'da gerçekten çalışıyor mu?
+- Is Node 22 or 24 in use?
+- Does `npm ci` use the lockfile?
+- Are service-test environment variables available?
+- Are PostgreSQL 17 and Redis 8 running?
+- Do the two live-service definitions skipped locally actually run in CI?
 
-## Destek kaydı
+## Support record
 
-Şunları ekle:
+Include:
 
-- GuildGate ve Node sürümü
-- public adapter türleri
-- action adı ve kararlı hata kodu
-- redacted doctor çıktısı
+- GuildGate and Node versions
+- public adapter types
+- action name and stable error code
+- redacted doctor output
 - `requestId`
-- tekrar üretme adımları
+- reproduction steps
 
-Secret, `.env`, token, cookie veya tam database URL ekleme.
+Do not include secrets, `.env`, tokens, cookies, or a complete database URL.

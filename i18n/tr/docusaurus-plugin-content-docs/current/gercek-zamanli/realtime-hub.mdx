@@ -1,0 +1,121 @@
+---
+title: Realtime hub ve taşıyıcılar
+description: WebSocket, Socket.IO ve SSE bağlantılarını aynı yetki, replay ve backpressure kurallarıyla çalıştır.
+---
+
+# Realtime hub ve taşıyıcılar
+
+`createRealtimeHub()` bağlantı kimliği, session doğrulaması, kanal aboneliği ve yayın sınırlarını taşıyıcıdan ayırır. Bir WebSocket veya Socket.IO sunucusunu kendisi başlatmaz.
+
+## Hub oluşturma
+
+```ts
+import { createRealtimeHub } from "@kavtuai/guildgate/realtime";
+
+const hub = createRealtimeHub({
+  sessions: gate.sessions,
+  rateLimits: gate.config.stores.rateLimits,
+  allowedOrigins: gate.config.security.allowedOrigins,
+  heartbeatIntervalMs: 25_000,
+  idleTimeoutMs: 60_000,
+  maximumLifetimeMs: 6 * 60 * 60_000,
+  maximumMessageBytes: 16 * 1024,
+  maximumSubscriptions: 20,
+  maximumChannelLength: 256,
+  maximumBufferedBytes: 512 * 1024,
+  messagesPerWindow: 30,
+  messageWindowMs: 10_000,
+  sessionValidationIntervalMs: 60_000,
+});
+```
+
+Varsayılanlar sınırlandırılmıştır; uygulamanın event boyutu ve bağlantı profiline göre daha dar değer seçebilirsin.
+
+## Attach sırası
+
+Bağlantı eklenirken:
+
+1. Origin allowlist ile karşılaştırılır.
+2. Session token doğrulanır.
+3. Connection session hash'iyle indekslenir.
+4. `ready` mesajı gönderilir.
+
+Kimlik doğrulama başarısızsa bağlantı `1008` ile kapanır.
+
+## Kanal aboneliği
+
+Kanal adını server tarafında üret veya dar bir parser ile doğrula. Control karakterleri ve aşırı uzun kanal adları reddedilir.
+
+```ts
+authorize: async ({ userId, channel }) => {
+  const guildId = parseGuildChannel(channel);
+  return guildId ? canUserViewGuild(userId, guildId) : false;
+}
+```
+
+`1.1.0`, async authorization tamamlandıktan sonra bağlantının hâlâ aktif olduğunu ve subscription kapasitesinin aşılmadığını yeniden kontrol eder. Eşzamanlı subscribe istekleri limiti atlayamaz.
+
+## WebSocket
+
+```ts
+import { attachWebSocket } from "@kavtuai/guildgate/realtime";
+
+await attachWebSocket({
+  socket,
+  hub,
+  origin: request.headers.origin,
+  sessionToken,
+  eventLog,
+  authorize,
+});
+```
+
+WebSocket mesajları önce `hub.acceptMessage()` üzerinden geçer. Payload boyutu, message rate ve JSON biçimi doğrulanmadan subscribe/unsubscribe uygulanmaz.
+
+## Socket.IO eşitliği
+
+```ts
+import { attachSocketIo } from "@kavtuai/guildgate/realtime";
+
+await attachSocketIo({
+  socket,
+  hub,
+  eventLog,
+  authorize,
+});
+```
+
+`1.1.0` subscribe, unsubscribe ve heartbeat event'lerini WebSocket ile aynı kontrollerden geçirir. Socket.IO acknowledgement yanıtları, replay ve transport writable durumundan türetilen backpressure kontrolü desteklenir.
+
+## SSE
+
+`createServerSentEventStream()` bounded event queue kullanır. Writer backpressure bildirirse queue drain bekler; `maximumBufferedEvents` aşılırsa stream kapanır.
+
+SSE inbound mesaj taşımaz. Abonelik yetkisini stream açılmadan önce ve uzun bağlantıda periyodik olarak uygulama doğrulamalıdır.
+
+## Sequence ve replay
+
+`createSequencedPublisher()` kanal başına sequence üretir. İstemci son gördüğü sequence'i `afterSequence` olarak gönderdiğinde event log sınırlı replay döndürür.
+
+Replay için maksimum event sayısını sınırla. Cursor çok eskiyse tam state snapshot veya yeniden yükleme yolu sun.
+
+## Session revocation
+
+`hub.revokeSession(sessionIdHash)` aynı session'a bağlı tüm bağlantıları kapatır. Çoklu worker için `MemorySessionRevocationBus` yerine paylaşımlı pub/sub uygulaması bağla.
+
+Revocation listener hataları diğer listener'ları durdurmamalıdır. `1.1.0` listener başarısızlıklarını izole eder.
+
+## Backpressure ve send hatası
+
+Publish sırasında `bufferedAmount` sınırı aşılırsa istemci `1013` ile kapatılır. Send promise'i hata verirse bağlantı kaydı temizlenir; bozuk connection map içinde kalmaz.
+
+## İşletim kontrolü
+
+- origin ve session handshake sırasında doğrulanıyor
+- kanal yetkisi server tarafında
+- Socket.IO event'leri hub kontrolünden geçiyor
+- bağlantı ömrü ve idle timeout sınırlı
+- session periyodik yeniden doğrulanıyor
+- replay batch sınırlı
+- yavaş istemci kapatılıyor
+- shutdown sırasında `hub.close()` çağrılıyor

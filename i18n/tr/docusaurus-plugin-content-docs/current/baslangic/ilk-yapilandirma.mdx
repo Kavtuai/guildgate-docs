@@ -1,0 +1,56 @@
+---
+title: İlk yapılandırma
+description: createGuildGate seçeneklerini, production korumalarını ve 1.1.0 reliability sınırlarını ayarla.
+---
+
+# İlk yapılandırma
+
+```ts
+const gate = createGuildGate({
+  app: {
+    name: "Discord Panelim",
+    environment: "production",
+    baseUrl: "https://panel.example.com",
+  },
+  owners: ["123456789012345678"],
+  locale: {default: "tr"},
+  security: {
+    allowedOrigins: ["https://panel.example.com"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+  transactions,
+  telemetry,
+  audit: {
+    enabled: true,
+    redactKeys: ["token", "secret", "authorization"],
+    failClosedActions: ["guild.billing.update"],
+  },
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
+});
+```
+
+## Production başlangıç korumaları
+
+Production profili HTTPS olmayan `baseUrl`, boş veya wildcard origin, loopback/unspecified/mapped-loopback URL, insecure session cookie ve yetersiz secret değerini reddeder. Discord OAuth endpoint ve callback adresleri de HTTPS olmalıdır.
+
+## Session sınırı
+
+Resmi memory, Redis ve PostgreSQL store'ları `maximumSessionsPerUser` değerini session oluşturma işlemi içinde uygular. Özel paylaşımlı store, `create(record, maximumSessionsPerUser)` ile atomik create-and-evict davranışı sağlamalıdır.
+
+HTTP adapter'ları süresi dolmuş veya iptal edilmiş session gördüğünde cookie temizleme metadata'sı döndürür.
+
+## Reliability ayarı
+
+`maximumLateSettlementMs`, response deadline sonrasında reservation ve lease sahipliğinin en fazla ne kadar tutulacağını belirler. Uygulama, destekleyen database ve HTTP istemcilerine `context.signal` aktarmalıdır.
+
+## Fail-closed audit
+
+`failClosedActions` içindeki action için audit ve idempotency etkin, transaction gerekli olmalı; audit store aynı transaction'a katılmalıdır.

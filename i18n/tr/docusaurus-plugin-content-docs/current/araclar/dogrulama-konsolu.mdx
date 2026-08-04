@@ -1,0 +1,102 @@
+---
+title: Doğrulama konsolu
+description: GuildGate dokümantasyonundaki güvenli tarayıcı konsoluyla action, config, store ve sürüm davranışlarını incele.
+---
+
+import CommandPlayground from '@site/src/components/CommandPlayground';
+
+# Doğrulama konsolu
+
+Bu konsol doküman içindeki izinli komutları çalıştırır. Shell başlatmaz, ağ isteği yapmaz, dosya sistemi veya kalıcı tarayıcı depolaması kullanmaz.
+
+<CommandPlayground />
+
+## Sürüm komutları
+
+```text
+version
+contracts
+exports
+```
+
+Beklenen çekirdek bilgileri:
+
+```text
+Package: @kavtuai/guildgate@1.1.1
+Adapter contract: 1.1
+Action contract: 1.0
+Realtime contract: 1.0
+Public export paths: 16
+CLI commands: 3
+```
+
+## Action kontrolü
+
+```text
+action test guild.settings.update
+action test guild.settings.update --origin deny
+action test guild.settings.update --session missing
+action test guild.settings.update --csrf invalid
+action test guild.settings.update --permission deny
+```
+
+Komutlar gerçek route veya Discord hesabına bağlanmaz. Kontrol sırasını ve üretilen kararlı sonucu belgelenmiş senaryolar üzerinden gösterir.
+
+## Store ve dayanıklılık
+
+```text
+store list
+store contract
+idempotency reservation
+transaction finality
+deadline settlement
+```
+
+`1.1.0` için şu davranışları inceleyebilirsin:
+
+- on store üyesi
+- reservation owner compare-and-set
+- atomik session cap
+- opak audit cursor
+- bounded outbox claim
+- commit sonrası callback ayrımı
+- bounded late settlement
+
+## Realtime
+
+```text
+realtime limits
+realtime transports
+realtime replay
+```
+
+WebSocket ve Socket.IO aynı inbound kontrol yolunu kullanır. SSE yalnızca server-to-client stream'dir ve bounded queue uygular.
+
+## CLI yardım özeti
+
+```text
+cli doctor
+cli writing-check
+cli migration
+```
+
+Kurulu paket üzerinde gerçek help çıktısını görmek için terminalde:
+
+```bash
+npx guildgate-doctor --help
+npx guildgate-writing-check --help
+npx guildgate-migration --help
+```
+
+## Güvenlik sınırı
+
+Konsol girdisi allowlist ile parse edilir. Şunlar desteklenmez:
+
+- keyfi JavaScript
+- `eval` veya dinamik fonksiyon
+- shell ve process komutu
+- HTTP/WebSocket bağlantısı
+- `localStorage` veya `sessionStorage`
+- secret/token girişi
+
+Gerçek config veya secret yapıştırma. Konsol yalnızca belge örnekleri içindir.

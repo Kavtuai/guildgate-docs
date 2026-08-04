@@ -1,0 +1,64 @@
+---
+title: Test ve yayın doğrulaması
+description: GuildGate 1.1.1 release kapısını, coverage, servis entegrasyonu, load regression ve packed consumer kontrollerini çalıştır.
+---
+
+# Test ve yayın doğrulaması
+
+Güncel paket release kapısı:
+
+```bash
+npm run release:verify
+```
+
+Bu zincir format ve metadata kontrolü, TypeScript type-check, temiz build, deterministik test, coverage eşiği, kaynak güvenlik kontrolü, secret kalıbı taraması, memory load regression ve packed tarball consumer denetimini çalıştırır.
+
+## Güncel yerel sonuç
+
+| Sonuç | Adet |
+| --- | ---: |
+| Test tanımı | 80 |
+| Dış servis olmadan geçen | 78 |
+| Başarısız | 0 |
+| Yerelde atlanan live-service testi | 2 |
+
+İki servis testi PostgreSQL ve Redis gerektirir. CI geçici PostgreSQL 17 ve Redis 8 servisleri açıp bu testleri ayrı çalıştırır.
+
+## Coverage
+
+| Ölçüm | Sonuç | Zorunlu eşik |
+| --- | ---: | ---: |
+| Satır | 86.45% | 80% |
+| Dal | 76.78% | 70% |
+| Fonksiyon | 78.31% | 70% |
+
+Coverage bir release kapısıdır; tek başına güvenlik garantisi değildir. Yüzdeyi yükseltmek için davranışsız assertion eklemek yerine yarış, sahiplik, rollback ve transport sınırlarını test et.
+
+## Load regression
+
+Release harness, 10 eşzamanlılıkla 5.000 korumalı memory yazımını sıfır hatayla tamamladı. Kaydedilen çalışmada yaklaşık 14.848 işlem/saniye, p50 0,57 ms, p95 1,32 ms ve p99 3,52 ms ölçüldü.
+
+Bu ölçüm network, PostgreSQL, Redis ve Discord gecikmesini içermez. Benzer donanımda regresyon karşılaştırması için kullanılır; production kapasite sözü değildir.
+
+## Packed consumer denetimi
+
+`npm run pack:inspect` gerçek npm tarball'ını üretir, içerik allowlist'ini denetler, lifecycle scriptleri kapalı boş bir projeye kurar, 16 public export yolunu import eder ve 3 CLI yardım komutunu çalıştırır.
+
+Güncel packed artifact 146 dosya ve yaklaşık 439 kB unpacked içerik taşır. Kaynak kod, test, workflow, `.env`, source map, checksum ve dahili inceleme raporu bulunursa kontrol başarısız olur.
+
+## Bağımlılık kurulumu ve audit
+
+CI commit edilmiş lockfile'ı kullanmalıdır:
+
+```bash
+npm ci --ignore-scripts
+npm audit --omit=dev
+```
+
+Production dependency audit şu anda sıfır zafiyet raporlar. Tam development audit de CI'da public npm audit endpoint'i üzerinden çalışmalıdır; npm audit API'sini sunmayan bir registry sonucu başarılı kabul edilemez.
+
+## Yayın
+
+GitHub release tag değeri, `v` ile paket sürümünün birleşimine eşit olmalıdır. Verify job tarball artifact üretir; publish job yalnızca bu artifact'i alır ve sürümün npm'de bulunmadığını doğruladıktan sonra npm Trusted Publishing/OIDC ile yayımlar.
+
+Repository ayarları ayrıca tamamlanmalıdır: `main` koruması, zorunlu CI ve CodeQL, tam repository/workflow kimliğine bağlı npm trusted publisher ve gerekiyorsa onay korumalı `npm` environment.

@@ -12,7 +12,7 @@ npm run dev
 İngilizce siteyi tek başına açmak için:
 
 ```bash
-npm run start:en
+npm run start
 ```
 
 Değişikliği göndermeden önce:
@@ -23,7 +23,7 @@ npm run validate
 
 ## İki dil kuralı
 
-`docs/` altında eklenen veya değiştirilen her sayfanın İngilizce karşılığı `i18n/en/docusaurus-plugin-content-docs/current/` altında aynı belge kimliğiyle bulunmalıdır. Kod alanları ve export adları çevrilmez; açıklama metni doğal biçimde yazılır.
+`docs/` altında eklenen veya değiştirilen her sayfanın Türkçe karşılığı `i18n/tr/docusaurus-plugin-content-docs/current/` altında aynı belge kimliğiyle bulunmalıdır. İngilizce kaynak belgeler `docs/` altında tutulur. Kod alanları ve export adları çevrilmez; açıklama metni doğal biçimde yazılır.
 
 ## Belge değişiklikleri
 

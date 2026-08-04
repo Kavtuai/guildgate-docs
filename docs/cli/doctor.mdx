@@ -1,13 +1,13 @@
 ---
 title: guildgate-doctor
-description: GuildGate yapılandırma, store, analitik ve production denetimlerini CLI ile çalıştır.
+description: Run GuildGate configuration, store, analytics, and production checks from the CLI.
 ---
 
 # `guildgate-doctor`
 
-Doctor komutu projedeki GuildGate ayarlarını ve çalışma ortamını denetler. Kaynak dosyalarını değiştirmez.
+The doctor command inspects GuildGate settings and the project environment. It does not modify source files.
 
-## Yardım
+## Help
 
 ```bash
 npx guildgate-doctor --help
@@ -23,49 +23,49 @@ Options:
   -h, --help  Show this help message.
 ```
 
-## Normal çıktı
+## Normal output
 
 ```bash
 npx guildgate-doctor
 ```
 
-İnsan tarafından okunabilir sonuç, kontrol adını ve durumunu gösterir. Başarısız kontroller process exit code'u başarısız yapar; CI bu kodu kullanmalıdır.
+Human-readable output shows each check and its status. Failed checks produce a non-zero process exit code, which CI should use.
 
-## JSON çıktı
+## JSON output
 
 ```bash
 npx guildgate-doctor --json > guildgate-doctor.json
 ```
 
-JSON çıktısını deployment artifact olarak saklayabilir veya pipeline policy adımında okuyabilirsin. Çıktıyı public loga göndermeden önce environment path ve yapılandırma ayrıntılarını incele.
+The JSON result can be retained as a deployment artifact or evaluated in a pipeline policy step. Review environment paths and configuration details before publishing it to public logs.
 
-## Kontrol alanları
+## Check areas
 
-Doctor sürüme ve mevcut dosyalara göre şu grupları inceler:
+Depending on the version and available files, doctor covers groups such as:
 
-- production URL/origin güvenliği
-- cookie ve session sınırları
-- store yetenekleri ve adapter sözleşmesi
-- transaction/audit yapılandırması
-- Redis/PostgreSQL seçimi
-- realtime ve analytics sınırları
-- release ve package metadata
+- production URL and origin security
+- cookie and session bounds
+- store capabilities and adapter contract
+- transaction and audit configuration
+- Redis and PostgreSQL selection
+- realtime and analytics bounds
+- release and package metadata
 
-Doctor başarılı olsa bile canlı PostgreSQL/Redis bağlantısını ve uygulamaya özel Discord yetkisini tek başına kanıtlamaz. CI'da service integration ve uygulama testleri ayrıca çalışmalıdır.
+A successful doctor run does not by itself prove live PostgreSQL or Redis connectivity or application-specific Discord authorization. Run service-integration and application tests in CI as well.
 
-## CI kullanımı
+## CI usage
 
 ```yaml
 - name: GuildGate doctor
   run: npx guildgate-doctor --json
 ```
 
-Deployment öncesi environment değişkenleri yüklendikten sonra çalıştır. Secret değerlerini komut satırı argümanı olarak verme.
+Run it after deployment environment variables are available. Do not pass secret values as command-line arguments.
 
-## Hata durumunda
+## Troubleshooting
 
-1. İlk başarısız kontrolü düzelt.
-2. Production ile staging environment dosyalarının karışmadığını doğrula.
-3. `package-lock.json` içindeki GuildGate sürümünü kontrol et.
-4. Custom store kullanıyorsan `runStoreContract()` sonucunu incele.
-5. Doctor'ı aynı environment ile tekrar çalıştır.
+1. Fix the first failed check.
+2. Verify production and staging environment files are not mixed.
+3. Check the GuildGate version in `package-lock.json`.
+4. For custom stores, inspect `runStoreContract()` results.
+5. Run doctor again with the same environment.

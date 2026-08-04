@@ -1,15 +1,15 @@
 ---
-title: Yetkilendirme ve kaynak sınırı
-description: Discord sunucu erişimi, bot izni, owner politikası ve kaynak kimliğini action sınırında doğrula.
+title: Authorization and resource boundary
+description: Verify Discord guild access, bot permissions, owner policy, and resource identity at the action boundary.
 ---
 
-# Yetkilendirme ve kaynak sınırı
+# Authorization and resource boundary
 
-Kimlik doğrulama kullanıcının kim olduğunu söyler; yetkilendirme hangi guild veya kaynağı değiştirebileceğini belirler. GuildGate bu kararı action yürütülürken uygulamaya bırakır.
+Authentication identifies the user; authorization decides which guild or resource they may change. GuildGate leaves that decision to the application during action execution.
 
-## Kaynağı sunucuda çöz
+## Resolve the resource on the server
 
-Route parametresi veya body içindeki `guildId` yalnızca bir adaydır. Kullanıcının Discord guild listesinde bulunduğunu ve gerekli izinlere sahip olduğunu sunucu tarafında doğrula.
+A `guildId` from route parameters or the request body is only a candidate. Verify on the server that the user belongs to the Discord guild and holds the required permission.
 
 ```ts
 resource: (input) => ({ type: "guild", id: input.guildId }),
@@ -30,33 +30,33 @@ authorize: async (context, input) => {
 },
 ```
 
-İstemciden gelen `isAdmin`, `owner`, rol veya permission alanını güven kaynağı olarak kullanma.
+Never treat client-provided `isAdmin`, `owner`, role, or permission fields as an authority source.
 
-## Kullanıcı ve bot izinlerini ayır
+## Separate user and bot permissions
 
-Bir action için iki ayrı koşul olabilir:
+An action may have two distinct requirements:
 
-- Kullanıcının ayarı değiştirme yetkisi
-- Botun Discord üzerinde işlemi yapma yetkisi
+- the user may change the setting
+- the bot may perform the Discord operation
 
-Kullanıcı yetkili olsa bile botun rolü hedef rolün altında kalıyorsa işlemi başlatma. Discord permission bitlerini `BigInt` olarak değerlendir.
+Even when the user is authorized, do not start an operation when the bot role is below the target role. Evaluate Discord permission bits as `BigInt`.
 
-## Yetkiyi yazma anında yenile
+## Refresh authorization at write time
 
-OAuth girişinde alınan guild listesi hızlı arayüz için cache'lenebilir; güvenlik kararı için action anında güncel veri kullanılmalıdır. Cache kullanıyorsan kısa TTL, explicit invalidation ve yetki kaybı testleri ekle.
+The guild list collected during OAuth may be cached for fast UI rendering, but the security decision should use current data at action time. When caching access data, use a short TTL, explicit invalidation, and permission-loss tests.
 
-## Owner politikası
+## Owner policy
 
-`owners` listesi uygulama bakım işlerini açabilir veya blok politikası yazabilir. Owner:
+The configured `owners` may change maintenance state or write block policies. An owner still:
 
-- origin kontrolünden geçer
-- oturum ve CSRF gereksinimini karşılar
-- rate limit'e tabidir
-- audit kaydı oluşturur
+- passes origin checks
+- satisfies session and CSRF requirements
+- is rate limited
+- creates audit records
 
-Owner olmak, başka bir kullanıcının normal action yetkisini otomatik olarak devralmak anlamına gelmez. Böyle bir davranış gerekiyorsa action içinde açık ve audit edilebilir bir kural yaz.
+Owner status does not automatically inherit another user's normal action permissions. When such behavior is required, add an explicit and auditable rule to the action.
 
-## Bakım ve bloklar
+## Maintenance and blocks
 
 ```ts
 await gate.owner.setMaintenance({
@@ -74,22 +74,22 @@ await gate.owner.block({
 await gate.owner.unblock("guild", guildId);
 ```
 
-Blok tipi `user`, `guild` veya `ip` olabilir. IP değerini audit/log politikanla uyumlu biçimde hashle veya daralt; ham kişisel veriyi gereksiz yere saklama.
+A block subject may be `user`, `guild`, or `ip`. Hash or narrow IP data according to the audit and logging policy; avoid retaining unnecessary raw personal data.
 
-## Yetki kaybı ve realtime
+## Permission loss and realtime
 
-Realtime aboneliği kurulurken kanal yetkisi doğrulanır. Uzun yaşayan bağlantıda session ve kanal erişimini periyodik olarak yeniden doğrula. Oturum iptal olayını worker'lar arasında yayınla ve ilgili bağlantıları kapat.
+Channel access is checked when a realtime subscription is opened. Revalidate session and channel access periodically for long-lived connections. Broadcast session revocation across workers and close matching connections.
 
-## Test matrisi
+## Test matrix
 
-Her korunan action için en az şu durumları test et:
+Test at least these cases for every guarded action:
 
-- oturum yok
-- oturum süresi dolmuş
-- yanlış origin veya CSRF
-- kullanıcı guild üyesi değil
-- kullanıcı izni yetersiz
-- bot izni yetersiz
-- kullanıcı yazma öncesi iznini kaybetmiş
-- bakım modu veya aktif blok
-- owner ve normal kullanıcı yolları
+- no session
+- expired session
+- invalid origin or CSRF
+- user is not a guild member
+- insufficient user permission
+- insufficient bot permission
+- permission removed immediately before the write
+- maintenance mode or active block
+- owner and normal-user paths

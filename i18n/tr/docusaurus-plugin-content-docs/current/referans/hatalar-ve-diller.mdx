@@ -1,0 +1,102 @@
+---
+title: Hatalar ve diller
+description: GuildGate hata kodlarını, HTTP durumlarını, retry bilgisini ve Türkçe-İngilizce mesajları güvenli biçimde işle.
+---
+
+# Hatalar ve diller
+
+GuildGate hata yanıtı kararlı bir kod, kullanıcı mesajı, HTTP durumu ve retry bilgisinden oluşur.
+
+```ts
+if (!result.ok) {
+  console.error({
+    requestId: result.meta.requestId,
+    code: result.error.code,
+    status: result.error.status,
+    retryable: result.error.retryable,
+  });
+}
+```
+
+## Yanıt biçimi
+
+```ts
+{
+  ok: false,
+  error: {
+    code: "revision_conflict",
+    message: "Kaynak başka bir işlem tarafından değiştirildi.",
+    status: 409,
+    retryable: false,
+    details: {
+      expected: 4,
+      current: 5,
+    },
+  },
+  meta: {
+    requestId: "...",
+    locale: "tr",
+  },
+}
+```
+
+`details` yalnızca istemci için güvenli alanları içermelidir. SQL, stack, token veya ham driver hatası döndürme.
+
+## Dil çözümü
+
+Request locale desteklenen biçime çevrilir; desteklenmeyen değer için config default'u kullanılır. Paket `tr` ve `en` mesajları içerir.
+
+```ts
+locale: {
+  default: "tr",
+  messages: {
+    tr: {
+      maintenance: "Panel kısa süreli bakımda.",
+    },
+  },
+}
+```
+
+Override anahtarı kararlı hata koduyla eşleşmelidir. Kod ile gösterilen mesajı birbirinden ayır; frontend mantığını çevrilmiş metne bağlama.
+
+## Önemli 1.1 hata alanları
+
+- deadline/timeout
+- idempotency conflict
+- idempotency reservation loss
+- revision conflict
+- lock/lease alınamaması
+- malformed audit cursor
+- origin veya CSRF reddi
+- session required/expired/revoked
+- maintenance veya policy block
+- realtime subscription/message sınırı
+
+Tam kod listesi için kurulu sürümün `errors.d.ts` ve runtime sonucunu esas al.
+
+## Retry kararı
+
+`retryable: true`, istemcinin hemen sınırsız tekrar yapması anlamına gelmez. İstemci:
+
+- `Retry-After` veya rate metadata'sını kullanmalı
+- exponential backoff uygulamalı
+- aynı idempotency key'i korumalı
+- kullanıcı etkileşimi gerektiren authorization hatasını tekrar etmemeli
+
+## Commit sonrası sorunlar
+
+Başarılı sonuçta `meta.postCommitIssues` bulunabilir. Bu durum domain yazımının başarısız olduğu anlamına gelmez. UI başarılı state'i göstermeli; server cache/realtime/audit tekrar yolunu işletmelidir.
+
+## Request ID
+
+Kullanıcıya destek kodu olarak `requestId` gösterilebilir. Aynı ID'yi application log, trace ve audit kaydında taşıyarak zinciri birleştir.
+
+## HTTP bağdaştırıcısı
+
+Resmi adapter'lar status ve cookie metadata'sını işler. Custom adapter:
+
+- status'u yalnızca bir kez yazmalı
+- error code'u değiştirmemeli
+- locale mesajını güvenli biçimde serializable hale getirmeli
+- `clearSessionCookie` ve replacement token'ları uygulamalı
+- server error cause'u istemciye sızdırmamalı

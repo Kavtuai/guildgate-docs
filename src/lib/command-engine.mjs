@@ -1,5 +1,10 @@
+import {releaseMetadata} from '../data/release-metadata.mjs';
 const MAX_COMMAND_LENGTH = 240;
 const MAX_COMMANDS_PER_MINUTE = 20;
+const MAX_TOKENS = 32;
+const MAX_TOKEN_LENGTH = 160;
+const MAX_FLAGS = 16;
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const BLOCKED_TOKENS = ['&&', '||', ';', '|', '>', '<', '`', '$(', '${', '\u0000'];
 const SECRET_PATTERNS = [
   /\b(?:ghp|gho|github_pat)_[A-Za-z0-9_]{16,}\b/u,
@@ -107,13 +112,43 @@ function line(text, tone = 'normal') {
 
 function tokenize(input) {
   const tokens = [];
-  const pattern = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^\s]+)/gu;
-  let match;
+  let current = '';
+  let quote = null;
+  let escaped = false;
 
-  while ((match = pattern.exec(input)) !== null) {
-    tokens.push((match[1] ?? match[2] ?? match[3]).replace(/\\(["'])/gu, '$1'));
+  for (const character of input) {
+    if (escaped) {
+      current += character;
+      escaped = false;
+      continue;
+    }
+    if (character === '\\' && quote) {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (character === quote) quote = null;
+      else current += character;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (/\s/u.test(character)) {
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+      continue;
+    }
+    current += character;
+    if (current.length > MAX_TOKEN_LENGTH) throw new Error('TOKEN_TOO_LONG');
   }
 
+  if (escaped || quote) throw new Error('UNTERMINATED_QUOTE');
+  if (current) tokens.push(current);
+  if (tokens.length > MAX_TOKENS) throw new Error('TOO_MANY_TOKENS');
   return tokens;
 }
 
@@ -129,12 +164,14 @@ function parseFlags(tokens) {
     }
 
     const name = token.slice(2);
+    if (flags.size >= MAX_FLAGS || DANGEROUS_KEYS.has(name) || !/^[a-z][a-z0-9-]{0,63}$/u.test(name)) throw new Error('INVALID_FLAG');
     const next = tokens[index + 1];
     if (!name || !next || next.startsWith('--')) {
       flags.set(name, true);
       continue;
     }
 
+    if (next.length > MAX_TOKEN_LENGTH) throw new Error('TOKEN_TOO_LONG');
     flags.set(name, next);
     index += 1;
   }
@@ -149,6 +186,7 @@ function rejectUnsafeInput(input, locale) {
   if (/\r|\n|\t/u.test(input)) return t.singleLine;
   if (BLOCKED_TOKENS.some((token) => input.includes(token))) return t.blockedSyntax;
   if (SECRET_PATTERNS.some((pattern) => pattern.test(input))) return t.secret;
+  if (/(?:^|\s)(?:__proto__|constructor|prototype)(?:\s|$|\.)/iu.test(input)) return locale === 'en' ? 'Unsafe object keys are not accepted.' : 'Güvensiz obje anahtarları kabul edilmez.';
   return null;
 }
 
@@ -234,7 +272,7 @@ function doctorOutput(locale, jsonMode) {
   const report = {
     ok: false,
     package: '@kavtuai/guildgate',
-    version: '1.1.0',
+    version: releaseMetadata.packageVersion,
     runtime: 'Node.js 22.x',
     profile: 'reference-production',
     checks: {
@@ -257,7 +295,7 @@ function doctorOutput(locale, jsonMode) {
   if (locale === 'en') {
     return [
       line(TEXT.en.doctorTitle, 'heading'),
-      line('✓ Package: @kavtuai/guildgate 1.1.0', 'success'),
+      line(`✓ Package: ${releaseMetadata.packageName} ${releaseMetadata.packageVersion}`, 'success'),
       line('✓ Runtime: Node.js 22.x', 'success'),
       line('✓ HTTPS base URL and exact origin list', 'success'),
       line('✓ Persistent sessions, Redis rate limits and Redis locks', 'success'),
@@ -268,7 +306,7 @@ function doctorOutput(locale, jsonMode) {
 
   return [
     line(TEXT.tr.doctorTitle, 'heading'),
-    line('✓ Paket: @kavtuai/guildgate 1.1.0', 'success'),
+    line(`✓ Paket: ${releaseMetadata.packageName} ${releaseMetadata.packageVersion}`, 'success'),
     line('✓ Çalışma ortamı: Node.js 22.x', 'success'),
     line('✓ HTTPS temel adres ve tam origin listesi', 'success'),
     line('✓ Kalıcı oturum, Redis istek sınırı ve Redis kilidi', 'success'),
@@ -555,15 +593,15 @@ function contractOutput(locale) {
   return locale === 'en'
     ? [
         line('Contract markers', 'heading'),
-        line('Adapter contract: 1.1', 'success'),
-        line('Action contract: 1.0', 'success'),
-        line('Realtime contract: 1.0', 'success'),
+        line(`Adapter contract: ${releaseMetadata.adapterContract}`, 'success'),
+        line(`Action contract: ${releaseMetadata.actionContract}`, 'success'),
+        line(`Realtime contract: ${releaseMetadata.realtimeContract}`, 'success'),
       ]
     : [
         line('Sözleşme işaretleri', 'heading'),
-        line('Adapter sözleşmesi: 1.1', 'success'),
-        line('Action sözleşmesi: 1.0', 'success'),
-        line('Realtime sözleşmesi: 1.0', 'success'),
+        line(`Adapter sözleşmesi: ${releaseMetadata.adapterContract}`, 'success'),
+        line(`Action sözleşmesi: ${releaseMetadata.actionContract}`, 'success'),
+        line(`Realtime sözleşmesi: ${releaseMetadata.realtimeContract}`, 'success'),
       ];
 }
 
@@ -721,7 +759,7 @@ export function executeCommand(rawInput, options = {}) {
       case 'examples':
         return commandResult(input, examplesOutput(locale));
       case 'version':
-        return commandResult(input, [line('@kavtuai/guildgate 1.1.0', 'success')]);
+        return commandResult(input, [line(`${releaseMetadata.packageName} ${releaseMetadata.packageVersion}`, 'success')]);
       case 'contracts':
         return commandResult(input, contractOutput(locale));
       case 'exports':
@@ -777,4 +815,7 @@ export function executeCommand(rawInput, options = {}) {
 export const commandEngineLimits = Object.freeze({
   maxCommandLength: MAX_COMMAND_LENGTH,
   maxCommandsPerMinute: MAX_COMMANDS_PER_MINUTE,
+  maxTokens: MAX_TOKENS,
+  maxTokenLength: MAX_TOKEN_LENGTH,
+  maxFlags: MAX_FLAGS,
 });

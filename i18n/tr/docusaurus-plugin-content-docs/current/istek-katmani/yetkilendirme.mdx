@@ -1,0 +1,95 @@
+---
+title: Yetkilendirme ve kaynak sınırı
+description: Discord sunucu erişimi, bot izni, owner politikası ve kaynak kimliğini action sınırında doğrula.
+---
+
+# Yetkilendirme ve kaynak sınırı
+
+Kimlik doğrulama kullanıcının kim olduğunu söyler; yetkilendirme hangi guild veya kaynağı değiştirebileceğini belirler. GuildGate bu kararı action yürütülürken uygulamaya bırakır.
+
+## Kaynağı sunucuda çöz
+
+Route parametresi veya body içindeki `guildId` yalnızca bir adaydır. Kullanıcının Discord guild listesinde bulunduğunu ve gerekli izinlere sahip olduğunu sunucu tarafında doğrula.
+
+```ts
+resource: (input) => ({ type: "guild", id: input.guildId }),
+
+authorize: async (context, input) => {
+  if (!context.userId) {
+    return { allowed: false, code: "session_required" };
+  }
+
+  const access = await discordAccess.resolveGuildAccess({
+    userId: context.userId,
+    guildId: input.guildId,
+  });
+
+  return access.canManage
+    ? { allowed: true }
+    : { allowed: false, code: "missing_manage_guild" };
+},
+```
+
+İstemciden gelen `isAdmin`, `owner`, rol veya permission alanını güven kaynağı olarak kullanma.
+
+## Kullanıcı ve bot izinlerini ayır
+
+Bir action için iki ayrı koşul olabilir:
+
+- Kullanıcının ayarı değiştirme yetkisi
+- Botun Discord üzerinde işlemi yapma yetkisi
+
+Kullanıcı yetkili olsa bile botun rolü hedef rolün altında kalıyorsa işlemi başlatma. Discord permission bitlerini `BigInt` olarak değerlendir.
+
+## Yetkiyi yazma anında yenile
+
+OAuth girişinde alınan guild listesi hızlı arayüz için cache'lenebilir; güvenlik kararı için action anında güncel veri kullanılmalıdır. Cache kullanıyorsan kısa TTL, explicit invalidation ve yetki kaybı testleri ekle.
+
+## Owner politikası
+
+`owners` listesi uygulama bakım işlerini açabilir veya blok politikası yazabilir. Owner:
+
+- origin kontrolünden geçer
+- oturum ve CSRF gereksinimini karşılar
+- rate limit'e tabidir
+- audit kaydı oluşturur
+
+Owner olmak, başka bir kullanıcının normal action yetkisini otomatik olarak devralmak anlamına gelmez. Böyle bir davranış gerekiyorsa action içinde açık ve audit edilebilir bir kural yaz.
+
+## Bakım ve bloklar
+
+```ts
+await gate.owner.setMaintenance({
+  enabled: true,
+  reason: "database migration",
+  allowOwners: true,
+});
+
+await gate.owner.block({
+  subjectType: "guild",
+  subjectId: guildId,
+  reason: "abuse investigation",
+});
+
+await gate.owner.unblock("guild", guildId);
+```
+
+Blok tipi `user`, `guild` veya `ip` olabilir. IP değerini audit/log politikanla uyumlu biçimde hashle veya daralt; ham kişisel veriyi gereksiz yere saklama.
+
+## Yetki kaybı ve realtime
+
+Realtime aboneliği kurulurken kanal yetkisi doğrulanır. Uzun yaşayan bağlantıda session ve kanal erişimini periyodik olarak yeniden doğrula. Oturum iptal olayını worker'lar arasında yayınla ve ilgili bağlantıları kapat.
+
+## Test matrisi
+
+Her korunan action için en az şu durumları test et:
+
+- oturum yok
+- oturum süresi dolmuş
+- yanlış origin veya CSRF
+- kullanıcı guild üyesi değil
+- kullanıcı izni yetersiz
+- bot izni yetersiz
+- kullanıcı yazma öncesi iznini kaybetmiş
+- bakım modu veya aktif blok
+- owner ve normal kullanıcı yolları

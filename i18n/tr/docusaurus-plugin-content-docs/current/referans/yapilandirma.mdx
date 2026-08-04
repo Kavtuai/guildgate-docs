@@ -1,0 +1,134 @@
+---
+title: Yapılandırma referansı
+description: GuildGate 1.1.0 GuildGateConfig alanlarını güvenli production varsayımlarıyla yapılandır.
+---
+
+# Yapılandırma referansı
+
+`createGuildGate()` yapılandırmayı başlangıçta doğrular. Hatalı origin, cookie, secret veya production URL ile process'in devam etmesine izin vermez.
+
+```ts
+const gate = createGuildGate({
+  app: {
+    name: "Fieldbot Dashboard",
+    environment: "production",
+    baseUrl: "https://dashboard.example.com",
+  },
+  owners: ["123456789012345678"],
+  locale: {
+    default: "tr",
+  },
+  security: {
+    allowedOrigins: ["https://dashboard.example.com"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 7 * 24 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+  transactions,
+  realtime,
+  telemetry,
+  audit: {
+    enabled: true,
+    redactKeys: ["webhookUrl"],
+    failClosedActions: ["guild.billing.update"],
+  },
+  reliability: {
+    maximumLateSettlementMs: 5 * 60_000,
+  },
+});
+```
+
+## `app`
+
+| Alan | Açıklama |
+| --- | --- |
+| `name` | Log, trace ve hata bağlamındaki uygulama adı |
+| `environment` | `development`, `test` veya `production` |
+| `baseUrl` | Uygulamanın public kök URL'si |
+
+Production `baseUrl` HTTPS olmalı ve loopback/unspecified host kullanmamalıdır.
+
+## `owners`
+
+Discord user ID listesi. Owner yalnızca owner service/action yetkisini alır; action güvenlik zincirini atlamaz.
+
+## `locale`
+
+- `default`: `tr` veya `en`
+- `messages`: kararlı hata kodları için uygulamaya özel çeviri override'ları
+
+Çeviride secret veya dahili exception ayrıntısı kullanma.
+
+## `security.allowedOrigins`
+
+Exact-origin listesi. Production'da en az bir origin gerekir ve tümü HTTPS/public host olmalıdır.
+
+## Secret alanları
+
+- `csrfSecret`: en az 32 byte
+- `auditIpSalt`: IP hash/pseudonymization için ayrı secret
+
+Aynı secret'ı iki amaç için kullanma. Environment içinde yeterli entropy ile üret.
+
+## Session
+
+| Alan | Koşul |
+| --- | --- |
+| `ttlMs` | Pozitif absolute TTL |
+| `idleTimeoutMs` | Pozitif idle sınırı |
+| `rotateAfterMs` | TTL'den önce rotation |
+| `maximumSessionsPerUser` | Store içinde atomik uygulanacak pozitif sınır |
+
+## Cookie
+
+İsteğe bağlı `security.cookie`:
+
+```ts
+cookie: {
+  name: "__Host-guildgate.sid",
+  path: "/",
+  secure: true,
+  sameSite: "Lax",
+  maxAgeSeconds: 604800,
+}
+```
+
+`__Host-` adı `Secure` ve `Path=/` gerektirir. Production varsayılanı bu adı kullanır.
+
+## `stores`
+
+On store'un tamamı zorunludur. `composeStores()` ile hazır paketleri birleştirebilirsin.
+
+## `transactions`
+
+`TransactionAdapter` optional görünür; transaction kullanan action ve fail-closed audit için gereklidir. Production yazmalarında domain store ile aynı backend/connection sınırına katılabilmelidir.
+
+## `realtime`
+
+Action'ın immediate realtime event'lerini alan `RealtimePublisher`. Outbox delivery kullanıldığında store/worker yolu ayrıca kurulur.
+
+## `telemetry`
+
+`TelemetryHooks` veya `createOpenTelemetryHooks()` sonucu. Exporter seçimi uygulamaya aittir.
+
+## `audit`
+
+- `enabled`: global audit varsayılanı
+- `redactKeys`: ek hassas alan adları
+- `failClosedActions`: audit yazımı commit için zorunlu action adları
+
+Fail-closed action idempotency ve required transaction kullanmalıdır.
+
+## `reliability.maximumLateSettlementMs`
+
+Deadline sonrasında underlying iş için reservation/lease sahipliğinin en fazla tutulacağı süre. Pozitif ve sınırlı değer kullan. Idempotency TTL ile birlikte planla.
+
+## `clock`
+
+Testlerde deterministik zaman için `Clock` override'ı. Production'da varsayılan `systemClock` yeterlidir; process saat senkronizasyonunu işletim sistemi seviyesinde koru.

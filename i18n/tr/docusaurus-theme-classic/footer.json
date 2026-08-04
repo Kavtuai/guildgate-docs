@@ -1,0 +1,66 @@
+{
+  "link.title.Start": {
+    "message": "Başlangıç",
+    "description": "Footer column Start"
+  },
+  "link.title.Build": {
+    "message": "Uygulama",
+    "description": "Footer column Build"
+  },
+  "link.title.Project": {
+    "message": "Proje",
+    "description": "Footer column Project"
+  },
+  "link.item.label.What is GuildGate?": {
+    "message": "GuildGate nedir?",
+    "description": "Footer item What is GuildGate?"
+  },
+  "link.item.label.Installation": {
+    "message": "Kurulum",
+    "description": "Footer item Installation"
+  },
+  "link.item.label.Five-minute setup": {
+    "message": "Beş dakikalık kurulum",
+    "description": "Footer item Five-minute setup"
+  },
+  "link.item.label.Example projects": {
+    "message": "Örnek projeler",
+    "description": "Footer item Example projects"
+  },
+  "link.item.label.Action layer": {
+    "message": "İşlem katmanı",
+    "description": "Footer item Action layer"
+  },
+  "link.item.label.Custom stores": {
+    "message": "Özel depolar",
+    "description": "Footer item Custom stores"
+  },
+  "link.item.label.Realtime access": {
+    "message": "Gerçek zamanlı erişim",
+    "description": "Footer item Realtime access"
+  },
+  "link.item.label.Verification console": {
+    "message": "Doğrulama konsolu",
+    "description": "Footer item Verification console"
+  },
+  "link.item.label.npm package": {
+    "message": "npm paketi",
+    "description": "Footer item npm package"
+  },
+  "link.item.label.Source code": {
+    "message": "Kaynak kodu",
+    "description": "Footer item Source code"
+  },
+  "link.item.label.Security reporting": {
+    "message": "Güvenlik bildirimi",
+    "description": "Footer item Security reporting"
+  },
+  "link.item.label.Contact": {
+    "message": "İletişim",
+    "description": "Footer item Contact"
+  },
+  "copyright": {
+    "message": "© 2026 GuildGate. MIT lisansı ile yayımlanır.",
+    "description": "The footer copyright"
+  }
+}

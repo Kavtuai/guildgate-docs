@@ -1,15 +1,15 @@
 ---
-title: Kilit, deadline, retry ve circuit breaker
-description: GuildGate 1.1.0 dayanıklılık araçlarını reservation, lease ve geç tamamlanma sınırlarıyla kullan.
+title: Locks, deadlines, retries, and circuit breakers
+description: Use GuildGate 1.1.0 reliability controls with bounded reservations, leases, and late settlement.
 ---
 
-# Kilit, deadline, retry ve circuit breaker
+# Locks, deadlines, retries, and circuit breakers
 
-Dayanıklılık ayarları hatayı gizlemek için değil, işlemin hangi sınırlar içinde tekrar edilebileceğini ve ne zaman duracağını belirlemek için kullanılır.
+Reliability settings do not hide failures. They define when work may repeat and where it must stop.
 
-## Dağıtık lease
+## Distributed lease
 
-Action içindeki `concurrency` alanı aynı kaynağa eşzamanlı yazmayı sınırlar:
+The action `concurrency` field limits concurrent writes to the same resource:
 
 ```ts
 concurrency: {
@@ -20,11 +20,11 @@ concurrency: {
 }
 ```
 
-`LockStore.acquireLease()` destekleniyorsa çekirdek bir fencing token üretir. Lease yenilemesi başarısız olduğunda sahiplik kaybedilmiş kabul edilir.
+When `LockStore.acquireLease()` is available, the kernel supplies a fencing token. A failed renewal is treated as lost ownership.
 
-### Fencing neden gerekli?
+### Why fencing is required
 
-Bir worker ağ duraklaması yaşarken lease süresi dolabilir. İkinci worker yeni lease ile yazmayı tamamladıktan sonra ilk worker geri dönebilir. Domain tablosu fencing token saklayıp yalnızca daha büyük token'ı kabul ederse eski worker'ın geç yazımı reddedilir.
+A worker may pause long enough for its lease to expire. A second worker can finish a write under a newer lease before the first worker resumes. If the domain table stores a fencing token and accepts only a greater token, the stale write is rejected.
 
 ```sql
 UPDATE guild_settings
@@ -39,9 +39,9 @@ WHERE guild_id = $3
 timeoutMs: 5_000
 ```
 
-`1.1.0`, underlying promise `AbortSignal` değerini dinlemese bile configured sınırda timeout sonucu döndürür. `DeadlineExceededError` içindeki `settlement` promise'i alttaki işlemin daha sonra nasıl sonuçlandığını gösterir.
+In `1.1.0`, the timeout result is returned at the configured boundary even when the underlying promise ignores `AbortSignal`. The `settlement` promise on `DeadlineExceededError` reports how that work eventually finishes.
 
-Uygulama kodu yine de sinyali dinlemelidir:
+Application code should still honor the signal:
 
 ```ts
 async execute(context, input) {
@@ -50,7 +50,7 @@ async execute(context, input) {
 }
 ```
 
-## Geç tamamlanma sınırı
+## Late-settlement bound
 
 ```ts
 reliability: {
@@ -58,9 +58,9 @@ reliability: {
 }
 ```
 
-Bu süre, HTTP deadline geçtikten sonra idempotency reservation ve lease sahipliğinin en fazla ne kadar korunacağını belirler. Sınırsız değer kullanma. Idempotency TTL, action deadline ve geç tamamlanma penceresinden uzun olmalıdır.
+This value limits how long idempotency reservation and lease ownership may be retained after the HTTP deadline. Do not use an unbounded value. The idempotency TTL should be longer than the action deadline plus the late-settlement window.
 
-Geç işlem commit ederse sonuç idempotency store'a yazılır ve sonraki aynı istek replay ile sonucu alabilir.
+When late work commits, the result is stored for idempotent replay so a later identical request can receive it.
 
 ## Retry
 
@@ -72,14 +72,14 @@ retry: {
 }
 ```
 
-Retry uygulanacak hata sınıfını dar tut. Validation, authorization, revision conflict ve reservation loss tekrar edilmemelidir.
+Keep the retryable error set narrow. Validation, authorization, revision conflict, and reservation loss should not be retried.
 
-Retry öncesinde şu soruları cevapla:
+Before enabling retries, answer:
 
-- Domain yazımı aynı idempotency key altında mı?
-- Harici API çağrısı kendi idempotency anahtarını kabul ediyor mu?
-- Lease aynı worker tarafından hâlâ tutuluyor mu?
-- Yeni deneme toplam deadline içinde mi?
+- Is the domain write under the same idempotency key?
+- Does the external API accept its own idempotency key?
+- Does this worker still own the lease?
+- Does the next attempt fit inside the total deadline?
 
 ## Circuit breaker
 
@@ -91,29 +91,31 @@ circuitBreaker: {
 }
 ```
 
-Breaker açıkken yeni çağrı hemen reddedilir. Bu, bozuk bir bağımlılığa sınırsız kuyruk oluşturmayı önler. Breaker anahtarını tenant veya endpoint sayısına göre gereksiz yüksek cardinality ile üretme.
+While open, the breaker rejects a new call immediately. This prevents an unavailable dependency from creating an unbounded queue. Do not create breaker keys with unnecessary tenant- or endpoint-level cardinality.
 
 ## Cache stampede
 
-`CacheManager`, cache miss sırasında yenilenebilir lease kullanabilir. Kilit meşgulse fallback loader çalışabilir. Fallback sonucu cache'e yazarken lease/fencing politikasını koru; aynı key için kontrolsüz paralel refresh başlatma.
+`CacheManager` can use a renewable lease for cache misses. A fallback loader may run while the lock is busy. Preserve the lease and fencing policy when writing the fallback result; do not start uncontrolled parallel refreshes for one key.
 
-## Hata gözlemi
+## Observability
 
-- timeout sayısı ve gerçek settlement süresi
-- retry sayısı
-- breaker state değişimi
-- lease acquire/renew/release hatası
+Measure:
+
+- timeout count and actual settlement duration
+- retry count
+- breaker state changes
+- lease acquire, renew, and release failures
 - reservation ownership loss
-- stale fencing write reddi
+- rejected stale fencing writes
 
-ölçülmelidir. Kullanıcıya kararlı hata kodu dönerken server logu `requestId` ve action adını taşımalıdır.
+Return a stable error code to the client while retaining `requestId` and action name in server logs.
 
-## Testler
+## Tests
 
-- işlem sinyali dinlemiyor ama yanıt deadline'da dönüyor
-- geç commit sonucu replay ediliyor
-- `maximumLateSettlementMs` sonunda sahiplik bırakılıyor
-- eski reservation yeni kaydı tamamlayamıyor
-- lease renewal kaybı action'ı durduruyor
-- stale fencing token SQL yazımı reddediliyor
-- breaker reset sonrası kontrollü deneme yapıyor
+- an operation ignores the signal but the response returns at the deadline
+- a late commit is available through replay
+- ownership is released after `maximumLateSettlementMs`
+- an old reservation cannot complete a newer record
+- lease-renewal loss stops the action
+- SQL rejects a stale fencing token
+- the breaker performs a controlled call after reset

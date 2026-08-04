@@ -1,23 +1,23 @@
 ---
-title: Özel store bağdaştırıcısı
-description: Farklı veri tabanı veya ORM üzerinde GuildGate 1.1 sözleşmesini doğru atomiklikle uygula.
+title: Custom store adapter
+description: Implement the GuildGate 1.1 contract on another database or ORM with correct atomic behavior.
 ---
 
-# Özel store bağdaştırıcısı
+# Custom store adapter
 
-Hazır PostgreSQL veya Redis adapter'ı kullanmıyorsan `GuildGateStores` sözleşmesini kendi veri katmanına bağlayabilirsin. Amaç yalnızca TypeScript imzasını karşılamak değil, yarış koşullarındaki davranışı korumaktır.
+When the official PostgreSQL or Redis adapters are not used, `GuildGateStores` can be mapped to the application's data layer. The goal is not only to satisfy TypeScript signatures but also to preserve behavior under races.
 
-## Başlangıç yaklaşımı
+## Starting approach
 
-1. `GuildGateStores` içindeki on üyeyi envantere çıkar.
-2. Her işlem için atomiklik ve TTL gereksinimini yaz.
-3. Backend'in transaction, compare-and-set ve lease araçlarını seç.
-4. `runStoreContract()` ile ortak davranışı test et.
-5. Çoklu worker yarış testleri ekle.
+1. Inventory the ten `GuildGateStores` members.
+2. Record atomicity and TTL requirements for every operation.
+3. Choose transaction, compare-and-set, and lease primitives from the backend.
+4. Run `runStoreContract()` for shared behavior.
+5. Add multi-worker race tests.
 
-## Geri uyum yerine 1.1 davranışı
+## Prefer 1.1 behavior over compatibility fallback
 
-Bazı yöntemler optional görünür:
+Several methods are optional:
 
 - `SessionStore.create`
 - `IdempotencyStore.renew`
@@ -26,30 +26,30 @@ Bazı yöntemler optional görünür:
 - `AuditStore.listPage`
 - `OutboxStore.claim`
 
-Bu optional alanlar eski store'ların derlenmesini sürdürür. Production custom store'da `1.1.0` güvenilirlik davranışı için bunları uygulaman önerilir.
+They are optional so older stores still compile. A production custom store should implement them to provide the `1.1.0` reliability behavior.
 
-## ORM sınırı
+## ORM boundary
 
-ORM'nin `upsert` yöntemi her zaman gereken compare-and-set garantisini sağlamaz. Üretilen SQL'i incele. Idempotency complete örneğinde reservation ve state predicate'i yoksa eski worker yeni kaydı bozabilir.
+An ORM `upsert` does not always provide the compare-and-set guarantee you need. Inspect generated SQL. If idempotency completion lacks reservation and state predicates, an old worker can corrupt a newer record.
 
-## TTL temizliği
+## TTL cleanup
 
-Store şu iki davranışı ayırmalıdır:
+Separate these behaviors:
 
-- okuma sırasında süresi dolmuş kaydı geçersiz sayma
-- fiziksel retention/cleanup ile kaydı silme
+- treat an expired record as invalid during reads
+- physically remove records through retention or cleanup
 
-Cleanup görevi gecikse bile güvenlik kararı expiry değerine göre verilmelidir.
+A delayed cleanup job must not change security decisions; those must use the expiry value.
 
 ## Serialization
 
-Audit `changes`, cache value ve idempotency response gibi `unknown` alanları sınırlandır. Circular nesne, çok büyük payload ve prototype'a özel değerler backend'e geçmeden reddedilmeli veya güvenli JSON biçimine dönüştürülmelidir.
+Bound `unknown` fields such as audit `changes`, cache values, and idempotency responses. Reject or safely serialize circular objects, oversized payloads, and prototype-specific values before they reach the backend.
 
-## Transaction katılımı
+## Transaction participation
 
-Fail-closed audit ve transactional outbox için custom store, action'ın transaction scope'unu kullanabilmelidir. Audit başka bağlantıda yazılıyorsa domain commit'iyle atomik değildir.
+For fail-closed audit and transactional outbox, a custom store must enlist in the action's transaction scope. Audit written on another connection is not atomic with the domain commit.
 
-## Contract testine eklenmesi gerekenler
+## Contract test setup
 
 ```ts
 import {
@@ -59,19 +59,19 @@ import {
 
 console.log(adapterContractVersion); // 1.1
 const report = await runStoreContract(() => createIsolatedStores());
-if (!report.passed) throw new Error("Store sözleşmesi başarısız");
+if (!report.passed) throw new Error("Store contract failed");
 ```
 
-Uygulamaya özel testler:
+Application-specific tests:
 
-- 50 eşzamanlı rate-limit hit
-- aynı kullanıcı için eşzamanlı session create
-- lease expiry anında iki owner
-- reservation TTL sonrasında geç complete
-- audit cursor sınırında aynı timestamp'e sahip kayıtlar
-- outbox worker çöküşü ve claim recovery
-- cache tag değişimi sırasında invalidation
+- 50 concurrent rate-limit hits
+- concurrent session creation for one user
+- two lease owners at the expiry boundary
+- late completion after reservation TTL
+- audit records with the same timestamp at a cursor boundary
+- outbox worker crash and claim recovery
+- invalidation while a cache entry changes tags
 
-## Sürümleme
+## Versioning
 
-Store paketini bağımsız yayımlıyorsan desteklediği GuildGate adapter contract sürümünü package metadata ve README'de belirt. Contract `1.1` değişikliklerini uygulamadan paketi 1.1 uyumlu olarak işaretleme.
+When publishing the store adapter separately, state its supported GuildGate adapter-contract version in package metadata and documentation. Do not mark it as 1.1 compatible before implementing the contract changes.
