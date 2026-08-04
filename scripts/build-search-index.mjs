@@ -87,7 +87,7 @@ for (const target of targets) {
   const files = walk(target.root).filter((file) => /\.mdx?$/u.test(file)).sort();
   for (const file of files) {
     const relative = path.relative(target.root, file).replaceAll(path.sep, '/').replace(/\.mdx?$/u, '');
-    const source = fs.readFileSync(file, 'utf8');
+    const source = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/u, '').replace(/\r\n?/gu, '\n');
     const {body, data} = readFrontmatter(source);
     const headings = [...body.matchAll(/^#{2,3}\s+(.+)$/gmu)].map((match) => cleanMarkdown(match[1])).filter(Boolean);
     const title = data.title || cleanMarkdown(body.match(/^#\s+(.+)$/mu)?.[1] ?? relative.split('/').at(-1));

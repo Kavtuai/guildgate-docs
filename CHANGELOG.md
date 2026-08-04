@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — 2026-08-04
+
+- Patched all open transitive dependency advisories through exact npm overrides and a regenerated lockfile.
+- Made frontmatter and search-index checks portable across LF and CRLF checkouts.
+- Added deterministic line-ending rules for generated and source documentation files.
+- Corrected production verification for the legacy English redirect and external response-header boundary.
+
 ## 0.4.0 — 2026-08-03
 
 - English is now the default locale at `/`; Turkish remains available under `/tr/`.

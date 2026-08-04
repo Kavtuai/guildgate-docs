@@ -8,7 +8,11 @@ const requiredHeaders = [
 ];
 
 async function get(route, options = {}) {
-  const response = await fetch(`${base}${route}`, options);
+  const separator = route.includes('?') ? '&' : '?';
+  const response = await fetch(`${base}${route}${separator}verify=${Date.now()}`, {
+    cache: 'no-store',
+    ...options,
+  });
   return {response, html: await response.text()};
 }
 
@@ -18,29 +22,61 @@ for (const [route, lang] of [['/', 'en'], ['/tr/', 'tr']]) {
   if (!new RegExp(`<html[^>]+lang=["']${lang}["']`, 'iu').test(html)) {
     throw new Error(`${route}: expected html lang ${lang}`);
   }
-  for (const marker of ['hreflang="en"', 'hreflang="tr"', 'hreflang="x-default"', 'rel="canonical"']) {
+  for (const marker of [
+    'hreflang="en"',
+    'hreflang="tr"',
+    'hreflang="x-default"',
+    'rel="canonical"',
+    '1.1.1',
+  ]) {
     if (!html.includes(marker)) throw new Error(`${route}: ${marker} missing`);
   }
-  if (route === '/') {
-    const missing = requiredHeaders.filter((name) => !response.headers.has(name));
-    if (missing.length) {
-      throw new Error(`Production header layer is incomplete: ${missing.join(', ')}`);
-    }
-  }
 }
 
-const legacy = await fetch(`${base}/en/docs/giris`, {redirect: 'manual'});
-if (![301, 302, 307, 308].includes(legacy.status)) {
-  throw new Error(`/en/docs/giris: expected redirect, received HTTP ${legacy.status}`);
-}
-const location = legacy.headers.get('location') ?? '';
-if (!location.endsWith('/docs/giris')) {
-  throw new Error(`/en/docs/giris: unexpected location ${location}`);
+const legacyNoSlash = await fetch(`${base}/en/docs/giris`, {
+  redirect: 'manual',
+  cache: 'no-store',
+});
+if (
+  legacyNoSlash.status !== 200 &&
+  ![301, 302, 307, 308].includes(legacyNoSlash.status)
+) {
+  throw new Error(`/en/docs/giris: unexpected HTTP ${legacyNoSlash.status}`);
 }
 
-for (const route of ['/docs/araclar/dogrulama-konsolu', '/tr/docs/araclar/dogrulama-konsolu']) {
-  const response = await fetch(`${base}${route}`, {redirect: 'follow'});
+const legacy = await get('/en/docs/giris/', {redirect: 'follow'});
+if (!legacy.response.ok) {
+  throw new Error(`/en/docs/giris/: HTTP ${legacy.response.status}`);
+}
+if (
+  !legacy.html.includes('/docs/giris') ||
+  !/http-equiv=["']refresh["']|window\.location|location\.replace|location\.href/iu.test(legacy.html)
+) {
+  throw new Error('/en/docs/giris/: static redirect output is invalid');
+}
+
+for (const route of [
+  '/docs/araclar/dogrulama-konsolu',
+  '/tr/docs/araclar/dogrulama-konsolu',
+]) {
+  const {response} = await get(route, {redirect: 'follow'});
   if (!response.ok) throw new Error(`${route}: HTTP ${response.status}`);
 }
 
-console.log(`Production verification passed: ${base}`);
+const releaseNotes = await get('/docs/surum-notlari', {redirect: 'follow'});
+if (!releaseNotes.response.ok || !releaseNotes.html.includes('Documentation site 0.4.1')) {
+  throw new Error('/docs/surum-notlari: documentation version 0.4.1 is missing');
+}
+
+const root = await get('/', {redirect: 'follow'});
+const missingHeaders = requiredHeaders.filter(
+  (name) => !root.response.headers.has(name),
+);
+
+console.log(JSON.stringify({
+  production: base,
+  packageVersion: '1.1.1',
+  docsVersion: '0.4.1',
+  content: 'passed',
+  missingResponseHeaders: missingHeaders,
+}));

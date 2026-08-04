@@ -1,6 +1,6 @@
 ---
 title: Sürüm notları
-description: GuildGate 1.1.1 ve doküman sitesi 0.4.0 değişikliklerini, uyumluluğu ve doğrulama sonuçlarını izle.
+description: GuildGate 1.1.1 ve doküman sitesi 0.4.1 değişikliklerini, uyumluluğu ve doğrulama sonuçlarını izle.
 ---
 
 # Sürüm notları
@@ -45,6 +45,13 @@ Bu bir patch sürümüdür. Adapter contract `1.1`, action contract `1.0` ve rea
 - Outbox claim lease, batch ve dispatch concurrency değerleri sınırlandı.
 
 `1.0.0` → `1.1.x` adapter değişiklikleri için [geçiş ve sürümleme](./referans/gecis-ve-surumleme.mdx) sayfasını kullan.
+
+## Doküman sitesi 0.4.1
+
+- Dependency override kayıtları, Docusaurus public yapılandırmasını değiştirmeden `brace-expansion`, `fast-uri`, `serialize-javascript` ve `uuid` için düzeltilmiş geçişli sürümleri sabitler.
+- Doküman okuyucuları frontmatter ve arama dizini işlemeden önce UTF-8 BOM, LF ve CRLF girdilerini normalize eder.
+- Üretilen arama verisi Windows ve Linux checkout'larında LF satır sonuyla korunur.
+- Production doğrulaması canlı içerik kontrollerini, Pages ve js.org katmanının yönettiği response header'lardan ayrı raporlar.
 
 ## Doküman sitesi 0.4.0
 
