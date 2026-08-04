@@ -1,6 +1,6 @@
 {
   "name": "guildgate-docs",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "English-first documentation for GuildGate 1.1.1 with Turkish locale support",
   "scripts": {
@@ -47,5 +47,11 @@
     "type": "git",
     "url": "git+https://github.com/Kavtuai/guildgate-docs.git"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "brace-expansion": "1.1.18",
+    "fast-uri": "3.1.5",
+    "serialize-javascript": "7.0.5",
+    "uuid": "11.1.1"
+  }
 }

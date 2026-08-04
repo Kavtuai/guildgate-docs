@@ -4,5 +4,5 @@ export const releaseMetadata = Object.freeze({
   adapterContract: '1.1',
   actionContract: '1.0',
   realtimeContract: '1.0',
-  docsVersion: '0.4.0',
+  docsVersion: '0.4.1',
 });

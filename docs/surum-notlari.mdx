@@ -1,6 +1,6 @@
 ---
 title: Release notes
-description: Track GuildGate 1.1.1 and documentation site 0.4.0 changes, compatibility, and verification results.
+description: Track GuildGate 1.1.1 and documentation site 0.4.1 changes, compatibility, and verification results.
 ---
 
 # Release notes
@@ -45,6 +45,13 @@ This is a patch release. Adapter contract `1.1`, action contract `1.0`, and real
 - Outbox claim leases, batch size, and dispatch concurrency were bounded.
 
 See [migration and versioning](./referans/gecis-ve-surumleme.mdx) for the `1.0.0` to `1.1.x` adapter changes.
+
+## Documentation site 0.4.1
+
+- Dependency overrides pin patched transitive versions of `brace-expansion`, `fast-uri`, `serialize-javascript`, and `uuid` without changing the Docusaurus public configuration.
+- Documentation readers normalize UTF-8 BOM, LF, and CRLF input before frontmatter and search-index processing.
+- Generated search data is kept on LF line endings across Windows and Linux checkouts.
+- Production verification distinguishes live content checks from response headers controlled by the external Pages and js.org layer.
 
 ## Documentation site 0.4.0
 
