@@ -1,0 +1,77 @@
+---
+title: Özel store bağdaştırıcısı
+description: Farklı veri tabanı veya ORM üzerinde GuildGate 1.1 sözleşmesini doğru atomiklikle uygula.
+---
+
+# Özel store bağdaştırıcısı
+
+Hazır PostgreSQL veya Redis adapter'ı kullanmıyorsan `GuildGateStores` sözleşmesini kendi veri katmanına bağlayabilirsin. Amaç yalnızca TypeScript imzasını karşılamak değil, yarış koşullarındaki davranışı korumaktır.
+
+## Başlangıç yaklaşımı
+
+1. `GuildGateStores` içindeki on üyeyi envantere çıkar.
+2. Her işlem için atomiklik ve TTL gereksinimini yaz.
+3. Backend'in transaction, compare-and-set ve lease araçlarını seç.
+4. `runStoreContract()` ile ortak davranışı test et.
+5. Çoklu worker yarış testleri ekle.
+
+## Geri uyum yerine 1.1 davranışı
+
+Bazı yöntemler optional görünür:
+
+- `SessionStore.create`
+- `IdempotencyStore.renew`
+- `LockStore.acquireLease`
+- `LockStore.renew`
+- `AuditStore.listPage`
+- `OutboxStore.claim`
+
+Bu optional alanlar eski store'ların derlenmesini sürdürür. Production custom store'da `1.1.0` güvenilirlik davranışı için bunları uygulaman önerilir.
+
+## ORM sınırı
+
+ORM'nin `upsert` yöntemi her zaman gereken compare-and-set garantisini sağlamaz. Üretilen SQL'i incele. Idempotency complete örneğinde reservation ve state predicate'i yoksa eski worker yeni kaydı bozabilir.
+
+## TTL temizliği
+
+Store şu iki davranışı ayırmalıdır:
+
+- okuma sırasında süresi dolmuş kaydı geçersiz sayma
+- fiziksel retention/cleanup ile kaydı silme
+
+Cleanup görevi gecikse bile güvenlik kararı expiry değerine göre verilmelidir.
+
+## Serialization
+
+Audit `changes`, cache value ve idempotency response gibi `unknown` alanları sınırlandır. Circular nesne, çok büyük payload ve prototype'a özel değerler backend'e geçmeden reddedilmeli veya güvenli JSON biçimine dönüştürülmelidir.
+
+## Transaction katılımı
+
+Fail-closed audit ve transactional outbox için custom store, action'ın transaction scope'unu kullanabilmelidir. Audit başka bağlantıda yazılıyorsa domain commit'iyle atomik değildir.
+
+## Contract testine eklenmesi gerekenler
+
+```ts
+import {
+  adapterContractVersion,
+  runStoreContract,
+} from "@kavtuai/guildgate/contracts";
+
+console.log(adapterContractVersion); // 1.1
+const report = await runStoreContract(() => createIsolatedStores());
+if (!report.passed) throw new Error("Store sözleşmesi başarısız");
+```
+
+Uygulamaya özel testler:
+
+- 50 eşzamanlı rate-limit hit
+- aynı kullanıcı için eşzamanlı session create
+- lease expiry anında iki owner
+- reservation TTL sonrasında geç complete
+- audit cursor sınırında aynı timestamp'e sahip kayıtlar
+- outbox worker çöküşü ve claim recovery
+- cache tag değişimi sırasında invalidation
+
+## Sürümleme
+
+Store paketini bağımsız yayımlıyorsan desteklediği GuildGate adapter contract sürümünü package metadata ve README'de belirt. Contract `1.1` değişikliklerini uygulamadan paketi 1.1 uyumlu olarak işaretleme.

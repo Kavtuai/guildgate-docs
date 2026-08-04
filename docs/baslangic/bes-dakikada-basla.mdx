@@ -1,16 +1,16 @@
 ---
-title: Beş dakikada başla
-description: Memory store ve transaction adapter ile ilk GuildGate 1.1.0 action'ını çalıştır.
+title: Start in five minutes
+description: Run the first GuildGate 1.1.1 action with memory stores and a transaction adapter.
 ---
 
-# Beş dakikada başla
+# Start in five minutes
 
-Bu örnek geliştirme ve test içindir. Memory store'lar süreç kapanınca temizlenir.
+This setup is for development and tests. Memory stores are cleared when the process exits.
 
 ```env
 BOT_OWNER_ID=123456789012345678
-GUILDGATE_CSRF_SECRET=uzun-rastgele-csrf-sirri
-GUILDGATE_AUDIT_IP_SALT=csrf-sirrindan-farkli-uzun-salt
+GUILDGATE_CSRF_SECRET=a-long-random-csrf-secret
+GUILDGATE_AUDIT_IP_SALT=a-different-long-audit-salt
 ```
 
 ```ts
@@ -24,12 +24,12 @@ const stores = createMemoryStoreBundle();
 
 export const gate = createGuildGate({
   app: {
-    name: "Discord Panelim",
+    name: "My Discord Dashboard",
     environment: "development",
     baseUrl: "http://localhost:3000",
   },
   owners: [process.env.BOT_OWNER_ID!],
-  locale: {default: "tr"},
+  locale: {default: "en"},
   security: {
     allowedOrigins: ["http://localhost:3000"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -47,7 +47,7 @@ export const gate = createGuildGate({
 });
 ```
 
-## İlk action
+## First action
 
 ```ts
 let revision = 1;
@@ -78,7 +78,7 @@ export const updateGuildSettings = gate.action({
 });
 ```
 
-Fastify bağlantısı:
+Fastify connection:
 
 ```ts
 import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
@@ -94,4 +94,4 @@ app.patch(
 );
 ```
 
-Üretimde memory store'ları kalıcı ve paylaşılan adapter'larla değiştir; HTTPS, session revoke, deadline, idempotent replay ve realtime reconnect senaryolarını staging ortamında doğrula.
+In production, replace memory stores with durable and shared adapters. Verify HTTPS, session revocation, deadlines, idempotent replay, and realtime reconnect in staging.

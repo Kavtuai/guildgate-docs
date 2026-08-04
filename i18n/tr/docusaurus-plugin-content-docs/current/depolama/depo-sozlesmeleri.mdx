@@ -1,0 +1,79 @@
+---
+title: Store sözleşmeleri
+description: GuildGate 1.1 store sözleşmelerini custom backend için atomiklik ve sahiplik kurallarıyla uygula.
+---
+
+# Store sözleşmeleri
+
+GuildGate backend'i bir ORM'e bağlamaz. Uygulama `GuildGateStores` içindeki on sözleşmeyi doğrudan veya hazır adapter'larla sağlar.
+
+## Sözleşme sürümü
+
+`adapterContractVersion` değeri `1.1`'dir. Action ve realtime sözleşmeleri `1.0` olarak kalır. Custom store, uyguladığı adapter sözleşmesini kaydetmeli ve CI'da `runStoreContract()` çalıştırmalıdır.
+
+```ts
+import { runStoreContract } from "@kavtuai/guildgate/contracts";
+
+const report = await runStoreContract(() => createCustomStores());
+if (!report.passed) process.exitCode = 1;
+```
+
+## Atomiklik gerektiren işlemler
+
+| Store | Zorunlu davranış |
+| --- | --- |
+| `OAuthStateStore.consume` | Oku ve sil tek işlem olmalı |
+| `RateLimitStore.hit` | Sayaç/pencere atomik olmalı |
+| `SessionStore.create` | Ekleme ve kullanıcı sınırı birlikte uygulanmalı |
+| `IdempotencyStore.begin` | Key, hash, state ve reservation tek kararda değerlendirilmeli |
+| `IdempotencyStore.complete/fail/renew` | Reservation owner compare-and-set uygulanmalı |
+| `LockStore.release/renew` | Yalnızca token sahibi değiştirebilmeli |
+| `CacheStore.set/deleteByTags` | Entry ve tag indeksleri tutarlı güncellenmeli |
+| `OutboxStore.claim` | Aynı kayıt iki worker'a aynı lease içinde verilmemeli |
+
+## Idempotency owner token
+
+`reservationId`, inflight kaydın sahibidir. SQL örneğinde update predicate'i key yanında reservation ve state'i de kontrol etmelidir:
+
+```sql
+UPDATE guildgate_idempotency
+SET state = 'completed', response = $1, expires_at_ms = $2
+WHERE key = $3
+  AND reservation_id = $4
+  AND state = 'inflight';
+```
+
+Etkilenen satır sayısı sıfırsa sahiplik kaybedilmiştir. Key üzerinden koşulsuz delete yapma.
+
+## Session cap
+
+Paylaşımlı store, yeni oturumu eklerken en eski fazla oturumları aynı serialized işlem içinde silmelidir. Tek process memory store bu davranışı kolayca sağlar; SQL için transaction/advisory lock, Redis için Lua veya eşdeğer atomik komut kullan.
+
+## Audit cursor
+
+`AuditStore.listPage()` opak cursor alır ve `{ items, nextCursor }` döndürür. Kararlı sıralama:
+
+```text
+createdAt DESC, id DESC
+```
+
+Cursor'ı istemciye açma veya düzenlenebilir offset olarak kullanma. Bozuk cursor girdi hatası üretmelidir.
+
+## Outbox claim
+
+`claim(limit, workerId, leaseMs)` kayıtları sınırlı batch halinde lease eder. Worker çökünce lease süresi dolmalı ve kayıt başka worker tarafından alınabilmelidir. `markFailed` içine yazılan publisher hatasını temizle ve sınırla.
+
+## Hata sözleşmesi
+
+Store hataları secret veya ham driver nesnesi sızdırmamalıdır. Retryable bağlantı hatası ile invariant ihlalini ayır. Action çekirdeğinin kararlı GuildGate hata koduna çevirebilmesi için error cause bilgisini server logunda koru.
+
+## Test alanları
+
+- yarışan `consume`
+- aynı idempotency key için farklı body hash'i
+- reservation kaybı
+- lease renew/release owner kontrolü
+- session cap altında eşzamanlı login
+- cache retag ve stale tag temizliği
+- audit cursor ile eksiksiz traversal
+- outbox claim lease bitişi

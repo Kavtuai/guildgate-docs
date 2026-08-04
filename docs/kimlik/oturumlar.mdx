@@ -1,13 +1,13 @@
 ---
-title: Oturumlar
-description: Opak session token, rotation, kullanıcı başına atomik sınır ve iptal davranışını GuildGate 1.1.0 ile uygula.
+title: Sessions
+description: Implement opaque session tokens, rotation, atomic per-user caps, and revocation with GuildGate 1.1.0.
 ---
 
-# Oturumlar
+# Sessions
 
-GuildGate tarayıcıya opak bir session token verir; store'da yalnızca token hash'i tutulur. CSRF token aynı session kimliğine bağlanır.
+GuildGate sends an opaque session token to the browser and stores only its hash. The CSRF token is bound to the same session identity.
 
-## Oturum oluşturma
+## Creating a session
 
 ```ts
 const created = await gate.createSession({
@@ -21,16 +21,16 @@ const created = await gate.createSession({
 reply.header("Set-Cookie", created.setCookie);
 ```
 
-Dönen değerler:
+The result contains:
 
-- `session`: store'a yazılan kayıt
-- `sessionToken`: yalnızca istemciye verilecek opak değer
-- `csrfToken`: state-changing isteklerde kullanılacak token
-- `setCookie`: güvenli cookie başlığı
+- `session`: the record written to the store
+- `sessionToken`: the opaque value sent only to the client
+- `csrfToken`: the token used by state-changing requests
+- `setCookie`: the secure cookie header
 
-## Süreler
+## Time limits
 
-`security.session` dört sınır içerir:
+`security.session` contains four bounds:
 
 ```ts
 session: {
@@ -41,18 +41,18 @@ session: {
 }
 ```
 
-- `ttlMs`: kesin bitiş süresi
-- `idleTimeoutMs`: etkinlik olmazsa bitiş
-- `rotateAfterMs`: token yenileme zamanı
-- `maximumSessionsPerUser`: aynı kullanıcıya ait aktif oturum sınırı
+- `ttlMs`: absolute expiry
+- `idleTimeoutMs`: expiry after inactivity
+- `rotateAfterMs`: token rotation point
+- `maximumSessionsPerUser`: active-session cap for one user
 
-TTL ve idle sürelerini yalnızca cookie süresine bırakma; store kaydı üzerinden doğrula.
+Do not rely only on cookie expiry; validate the store record.
 
-## Atomik kullanıcı sınırı
+## Atomic per-user cap
 
-`1.1.0` resmi memory, Redis ve PostgreSQL store'larında session ekleme ile eski session silmeyi tek store işlemi içinde uygular.
+In `1.1.0`, the official memory, Redis, and PostgreSQL stores insert a session and evict excess sessions inside one store operation.
 
-Custom paylaşımlı store için şu imzayı uygula:
+Implement this signature for a shared custom store:
 
 ```ts
 interface SessionStore {
@@ -60,46 +60,46 @@ interface SessionStore {
 }
 ```
 
-`listByUser()` ardından ayrı `delete()` çağrıları çoklu instance ortamında yarış koşulu oluşturabilir. `create()` desteklenmiyorsa çekirdek geriye uyumlu yolu kullanır; production store'da atomik uygulama tercih edilmelidir.
+Calling `listByUser()` followed by separate `delete()` operations creates a race in multi-instance deployments. The kernel keeps a compatibility path when `create()` is absent, but an atomic implementation is preferred for production stores.
 
 ## Rotation
 
-Oturum rotation eşiğine gelince action metadata'sında yeni session ve CSRF token'ları dönebilir. HTTP bağdaştırıcısı replacement token'ı cookie'ye yazmalı, istemci de yeni CSRF değerini kullanmalıdır.
+When the session reaches its rotation threshold, action metadata may contain replacement session and CSRF tokens. The HTTP adapter must write the replacement cookie and the client must use the new CSRF value.
 
-Eski token'ı loglama veya frontend state içinde kalıcı saklama. Session cookie `HttpOnly` olmalıdır.
+Do not log the old token or persist it in frontend state. The session cookie should be `HttpOnly`.
 
-## İptal
+## Revocation
 
 ```ts
 await gate.revokeSession(sessionToken);
 const revokedCount = await gate.revokeUserSessions(userId);
 ```
 
-Tek kullanıcıya ait tüm oturumları kapatma; hesap güvenliği, owner müdahalesi ve OAuth credential değişimi sonrasında kullanılabilir.
+Revoking all sessions for a user is useful after account-security events, owner intervention, or OAuth credential changes.
 
-Realtime bağlantılarında revocation bus kullanarak aynı kullanıcıya ait açık bağlantıları worker'lar arasında kapat.
+Use a revocation bus for realtime transports so open connections for the same user close across workers.
 
-## Cookie ayarı
+## Cookie configuration
 
-Production varsayılanı `__Host-guildgate.sid` adını kullanır. `__Host-` cookie için:
+The production default uses `__Host-guildgate.sid`. A `__Host-` cookie requires:
 
-- `Secure` açık olmalı
-- `Path=/` olmalı
-- domain attribute kullanılmamalı
+- `Secure`
+- `Path=/`
+- no domain attribute
 
-`SameSite` değeri `Lax` veya `Strict` olabilir. Cross-site OAuth dönüşü ve uygulama rotalarını test ederek seçim yap.
+`SameSite` may be `Lax` or `Strict`. Test the OAuth return and application routes before selecting it.
 
-## Süresi dolmuş cookie temizliği
+## Clearing an expired cookie
 
-`1.1.0`, geçersiz session çözüldüğünde `clearSessionCookie` metadata'sı üretir. Resmi Fastify, Express ve Hono bağdaştırıcıları `Max-Age=0` cookie gönderir.
+In `1.1.0`, an invalid session resolution adds `clearSessionCookie` metadata. The official Fastify, Express, and Hono adapters send a cookie with `Max-Age=0`.
 
-Custom adapter bu metadata'yı yok sayarsa tarayıcı her istekte geçersiz cookie'yi göndermeye devam eder.
+A custom adapter that ignores this metadata causes the browser to keep sending an invalid cookie on every request.
 
-## Üretim kontrolü
+## Production checks
 
-- Session token yalnızca HTTPS üzerinden taşınıyor mu?
-- Store'da ham token bulunuyor mu?
-- Redis/PostgreSQL session cap atomik mi?
-- Rotation yanıtı doğru cookie'ye yazılıyor mu?
-- Logout, owner revocation ve expiry realtime bağlantısını kapatıyor mu?
-- Audit kaydı session token yerine `sessionIdHash` taşıyor mu?
+- Is the session token transported only over HTTPS?
+- Does the store contain any raw token?
+- Is the Redis or PostgreSQL session cap atomic?
+- Is a rotation result written to the correct cookie?
+- Do logout, owner revocation, and expiry close realtime connections?
+- Does audit use `sessionIdHash` rather than the token?

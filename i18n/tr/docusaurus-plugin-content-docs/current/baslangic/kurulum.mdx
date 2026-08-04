@@ -1,0 +1,59 @@
+---
+title: Kurulum
+description: GuildGate 1.1.0'ı projeye ekle, çalışma ortamını ve public export yollarını doğrula.
+---
+
+# Kurulum
+
+## Gereksinimler
+
+- Node.js `22` veya üzeri
+- ESM destekleyen sunucu taraflı TypeScript ya da JavaScript projesi
+- Discord OAuth uygulaması
+- Üretim ortamında HTTPS
+
+```bash
+npm install @kavtuai/guildgate@1.1.1
+```
+
+Fastify, Express, Hono, PostgreSQL, Redis, discord.js ve OpenTelemetry uygulamanın seçimine bağlıdır:
+
+```bash
+npm install pg redis fastify hono discord.js ws @opentelemetry/api
+```
+
+## Yayımlanan import yolları
+
+Ana paket yanında şu alt yollar bulunur:
+
+```text
+discord · fastify · express · redis · realtime · testing
+analytics · contracts · discordjs · hono · operator · postgres
+telemetry · transactions · locks
+```
+
+Örnek:
+
+```ts
+import {createGuildGate} from "@kavtuai/guildgate";
+import {createPostgresAdapter} from "@kavtuai/guildgate/postgres";
+import {attachSocketIo} from "@kavtuai/guildgate/realtime";
+```
+
+Dahili `src/` veya `dist/` dosyalarından import yapma. Semver güvencesi ana paket dahil 16 public export yolu için geçerlidir.
+
+## CLI kontrolü
+
+```bash
+npx guildgate-doctor --help
+npx guildgate-writing-check --help
+npx guildgate-migration --help
+```
+
+## Sürümü doğrula
+
+```bash
+node -p "require('./node_modules/@kavtuai/guildgate/package.json').version"
+```
+
+Beklenen çıktı `1.1.1` değeridir. Ardından [beş dakikalık kuruluma](./bes-dakikada-basla.mdx) geç.

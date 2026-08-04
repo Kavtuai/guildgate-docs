@@ -1,14 +1,9 @@
-name: Dokümantasyonu yayımla
+name: Publish documentation
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -17,38 +12,34 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       DOCS_DOMAIN: ${{ vars.DOCS_DOMAIN || 'github' }}
     steps:
-      - name: Kaynak kodunu al
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Node.js kur
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-      - name: Bağımlılıkları kur
-        run: npm ci
-      - name: Metin, kaynak ve komut kontrolleri
-        run: npm run check
-      - name: Siteyi derle
-        run: npm run build
-      - name: Pages yapılandırması
-        uses: actions/configure-pages@v5
-      - name: Pages paketini hazırla
-        uses: actions/upload-pages-artifact@v3
+      - run: npm ci --ignore-scripts
+      - run: npm run validate
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: build
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
+    permissions:
+      pages: write
+      id-token: write
     steps:
-      - name: GitHub Pages'e gönder
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

@@ -1,3 +1,14 @@
+# Changelog
+
+## 0.4.0 — 2026-08-03
+
+- English is now the default locale at `/`; Turkish remains available under `/tr/`.
+- Legacy `/en/` routes redirect to the equivalent English root route.
+- The verification console now has explicit token, flag, length, prototype-key, network, storage, and DOM rendering guards.
+- GuildGate 1.1.1 package, contract, security, and release documentation is included.
+- Added locale parity, metadata, secret, built-output, and deployed-header checks.
+- GitHub Pages build and deploy permissions are separated and clean installs use the lockfile.
+
 # GuildGate Docs değişiklik günlüğü
 
 ## 0.3.3 — 2026-07-26

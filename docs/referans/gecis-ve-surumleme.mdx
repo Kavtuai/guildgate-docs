@@ -1,77 +1,77 @@
 ---
-title: Geçiş ve sürümleme
-description: GuildGate 1.0.0 sürümünden 1.1.0'a custom store, transaction ve realtime sözleşmelerini güncelleyerek geç.
+title: Migration and versioning
+description: Move from GuildGate 1.0.0 to 1.1.0 by updating custom store, transaction, and realtime contracts.
 ---
 
-# Geçiş ve sürümleme
+# Migration and versioning
 
-GuildGate `1.0.0` sürümünden itibaren Semantic Versioning uygular. `1.1.0`, public adapter yetenekleri ekleyen minor sürümdür.
+GuildGate follows Semantic Versioning from `1.0.0`. Version `1.1.0` is a minor release because it adds public adapter capabilities.
 
-## Contract değişimi
+## Contract change
 
-| Alan | 1.0.0 | 1.1.0 |
+| Area | 1.0.0 | 1.1.0 |
 | --- | --- | --- |
 | Adapter contract | `1.0` | `1.1` |
 | Action contract | `1.0` | `1.0` |
 | Realtime contract | `1.0` | `1.0` |
 
-Custom store veya adapter kullanmıyorsan resmi PostgreSQL/Redis paketleriyle yükseltme daha doğrudandır. Custom uygulamalarda aşağıdaki davranışları ekle.
+When only official PostgreSQL and Redis bundles are used, the upgrade is more direct. Custom stores and adapters need the following behaviors.
 
 ## 1. Idempotency reservation
 
-`IdempotencyRecord` içine `reservationId` eklenir. `renew`, `complete` ve `fail` aynı owner token'ını karşılaştırmalıdır.
+Add `reservationId` to `IdempotencyRecord`. `renew`, `complete`, and `fail` must compare the same owner token.
 
-Koşulsuz key update/delete kullanımını kaldır. Sahiplik kaybında `false` döndür.
+Remove unconditional updates and deletes by key. Return `false` when ownership is lost.
 
-## 2. Atomik session cap
+## 2. Atomic session cap
 
-Paylaşımlı store'da `SessionStore.create(record, maximumSessionsPerUser)` uygula. Session insert ve fazla kayıt silme tek serialized işlem olmalıdır.
+Implement `SessionStore.create(record, maximumSessionsPerUser)` for shared stores. Session insertion and excess-record eviction must be one serialized operation.
 
 ## 3. Cursor audit
 
-`AuditStore.listPage()` ekle. Opaque cursor ile `(createdAt DESC, id DESC)` sırasını database sorgusunda uygula.
+Add `AuditStore.listPage()`. Apply opaque `(createdAt DESC, id DESC)` paging in the database query.
 
-## 4. Transaction kesinliği
+## 4. Transaction finality
 
-Başarılı commit sonrasında callback hatası rollback oluşturmamalı. `onPostCommitError` veya `TransactionPostCommitError` ile gözlemle. Domain work tekrar yürütülmemelidir.
+A callback failure after successful commit must not trigger rollback. Observe it with `onPostCommitError` or `TransactionPostCommitError`; do not repeat domain work.
 
-Nested PostgreSQL işlemlerinde savepoint ve callback propagation kurallarını uygula.
+Use savepoints and callback-propagation rules for nested PostgreSQL transactions.
 
-## 5. Deadline ve late settlement
+## 5. Deadlines and late settlement
 
-Action timeout'u belirlenen sınırda yanıt dönmelidir. Alttaki iş için settlement gözlemi ve `reliability.maximumLateSettlementMs` sınırı ekle.
+Return an action timeout at the configured boundary. Add settlement observation and the `reliability.maximumLateSettlementMs` bound.
 
-İdempotency TTL'lerini yeni deadline + late-settlement süresine göre büyüt. External I/O'ya `AbortSignal` aktar.
+Increase idempotency TTLs to cover the deadline and late-settlement period. Forward `AbortSignal` to external I/O.
 
-## 6. Fail-closed audit ve rate limit
+## 6. Fail-closed audit and rate limits
 
-Fail-closed audit kaydını domain transaction içine taşı. PostgreSQL rate-limit bucket update'lerini advisory lock veya eşdeğer atomik yol ile serialize et.
+Move fail-closed audit persistence into the domain transaction. Serialize PostgreSQL rate-limit bucket updates with advisory locks or an equivalent atomic path.
 
 ## 7. OAuth refresh
 
-Distributed lock ile single-flight kur ve lease alındıktan sonra credential'ı yeniden oku.
+Use a distributed lock for single-flight refresh and reread the credential after acquiring the lease.
 
-## 8. Redis tag atomikliği
+## 8. Redis tag atomicity
 
-Cache entry, eski/yeni tag üyelikleri ve tag-index TTL güncellemesini tek Lua/eşdeğer işlemde yap.
+Update the cache entry, old and new tag memberships, and tag-index TTL in one Lua or equivalent operation.
 
-## 9. Realtime taşıyıcıları
+## 9. Realtime transports
 
-Socket.IO subscribe, unsubscribe ve heartbeat event'lerini `hub.acceptMessage()` kontrolünden geçir. Ack, replay ve transport backpressure davranışını ekle.
+Route Socket.IO subscribe, unsubscribe, and heartbeat events through `hub.acceptMessage()`. Add acknowledgements, replay, and transport backpressure behavior.
 
-## Yükseltme sırası
+## Upgrade sequence
 
-1. Ayrı branch aç.
-2. `@kavtuai/guildgate@1.1.0` kur.
-3. TypeScript hatalarını düzelt.
-4. Custom store'larda adapter `1.1` kurallarını uygula.
-5. `runStoreContract()` çalıştır.
-6. PostgreSQL migration SQL'ini yazdır ve incele.
-7. Login, guarded write, timeout, permission loss, session revoke ve realtime replay testlerini çalıştır.
-8. Coverage ve service integration pipeline'ını yeşil yap.
-9. Staging'de audit/outbox ve late-settlement metriklerini izle.
-10. Kontrollü production rollout yap.
+1. Create a separate branch.
+2. Install `@kavtuai/guildgate@1.1.0`.
+3. Fix TypeScript errors.
+4. Implement adapter `1.1` rules in custom stores.
+5. Run `runStoreContract()`.
+6. Print and review PostgreSQL migration SQL.
+7. Test login, guarded writes, timeouts, permission loss, session revocation, and realtime replay.
+8. Make coverage and service-integration pipelines pass.
+9. Observe audit, outbox, and late-settlement metrics in staging.
+10. Perform a controlled production rollout.
 
-## Geri dönüş
+## Rollback
 
-Code rollback ile database migration rollback aynı şey değildir. Eklenen alanları eski kodun tolere edip etmediğini kontrol et. Idempotency reservation alanını kaldırmadan önce inflight kayıtların bitmesini bekle.
+A code rollback is not the same as a database migration rollback. Verify that older code tolerates added columns. Wait for inflight idempotency records before removing reservation fields.

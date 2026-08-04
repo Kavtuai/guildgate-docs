@@ -1,30 +1,30 @@
 ---
-title: Kurulum
-description: GuildGate 1.1.0'ı projeye ekle, çalışma ortamını ve public export yollarını doğrula.
+title: Installation
+description: Add GuildGate 1.1.1 and verify its runtime and public export paths.
 ---
 
-# Kurulum
+# Installation
 
-## Gereksinimler
+## Requirements
 
-- Node.js `22` veya üzeri
-- ESM destekleyen sunucu taraflı TypeScript ya da JavaScript projesi
-- Discord OAuth uygulaması
-- Üretim ortamında HTTPS
+- Node.js `22` or newer
+- A server-side TypeScript or JavaScript project with ESM support
+- A Discord OAuth application
+- HTTPS in production
 
 ```bash
-npm install @kavtuai/guildgate@1.1.0
+npm install @kavtuai/guildgate@1.1.1
 ```
 
-Fastify, Express, Hono, PostgreSQL, Redis, discord.js ve OpenTelemetry uygulamanın seçimine bağlıdır:
+Fastify, Express, Hono, PostgreSQL, Redis, discord.js, and OpenTelemetry remain application choices:
 
 ```bash
 npm install pg redis fastify hono discord.js ws @opentelemetry/api
 ```
 
-## Yayımlanan import yolları
+## Published import paths
 
-Ana paket yanında şu alt yollar bulunur:
+Alongside the root package, these subpaths are published:
 
 ```text
 discord · fastify · express · redis · realtime · testing
@@ -32,7 +32,7 @@ analytics · contracts · discordjs · hono · operator · postgres
 telemetry · transactions · locks
 ```
 
-Örnek:
+Example:
 
 ```ts
 import {createGuildGate} from "@kavtuai/guildgate";
@@ -40,9 +40,9 @@ import {createPostgresAdapter} from "@kavtuai/guildgate/postgres";
 import {attachSocketIo} from "@kavtuai/guildgate/realtime";
 ```
 
-Dahili `src/` veya `dist/` dosyalarından import yapma. Semver güvencesi ana paket dahil 16 public export yolu için geçerlidir.
+Do not import internal `src/` or `dist/` files. Semver applies to the root package and 15 public subpaths.
 
-## CLI kontrolü
+## CLI check
 
 ```bash
 npx guildgate-doctor --help
@@ -50,10 +50,10 @@ npx guildgate-writing-check --help
 npx guildgate-migration --help
 ```
 
-## Sürümü doğrula
+## Verify the version
 
 ```bash
 node -p "require('./node_modules/@kavtuai/guildgate/package.json').version"
 ```
 
-Beklenen çıktı `1.1.0` değeridir. Ardından [beş dakikalık kuruluma](./bes-dakikada-basla.mdx) geç.
+The expected value is `1.1.1`. Continue with [Start in five minutes](./bes-dakikada-basla.mdx).

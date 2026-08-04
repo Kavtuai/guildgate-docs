@@ -1,0 +1,105 @@
+---
+title: Oturumlar
+description: Opak session token, rotation, kullanıcı başına atomik sınır ve iptal davranışını GuildGate 1.1.0 ile uygula.
+---
+
+# Oturumlar
+
+GuildGate tarayıcıya opak bir session token verir; store'da yalnızca token hash'i tutulur. CSRF token aynı session kimliğine bağlanır.
+
+## Oturum oluşturma
+
+```ts
+const created = await gate.createSession({
+  userId: discordUser.id,
+  locale: "tr",
+  metadata: {
+    loginMethod: "discord",
+  },
+});
+
+reply.header("Set-Cookie", created.setCookie);
+```
+
+Dönen değerler:
+
+- `session`: store'a yazılan kayıt
+- `sessionToken`: yalnızca istemciye verilecek opak değer
+- `csrfToken`: state-changing isteklerde kullanılacak token
+- `setCookie`: güvenli cookie başlığı
+
+## Süreler
+
+`security.session` dört sınır içerir:
+
+```ts
+session: {
+  ttlMs: 7 * 24 * 60 * 60_000,
+  idleTimeoutMs: 30 * 60_000,
+  rotateAfterMs: 15 * 60_000,
+  maximumSessionsPerUser: 5,
+}
+```
+
+- `ttlMs`: kesin bitiş süresi
+- `idleTimeoutMs`: etkinlik olmazsa bitiş
+- `rotateAfterMs`: token yenileme zamanı
+- `maximumSessionsPerUser`: aynı kullanıcıya ait aktif oturum sınırı
+
+TTL ve idle sürelerini yalnızca cookie süresine bırakma; store kaydı üzerinden doğrula.
+
+## Atomik kullanıcı sınırı
+
+`1.1.0` resmi memory, Redis ve PostgreSQL store'larında session ekleme ile eski session silmeyi tek store işlemi içinde uygular.
+
+Custom paylaşımlı store için şu imzayı uygula:
+
+```ts
+interface SessionStore {
+  create?(record: SessionRecord, maximumSessionsPerUser: number): Promise<void>;
+}
+```
+
+`listByUser()` ardından ayrı `delete()` çağrıları çoklu instance ortamında yarış koşulu oluşturabilir. `create()` desteklenmiyorsa çekirdek geriye uyumlu yolu kullanır; production store'da atomik uygulama tercih edilmelidir.
+
+## Rotation
+
+Oturum rotation eşiğine gelince action metadata'sında yeni session ve CSRF token'ları dönebilir. HTTP bağdaştırıcısı replacement token'ı cookie'ye yazmalı, istemci de yeni CSRF değerini kullanmalıdır.
+
+Eski token'ı loglama veya frontend state içinde kalıcı saklama. Session cookie `HttpOnly` olmalıdır.
+
+## İptal
+
+```ts
+await gate.revokeSession(sessionToken);
+const revokedCount = await gate.revokeUserSessions(userId);
+```
+
+Tek kullanıcıya ait tüm oturumları kapatma; hesap güvenliği, owner müdahalesi ve OAuth credential değişimi sonrasında kullanılabilir.
+
+Realtime bağlantılarında revocation bus kullanarak aynı kullanıcıya ait açık bağlantıları worker'lar arasında kapat.
+
+## Cookie ayarı
+
+Production varsayılanı `__Host-guildgate.sid` adını kullanır. `__Host-` cookie için:
+
+- `Secure` açık olmalı
+- `Path=/` olmalı
+- domain attribute kullanılmamalı
+
+`SameSite` değeri `Lax` veya `Strict` olabilir. Cross-site OAuth dönüşü ve uygulama rotalarını test ederek seçim yap.
+
+## Süresi dolmuş cookie temizliği
+
+`1.1.0`, geçersiz session çözüldüğünde `clearSessionCookie` metadata'sı üretir. Resmi Fastify, Express ve Hono bağdaştırıcıları `Max-Age=0` cookie gönderir.
+
+Custom adapter bu metadata'yı yok sayarsa tarayıcı her istekte geçersiz cookie'yi göndermeye devam eder.
+
+## Üretim kontrolü
+
+- Session token yalnızca HTTPS üzerinden taşınıyor mu?
+- Store'da ham token bulunuyor mu?
+- Redis/PostgreSQL session cap atomik mi?
+- Rotation yanıtı doğru cookie'ye yazılıyor mu?
+- Logout, owner revocation ve expiry realtime bağlantısını kapatıyor mu?
+- Audit kaydı session token yerine `sessionIdHash` taşıyor mu?

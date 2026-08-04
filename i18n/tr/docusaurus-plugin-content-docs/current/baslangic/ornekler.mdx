@@ -1,0 +1,40 @@
+---
+title: Örnek projeler
+description: GuildGate 1.1.1 adapter, store, realtime ve test örneklerini doğru sınırlarla kullan.
+---
+
+# Örnek projeler
+
+Paketin `examples/` klasörü küçük entegrasyon örnekleri içerir. Örneği kendi authorization, storage ve deployment koşullarına göre uyarlamalısın.
+
+## Adapter'lar
+
+- Fastify: `@kavtuai/guildgate/fastify`
+- Express: `@kavtuai/guildgate/express`
+- Hono: `@kavtuai/guildgate/hono`
+- discord.js: `@kavtuai/guildgate/discordjs`
+
+HTTP adapter'ı response sınırını kurar; parse, resource, authorization, idempotency, transaction ve audit kararı action tanımında kalır.
+
+## PostgreSQL ve Redis
+
+```ts
+const postgres = createPostgresAdapter({pool});
+await postgres.migrate();
+
+const stores = composeStores(
+  postgres.stores,
+  createRedisEphemeralStores(redis),
+);
+```
+
+## Realtime ve test
+
+`createRealtimeHub()`, `attachWebSocket()`, `attachSocketIo()` ve `createServerSentEventStream()` aynı session ve authorization çekirdeğini kullanır. Custom transport, client mesajını işlemeden önce `hub.acceptMessage()` çağırmalıdır.
+
+```ts
+const harness = createGuildGateTestHarness();
+const login = await harness.login("user-1", "tr");
+```
+
+Memory store'u production'da bırakma; custom store'ları `runStoreContract()` ve driver'a özel race testleriyle doğrula.

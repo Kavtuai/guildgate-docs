@@ -1,0 +1,63 @@
+---
+title: Sürüm notları
+description: GuildGate 1.1.1 ve doküman sitesi 0.4.0 değişikliklerini, uyumluluğu ve doğrulama sonuçlarını izle.
+---
+
+# Sürüm notları
+
+## GuildGate 1.1.1
+
+### Doğrulama ve paket sınırı
+
+- Kernel yürütmesi, kurulu paket örneğinin `defineAction()` yolu dışında oluşturulan action biçimli nesneleri reddeder.
+- Operator payload parser'ları bilinmeyen alanları, düz obje olmayan değerleri ve `__proto__`, `constructor`, `prototype` anahtarlarını reddeder.
+- npm tarball; source map, kaynak kod, test, workflow, environment dosyası, checksum ve dahili inceleme raporu içermez.
+- Packed-package kontrolü oluşan tarball'ı boş bir consumer projeye kurar, 16 public export yolunu import eder ve 3 CLI yardım hedefini çalıştırır.
+- Release metadata, secret kalıbı taraması, paket içeriği, coverage, load regression ve public API haritası `release:verify` zincirine dahildir.
+
+### Yayın
+
+- Publish workflow, repository içinde npm tokenı taşımak yerine GitHub Actions OIDC üzerinden npm Trusted Publishing kullanır.
+- Verify job tek bir tarball üretir; publish job bu doğrulanmış artifact'i indirip yayımlar.
+- Yayından önce release tag, paket sürümü, sürümün npm'de boşta olması, Node.js sürümü ve npm CLI ön koşulları kontrol edilir.
+
+### Uyumluluk
+
+Bu bir patch sürümüdür. Adapter contract `1.1`, action contract `1.0` ve realtime contract `1.0` değişmez. Action biçimli nesneleri elle oluşturmayan ve belgelenmemiş operator payload alanları göndermeyen tüketiciler için migration gerekmez.
+
+## GuildGate 1.1.0 · 26 Temmuz 2026
+
+### Transaction ve idempotency
+
+- PostgreSQL commit ile commit sonrası callback yürütmesi ayrıldı.
+- İç içe PostgreSQL işlemlerine savepoint ve kapsamlı rollback eklendi.
+- Idempotency kayıtlarına reservation sahipliği ve compare-and-set tamamlama eklendi.
+- Action deadline yapılandırılmış yanıt sınırında dönmeye başladı.
+- `reliability.maximumLateSettlementMs` geç sonuç izleme süresini sınırladı.
+
+### Store, realtime ve operasyon
+
+- Resmi store'lar kullanıcı başına session sınırını atomik uygulamaya başladı.
+- Audit sayfalaması opak `(createdAt, id)` cursor'a geçti.
+- Redis cache retag ve tag temizliği atomik hale geldi.
+- Discord OAuth refresh dağıtık single-flight lease kazandı.
+- WebSocket ve Socket.IO payload, rate, subscription, activity ve backpressure kontrollerini paylaşmaya başladı.
+- Outbox claim lease, batch ve dispatch concurrency değerleri sınırlandı.
+
+`1.0.0` → `1.1.x` adapter değişiklikleri için [geçiş ve sürümleme](./referans/gecis-ve-surumleme.mdx) sayfasını kullan.
+
+## Doküman sitesi 0.4.0
+
+- İngilizce `/` adresinde varsayılan dil yapıldı; Türkçe `/tr/` altında korunuyor.
+- Eski `/en/` yolları yönlendirme zinciri oluşturmadan karşılık gelen İngilizce yola gider.
+- Locale, canonical, alternatif dil, arama dizini, navbar, footer ve 404 kontrolleri build kapısına eklendi.
+- Release metadata tek site modülünde tutuluyor ve paket ile doküman sürümleriyle karşılaştırılıyor.
+- Tarayıcı doğrulama konsoluna tokenization, girdi, satır, token, flag ve hız sınırları eklendi.
+- Konsol güvenlik kontrolleri executable API, ağ API'si, browser storage, tehlikeli obje anahtarı, HTML payload ve secret benzeri metin senaryolarını kapsıyor.
+- Açık tema arama kontrastı ve IDE benzeri kod renkleri korunuyor.
+- Security header gereksinimleri, GitHub Pages'in repository düzeyinde gerçekten kanıtlayabildiği davranıştan ayrı belgeleniyor.
+
+## Doküman sitesi 0.3.3
+
+- Türkçe ve İngilizce sayfalar GuildGate `1.1.0` public yüzeyiyle eşleştirildi.
+- Transaction kesinliği, reservation sahipliği, hard deadline, atomik session cap, audit cursor, Redis retag, OAuth single-flight, Socket.IO eşitliği ve sınırlı outbox teslimatı belgelendi.

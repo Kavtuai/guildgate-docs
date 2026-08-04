@@ -1,13 +1,13 @@
 ---
-title: action() işlem tanımı
-description: GuildGate 1.1.0 ile bir dashboard yazmasını doğrulama, dayanıklılık ve commit kurallarıyla tanımla.
+title: action() operation definition
+description: Define a GuildGate 1.1.1 dashboard write with validation, reliability, and commit rules.
 ---
 
 import CommandPlayground from '@site/src/components/CommandPlayground';
 
-# `action()` işlem tanımı
+# `action()` operation definition
 
-`gate.action()` bir yazma isteğinin güvenlik ve dayanıklılık kararlarını tek nesnede tutar. Action tanımı immutable bir `DefinedAction` üretir; gerçek yürütme `gate.execute()` veya HTTP bağdaştırıcısı tarafından yapılır.
+`gate.action()` keeps the security and reliability decisions for a write in one object. The definition produces an immutable `DefinedAction`; execution is performed by `gate.execute()` or an HTTP adapter.
 
 ```ts title="guild-settings.ts"
 const updateSettings = gate.action({
@@ -89,21 +89,21 @@ const updateSettings = gate.action({
 });
 ```
 
-## Kimlik ve CSRF
+## Authentication and CSRF
 
-`authentication` değeri `required`, `optional` veya `none` olabilir. Varsayılan korumalı davranışı bozacağın her action için sebebi route incelemesinde açıkça yaz.
+`authentication` may be `required`, `optional`, or `none`. When an action weakens the default guarded behavior, record the reason in route review.
 
-Güvensiz HTTP yöntemlerinde `csrf: "required"` kullan. CSRF'yi yalnızca oturum kullanmayan, başka bir imza mekanizmasıyla doğrulanan endpoint'te kapat.
+Use `csrf: "required"` for unsafe HTTP methods. Disable CSRF only for an endpoint without a browser session that is authenticated by another signature mechanism.
 
-## `parse` ve `resource`
+## `parse` and `resource`
 
-`parse`, bilinmeyen girdiyi dar bir tipe çevirir. Uzunluk, enum, sayı aralığı ve izin verilen alanlar burada doğrulanmalıdır.
+`parse` narrows unknown input into an application type. Validate lengths, enums, numeric ranges, and allowed fields here.
 
-`resource`, aynı doğrulanmış kimliği yetkilendirme, optimistic revision, audit, kilit ve realtime kanalı için yeniden kullanmayı kolaylaştırır.
+`resource` makes it easier to reuse one verified identity for authorization, optimistic revision, audit, locking, and realtime channels.
 
 ## `authorize`
 
-Callback hiçbir şey döndürmezse izin verilmiş kabul edilir. Açık karar üretmek daha okunaklıdır:
+Returning nothing means access is allowed. An explicit decision is easier to review:
 
 ```ts
 return {
@@ -113,26 +113,26 @@ return {
 };
 ```
 
-Discord permission değerlerini JavaScript `number` tipine daraltma; `BigInt` veya discord.js permission yardımcılarını kullan.
+Do not narrow Discord permission values to JavaScript `number`; use `BigInt` or discord.js permission helpers.
 
 ## Idempotency reservation
 
-`1.1.0` her inflight kayıt için `reservationId` üretir. Store şu kurala uymalıdır:
+`1.1.0` creates a `reservationId` for every inflight record. A store must enforce these rules:
 
-- aynı key ve aynı request hash tamamlandıysa saklanan yanıtı döndür
-- aynı key farklı hash taşıyorsa conflict üret
-- aktif reservation varsa ikinci yürütmeyi başlatma
-- `renew`, `complete` ve `fail` sırasında owner token'ı karşılaştır
+- return the stored response when the same key and request hash completed
+- report a conflict when the same key has a different hash
+- do not start a second execution while an active reservation exists
+- compare the owner token during `renew`, `complete`, and `fail`
 
-Action timeout'tan sonra commit ederse çekirdek sonucu aynı reservation altında tamamlayıp sonraki isteğe replay edebilir.
+When an action commits after its HTTP deadline, the kernel can complete the result under the same reservation and replay it to a later request.
 
-## Concurrency ve fencing
+## Concurrency and fencing
 
-`ttlMs`, lease'in geçerlilik süresidir; `renewEveryMs` bundan kısa olmalıdır. `waitMs`, kilit alınamadığında ne kadar bekleneceğini belirler.
+`ttlMs` is the lease lifetime; `renewEveryMs` must be shorter. `waitMs` controls how long acquisition may wait.
 
-Lease store `acquireLease()` destekliyorsa `context.fencingToken` üretilir. Veritabanındaki güncelleme, önceki token'dan büyük olmayan bir değeri reddetmelidir; yalnızca kilit sahibine güvenme.
+When the store supports `acquireLease()`, `context.fencingToken` is available. The database update should reject a token that is not newer than the stored token; do not rely only on lock ownership.
 
-## Transaction hook'ları
+## Transaction hooks
 
 ```ts
 transaction: {
@@ -147,22 +147,22 @@ transaction: {
 }
 ```
 
-`afterCommit` domain yazımından sonra çalışır. Buradaki hata commit'i geri almaz ve action'ı ikinci kez yürütmek için gerekçe değildir.
+`afterCommit` runs after the domain write is final. A failure there does not roll back the commit and is not a reason to execute the action twice.
 
-## Retry ve circuit breaker
+## Retry and circuit breaker
 
-Retry yalnızca güvenli biçimde tekrarlanabilen işlemde açılmalıdır. Harici yazma idempotent değilse action düzeyindeki idempotency tek başına üçüncü taraf yan etkisini güvenli yapmaz.
+Enable retries only for work that can safely repeat. If an external write is not idempotent, action-level idempotency alone does not make the third-party side effect safe.
 
-Circuit breaker, belirlenen hata eşiğinden sonra çağrıyı geçici olarak keser. Adı verilmezse action kimliğinden türetilir.
+The circuit breaker temporarily stops calls after the configured failure threshold. Its name is derived from the action when one is not supplied.
 
-## Cache, realtime ve audit
+## Cache, realtime, and audit
 
-`cache.invalidateTags` commit edilmiş sonuçtan tag listesi üretir. `realtime.delivery: "outbox"`, olayın transaction sınırında kuyruğa yazılmasını sağlar. Audit `changes` çıktısında secret, token ve gereksiz tam nesne bulundurma.
+`cache.invalidateTags` derives tags from the committed result. `realtime.delivery: "outbox"` queues events at the transaction boundary. Do not include secrets, tokens, or unnecessary full objects in audit `changes`.
 
-## Sonuç metadata'sı
+## Result metadata
 
-HTTP katmanı `ActionExecutionResult.meta` alanını işlemelidir. Özellikle yenilenmiş cookie, cookie temizleme ve `postCommitIssues` bilgilerini kaybetme.
+The HTTP layer must process `ActionExecutionResult.meta`. In particular, preserve replacement cookies, cookie-clearing instructions, and `postCommitIssues`.
 
 <CommandPlayground compact />
 
-Konsolda `action test guild.settings.update` komutuyla kontrol sırasını inceleyebilirsin.
+Use `action test guild.settings.update` in the console to inspect the control order.

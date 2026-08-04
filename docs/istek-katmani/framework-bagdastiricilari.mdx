@@ -1,11 +1,11 @@
 ---
-title: Framework bağdaştırıcıları
-description: Fastify, Express ve Hono isteklerini GuildGate action zarfına güvenli biçimde bağla.
+title: Framework adapters
+description: Bind Fastify, Express, and Hono requests to a GuildGate action envelope safely.
 ---
 
-# Framework bağdaştırıcıları
+# Framework adapters
 
-GuildGate'in HTTP bağdaştırıcıları framework isteğini `RequestEnvelope` biçimine dönüştürür, action sonucunu HTTP durumuna çevirir ve oturum metadata'sını yanıta uygular.
+GuildGate HTTP adapters map a framework request into `RequestEnvelope`, translate the action result into an HTTP response, and apply session metadata to the response.
 
 ## Fastify
 
@@ -55,23 +55,23 @@ app.patch(
 );
 ```
 
-## Proxy ve IP bilgisi
+## Proxy and IP information
 
-Bağdaştırıcıya güvenilir istemci IP'si sağlamak uygulamanın proxy politikasına bağlıdır. Her `X-Forwarded-For` değerine doğrudan güvenme. Cloudflare, Nginx veya load balancer katmanında hangi proxy'nin güvenilir olduğunu açıkça yapılandır.
+Supplying a trustworthy client IP depends on the application's proxy policy. Do not trust every `X-Forwarded-For` value directly. Configure which proxy is trusted at the Cloudflare, Nginx, or load-balancer boundary.
 
-## Origin ve cookie
+## Origin and cookies
 
-Bağdaştırıcı şu metadata alanlarını işlemelidir:
+An adapter must process these metadata fields:
 
 - `replacementSessionToken`
 - `replacementCsrfToken`
 - `clearSessionCookie`
 
-`1.1.0`, süresi dolmuş veya iptal edilmiş oturumda Fastify, Express ve Hono yanıtlarına cookie temizleme bilgisini taşır. Custom adapter yazıyorsan aynı davranışı koru.
+In `1.1.0`, expired or revoked sessions carry cookie-clearing information through Fastify, Express, and Hono responses. Preserve the same behavior in a custom adapter.
 
-## Input birleştirme
+## Input merging
 
-Route parametresi, query ve body alanlarını birleştirirken önceliği açıkça belirle. Güvenlik açısından önemli kimliği body'nin route parametresini ezmesine izin verme.
+When combining route parameters, query, and body fields, define precedence explicitly. Do not let the body override a security-sensitive route identity.
 
 ```ts
 input: (request) => ({
@@ -80,19 +80,19 @@ input: (request) => ({
 })
 ```
 
-Burada `guildId` en son yazıldığı için body değeri route kimliğini değiştiremez.
+Because `guildId` is assigned last, a body value cannot replace the route identity.
 
-## Hata yanıtı
+## Error response
 
-İstemciye `ActionExecutionResult.error` içindeki kararlı kodu ve yerelleştirilmiş mesajı gönder. Stack trace, SQL metni, Discord token'ı veya dahili exception nesnesini yanıta ekleme. `requestId` değerini log ve destek kaydı için koru.
+Send the stable code and localized message from `ActionExecutionResult.error`. Do not expose stack traces, SQL text, Discord tokens, or internal exception objects. Preserve `requestId` for logs and support records.
 
-## Custom adapter kontrolü
+## Custom adapter checks
 
-Yeni framework bağdaştırıcısında şunları test et:
+Test these properties for a new framework adapter:
 
-- method ve path doğru aktarılıyor
-- origin/cookie/header çoklu değerleri daraltılıyor
-- abort sinyali bağlantı kapanmasına bağlanıyor
-- replacement ve clear cookie metadata'sı uygulanıyor
-- hata durum kodu iki kez yazılmıyor
-- response tamamlandıktan sonra domain action tekrar çağrılmıyor
+- method and path are mapped correctly
+- multi-value origin, cookie, and header values are narrowed safely
+- abort signal follows connection closure
+- replacement and clearing cookie metadata is applied
+- an error status is not written twice
+- the domain action is not called again after the response finishes

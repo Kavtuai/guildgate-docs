@@ -1,0 +1,75 @@
+---
+title: guildgate-writing-check
+description: Dokümanlarda bozuk atıf, geçici araç artığı ve yayımlanmaması gereken şablon alanlarını tara.
+---
+
+# `guildgate-writing-check`
+
+Writing check, proje dokümanlarında yayıma girmemesi gereken teknik artık ve şablon alanlarını bulur. Metnin doğruluğuna, üslubuna veya yazarına karar vermez.
+
+## Yardım
+
+```bash
+npx guildgate-writing-check --help
+```
+
+```text
+Usage: guildgate-writing-check [options]
+
+Checks documentation files in the current project directory.
+
+Options:
+  --root <path>  Check another project directory.
+  -h, --help     Show this help message.
+```
+
+## Çalıştırma
+
+```bash
+npx guildgate-writing-check
+```
+
+Başka bir proje kökü:
+
+```bash
+npx guildgate-writing-check --root ./docs-site
+```
+
+Kontrol başarısızsa komut non-zero exit code döndürür.
+
+## Bulduğu sorun sınıfları
+
+- kapanmamış veya geçici şablon alanları
+- bozuk citation işaretleri
+- araç oturumuna ait geçici kimlikler
+- dosya yükleme placeholder'ları
+- yayıma ait olmayan writing block işaretleri
+- kopyalama sırasında kalan büyük TODO alanları
+
+CLI sayfası bu örnekleri açıklamak için bazı işaretleri adlandırabilir; normal dokümanlarda bulunmaları hata kabul edilir.
+
+## Bulmadığı sorunlar
+
+Komut şunların yerine geçmez:
+
+- API adını kaynak koddan doğrulama
+- örnek kodu typecheck etme
+- bağlantıyı açıp kaynağı inceleme
+- çevirinin anlam eşitliğini değerlendirme
+- güvenlik veya hukuk incelemesi
+
+## CI
+
+```json title="package.json"
+{
+  "scripts": {
+    "docs:check": "guildgate-writing-check --root ."
+  }
+}
+```
+
+```bash
+npm run docs:check
+```
+
+Kontrolü Docusaurus build'den önce çalıştır. Hata çıktısındaki dosya ve işaret türünü düzelt; genel ignore ekleyerek gerçek sorunu gizleme.

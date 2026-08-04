@@ -1,13 +1,13 @@
 ---
 title: guildgate-writing-check
-description: Dokümanlarda bozuk atıf, geçici araç artığı ve yayımlanmaması gereken şablon alanlarını tara.
+description: Scan documentation for broken citations, temporary tool residue, and unfinished template fields.
 ---
 
 # `guildgate-writing-check`
 
-Writing check, proje dokümanlarında yayıma girmemesi gereken teknik artık ve şablon alanlarını bulur. Metnin doğruluğuna, üslubuna veya yazarına karar vermez.
+Writing check finds technical residue and unfinished template fields that should not be published. It does not decide whether prose is correct, well written, or authored by a particular person.
 
-## Yardım
+## Help
 
 ```bash
 npx guildgate-writing-check --help
@@ -23,40 +23,40 @@ Options:
   -h, --help     Show this help message.
 ```
 
-## Çalıştırma
+## Running the check
 
 ```bash
 npx guildgate-writing-check
 ```
 
-Başka bir proje kökü:
+Another project root:
 
 ```bash
 npx guildgate-writing-check --root ./docs-site
 ```
 
-Kontrol başarısızsa komut non-zero exit code döndürür.
+The command returns a non-zero exit code when a check fails.
 
-## Bulduğu sorun sınıfları
+## Issue classes it finds
 
-- kapanmamış veya geçici şablon alanları
-- bozuk citation işaretleri
-- araç oturumuna ait geçici kimlikler
-- dosya yükleme placeholder'ları
-- yayıma ait olmayan writing block işaretleri
-- kopyalama sırasında kalan büyük TODO alanları
+- unfinished or temporary template fields
+- broken citation markers
+- temporary identifiers from a tool session
+- file-upload placeholders
+- writing-block markers that do not belong in published content
+- large TODO fields left during copying
 
-CLI sayfası bu örnekleri açıklamak için bazı işaretleri adlandırabilir; normal dokümanlarda bulunmaları hata kabul edilir.
+This CLI page may name some markers to explain them; their presence in normal documentation is treated as an error.
 
-## Bulmadığı sorunlar
+## Issues it does not find
 
-Komut şunların yerine geçmez:
+The command does not replace:
 
-- API adını kaynak koddan doğrulama
-- örnek kodu typecheck etme
-- bağlantıyı açıp kaynağı inceleme
-- çevirinin anlam eşitliğini değerlendirme
-- güvenlik veya hukuk incelemesi
+- verifying API names against source code
+- typechecking example code
+- opening and reviewing source links
+- evaluating translation equivalence
+- security or legal review
 
 ## CI
 
@@ -72,4 +72,4 @@ Komut şunların yerine geçmez:
 npm run docs:check
 ```
 
-Kontrolü Docusaurus build'den önce çalıştır. Hata çıktısındaki dosya ve işaret türünü düzelt; genel ignore ekleyerek gerçek sorunu gizleme.
+Run it before the Docusaurus build. Fix the file and marker type reported by the command instead of adding a broad ignore that hides the issue.

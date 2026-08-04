@@ -1,19 +1,19 @@
 ---
-title: İlk yapılandırma
-description: createGuildGate seçeneklerini, production korumalarını ve 1.1.0 reliability sınırlarını ayarla.
+title: Initial configuration
+description: Configure createGuildGate, production guards, and the 1.1.0 reliability boundary.
 ---
 
-# İlk yapılandırma
+# Initial configuration
 
 ```ts
 const gate = createGuildGate({
   app: {
-    name: "Discord Panelim",
+    name: "My Discord Dashboard",
     environment: "production",
     baseUrl: "https://panel.example.com",
   },
   owners: ["123456789012345678"],
-  locale: {default: "tr"},
+  locale: {default: "en"},
   security: {
     allowedOrigins: ["https://panel.example.com"],
     csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
@@ -37,20 +37,20 @@ const gate = createGuildGate({
 });
 ```
 
-## Production başlangıç korumaları
+## Production startup guards
 
-Production profili HTTPS olmayan `baseUrl`, boş veya wildcard origin, loopback/unspecified/mapped-loopback URL, insecure session cookie ve yetersiz secret değerini reddeder. Discord OAuth endpoint ve callback adresleri de HTTPS olmalıdır.
+The production profile rejects non-HTTPS `baseUrl`, empty or wildcard origins, loopback/unspecified/mapped-loopback URLs, insecure session cookies, and weak secrets. Discord OAuth endpoints and callbacks must also use HTTPS.
 
-## Session sınırı
+## Session limit
 
-Resmi memory, Redis ve PostgreSQL store'ları `maximumSessionsPerUser` değerini session oluşturma işlemi içinde uygular. Özel paylaşımlı store, `create(record, maximumSessionsPerUser)` ile atomik create-and-evict davranışı sağlamalıdır.
+Official memory, Redis, and PostgreSQL stores enforce `maximumSessionsPerUser` inside session creation. A shared custom store should implement atomic create-and-evict through `create(record, maximumSessionsPerUser)`.
 
-HTTP adapter'ları süresi dolmuş veya iptal edilmiş session gördüğünde cookie temizleme metadata'sı döndürür.
+HTTP adapters return cookie-clearing metadata when they encounter an expired or revoked session.
 
-## Reliability ayarı
+## Reliability setting
 
-`maximumLateSettlementMs`, response deadline sonrasında reservation ve lease sahipliğinin en fazla ne kadar tutulacağını belirler. Uygulama, destekleyen database ve HTTP istemcilerine `context.signal` aktarmalıdır.
+`maximumLateSettlementMs` bounds how long reservation and lease ownership may remain after the response deadline. Applications should pass `context.signal` to database and HTTP clients that support cancellation.
 
 ## Fail-closed audit
 
-`failClosedActions` içindeki action için audit ve idempotency etkin, transaction gerekli olmalı; audit store aynı transaction'a katılmalıdır.
+An action in `failClosedActions` must enable audit and idempotency, require a transaction, and enlist the audit store in that transaction.

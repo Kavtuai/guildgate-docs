@@ -1,79 +1,77 @@
 ---
 title: Discord OAuth
-description: Tek kullanımlık state, şifreli credential ve dağıtık refresh single-flight ile Discord OAuth kur.
+description: Set up Discord OAuth with single-use state, encrypted credentials, and distributed refresh single-flight.
 ---
 
 # Discord OAuth
 
-GuildGate OAuth yardımcıları state tüketimi, credential şifreleme ve token yenileme yarışlarını sunucu tarafında kontrol eder. Redirect route ve kullanıcı profili eşlemesi uygulamada kalır.
+GuildGate OAuth helpers control state consumption, credential encryption, and token-refresh races on the server. Redirect routing and user-profile mapping remain in the application.
 
-## Başlangıç state'i
+## Authorization state
 
-OAuth yönlendirmesinden önce rastgele state üret, hash'ini store'a yaz ve tarayıcı nonce değeriyle ilişkilendir.
+Before redirecting, create random state, write its hash to the store, and associate it with a browser nonce.
 
-State kaydı şunları taşıyabilir:
+A state record may contain:
 
 - `stateHash`
-- güvenli `returnTo` yolu
-- dil
-- oluşturulma ve bitiş zamanı
-- sınırlı metadata
+- a safe `returnTo` path
+- locale
+- creation and expiry times
+- limited metadata
 
-Callback sırasında `OAuthStateStore.consume()` kullan. `get` ardından `delete` şeklindeki iki ayrı işlem replay yarışına açıktır.
+Use `OAuthStateStore.consume()` in the callback. Separate `get` and `delete` operations are vulnerable to replay races.
 
-## Return URL sınırı
+## Return URL boundary
 
-`returnTo` değerini tam dış URL olarak kabul etme. Yalnızca uygulama içi relative path veya sunucu taraflı allowlist kullan. `//evil.example` gibi protocol-relative yolları reddet.
+Do not accept `returnTo` as an arbitrary external URL. Use only an application-relative path or a server-side allowlist. Reject protocol-relative values such as `//evil.example`.
 
-## Credential şifreleme
+## Credential encryption
 
-Access ve refresh token'ları `OAuthCredentialRecord` içinde ciphertext olarak tutulur. Anahtar halkası:
+Access and refresh tokens are stored as ciphertext in `OAuthCredentialRecord`. A key ring should provide:
 
-- aktif bir yazma anahtarı
-- önceki kayıtları okuyabilen eski anahtarlar
-- anahtar kimliği veya sürümü
+- one active write key
+- old keys that can read existing records
+- a key identifier or version
 
-sağlamalıdır.
+Tokens, client secrets, and authorization headers must not enter audit events.
 
-Token, client secret veya authorization header audit kaydına girmemelidir.
+## Distributed refresh single-flight
 
-## Dağıtık refresh single-flight
+In `1.1.0`, Discord token refresh uses the shared lock store:
 
-`1.1.0`, Discord token refresh için paylaşımlı lock store kullanır:
+1. Read the credential.
+2. If refresh is needed, acquire a lease for the user/provider key.
+3. Read the credential again after acquiring the lease.
+4. If another worker already refreshed it, reuse the new token.
+5. Otherwise call the Discord token endpoint and update the record.
 
-1. Credential ilk kez okunur.
-2. Refresh gerekiyorsa kullanıcı/provider anahtarında lease alınır.
-3. Lease alındıktan sonra credential yeniden okunur.
-4. Başka worker zaten yenilediyse yeni token kullanılır.
-5. Hâlâ gerekliyse Discord token endpoint çağrılır ve kayıt güncellenir.
+The second read prevents a waiting worker from reusing the same refresh token.
 
-Bu ikinci okuma gereklidir; bekleyen worker'ın aynı refresh token'ı yeniden kullanmasını önler.
+For long network calls, a custom lock store should support renewal. Stop the credential write if lease ownership is lost.
 
-Uzun ağ çağrılarında custom lock store yenilemeyi desteklemelidir. Lease kaybedilirse credential yazımını durdur.
+## Production endpoint guard
 
-## Production endpoint koruması
+When Discord authorize or token endpoints are configurable, production requires HTTPS and a public host. Loopback, unspecified, and IPv4-mapped loopback targets are rejected.
 
-Discord authorize ve token endpoint'i özelleştirilebiliyorsa production ortamında HTTPS ve public host olmalıdır. Loopback, unspecified ve IPv4-mapped loopback hedefler reddedilir.
+## Failure behavior
 
-## Hata davranışı
+- invalid or consumed state: do not create a session
+- Discord `invalid_grant`: mark the credential unusable and require login again
+- network timeout: apply bounded retry
+- refresh lease unavailable: wait briefly or reread the credential
+- decryption failure: record a security event without exposing secret details
 
-- geçersiz veya tüketilmiş state: oturum oluşturma
-- Discord `invalid_grant`: credential'ı kullanılamaz say ve yeniden giriş iste
-- ağ timeout'u: sınırlı retry uygula
-- refresh lease alınamadı: kısa bekleme veya güncel credential'ı tekrar oku
-- decrypt hatası: secret ayrıntısını göstermeden güvenlik olayı olarak kaydet
+## Scope policy
 
-## Scope politikası
+Request only the Discord scopes the dashboard needs. Most guild dashboards use `identify` and `guilds`. Do not mix bot installation scopes with user OAuth scopes without a reason.
 
-Yalnızca gereken Discord scope'larını iste. Guild erişimi için çoğu dashboard `identify` ve `guilds` kullanır. Bot scope'u ile kullanıcı OAuth scope'larını aynı authorize isteğine gereksiz yere ekleme.
+## Callback checklist
 
-## Callback kontrol listesi
-
-- state tek işlemde tüketiliyor
-- nonce/session ilişkisi doğrulanıyor
-- return path allowlist içinde
-- token endpoint yalnızca server tarafından çağrılıyor
-- credential şifreli saklanıyor
-- refresh çoklu worker'da single-flight
-- login sonunda kullanıcı başına session cap uygulanıyor
-- token veya secret hata yanıtında/logda görünmüyor
+- state is consumed in one operation
+- nonce or session association is verified
+- return path is allowed
+- token endpoint is called only by the server
+- credentials are encrypted at rest
+- refresh is single-flight across workers
+- the per-user session cap is applied after login
+- no token or secret appears in an error response or log

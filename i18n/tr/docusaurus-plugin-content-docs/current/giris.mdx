@@ -1,0 +1,43 @@
+---
+title: GuildGate'e giriş
+description: GuildGate 1.1.1'in görevini, güvenlik sınırlarını ve uygulamadaki yerini tanı.
+slug: /giris
+---
+
+# GuildGate'e giriş
+
+GuildGate, Discord dashboard sunucuları için korumalı action çekirdeği ve altyapı sözleşmeleri sağlar. Oturum, exact-origin, CSRF, yetkilendirme, idempotency, transaction, cache, audit, realtime ve operatör işlemlerini aynı sunucu taraflı karar zincirinde toplar.
+
+Bu belgeler `@kavtuai/guildgate@1.1.1` sürümünü izler. Paket Node.js 22 veya daha yeni bir çalışma ortamı ister.
+
+## Kütüphanenin üstlendiği işler
+
+- Opak oturum belirteçleri, süre sonu, idle timeout, rotasyon ve iptal
+- Discord OAuth state ve şifreli credential saklama sözleşmeleri
+- Tam origin ve oturuma bağlı CSRF doğrulaması
+- Kullanıcı ve bot yetkisinin ayrı değerlendirilmesi
+- Rate limit, idempotency, optimistic revision ve dağıtık lease
+- Transaction, post-commit callback, cache invalidation, audit ve outbox
+- WebSocket, Socket.IO ve SSE için yetkili abonelik, sequence ve replay
+- PostgreSQL, Redis, memory ve özel store sözleşmeleri
+- Operatör action'ları, analitik, status monitor ve OpenTelemetry hook'ları
+
+## Uygulamada kalan kararlar
+
+GuildGate bir panel arayüzü, ORM veya Discord komut sistemi değildir. Kaynak sahipliği, rol politikası, domain doğrulaması, veritabanı şeması, Discord API bütçesi, retention, backup ve incident response uygulamanın sorumluluğundadır.
+
+## Kararlı güvenilirlik sınırı
+
+Başarılı database commit'i kesindir. Commit sonrasındaki cache, realtime veya gözlem callback'i hatası domain yazımını geri alınmış gibi göstermez ve aynı işlemi yeniden çalıştırmaz. PostgreSQL adapter'ı iç içe transaction'larda savepoint kullanır.
+
+Idempotency kayıtları `reservationId` ile sahiplik taşır. Eski bir worker daha yeni reservation'a ait kaydı tamamlayamaz veya silemez. Action deadline ayarlanan sınırda yanıt döndürür; geç tamamlanan idempotent işlem sınırlı settlement penceresinde izlenir ve commit edilmiş sonuç replay için saklanır.
+
+Realtime transport'ları aynı payload, rate, activity, abonelik ve backpressure sınırlarından geçer. Audit sayfalaması opak `(createdAt, id)` cursor kullanır. Outbox teslimatı at-least-once olduğundan harici yan etki yapan consumer event kimliğiyle deduplication uygulamalıdır.
+
+## Başlangıç sırası
+
+1. [Kurulum](./baslangic/kurulum.mdx)
+2. [Beş dakikada başla](./baslangic/bes-dakikada-basla.mdx)
+3. [İlk yapılandırma](./baslangic/ilk-yapilandirma.mdx)
+4. [Action katmanı](./istek-katmani/action.mdx)
+5. [Üretim güvenlik kontrol listesi](./uretim/guvenlik-kontrol-listesi.mdx)

@@ -1,0 +1,71 @@
+---
+title: guildgate-doctor
+description: GuildGate yapılandırma, store, analitik ve production denetimlerini CLI ile çalıştır.
+---
+
+# `guildgate-doctor`
+
+Doctor komutu projedeki GuildGate ayarlarını ve çalışma ortamını denetler. Kaynak dosyalarını değiştirmez.
+
+## Yardım
+
+```bash
+npx guildgate-doctor --help
+```
+
+```text
+Usage: guildgate-doctor [options]
+
+Checks GuildGate security, storage, analytics and production settings.
+
+Options:
+  --json      Print machine-readable JSON output.
+  -h, --help  Show this help message.
+```
+
+## Normal çıktı
+
+```bash
+npx guildgate-doctor
+```
+
+İnsan tarafından okunabilir sonuç, kontrol adını ve durumunu gösterir. Başarısız kontroller process exit code'u başarısız yapar; CI bu kodu kullanmalıdır.
+
+## JSON çıktı
+
+```bash
+npx guildgate-doctor --json > guildgate-doctor.json
+```
+
+JSON çıktısını deployment artifact olarak saklayabilir veya pipeline policy adımında okuyabilirsin. Çıktıyı public loga göndermeden önce environment path ve yapılandırma ayrıntılarını incele.
+
+## Kontrol alanları
+
+Doctor sürüme ve mevcut dosyalara göre şu grupları inceler:
+
+- production URL/origin güvenliği
+- cookie ve session sınırları
+- store yetenekleri ve adapter sözleşmesi
+- transaction/audit yapılandırması
+- Redis/PostgreSQL seçimi
+- realtime ve analytics sınırları
+- release ve package metadata
+
+Doctor başarılı olsa bile canlı PostgreSQL/Redis bağlantısını ve uygulamaya özel Discord yetkisini tek başına kanıtlamaz. CI'da service integration ve uygulama testleri ayrıca çalışmalıdır.
+
+## CI kullanımı
+
+```yaml
+- name: GuildGate doctor
+  run: npx guildgate-doctor --json
+```
+
+Deployment öncesi environment değişkenleri yüklendikten sonra çalıştır. Secret değerlerini komut satırı argümanı olarak verme.
+
+## Hata durumunda
+
+1. İlk başarısız kontrolü düzelt.
+2. Production ile staging environment dosyalarının karışmadığını doğrula.
+3. `package-lock.json` içindeki GuildGate sürümünü kontrol et.
+4. Custom store kullanıyorsan `runStoreContract()` sonucunu incele.
+5. Doctor'ı aynı environment ile tekrar çalıştır.

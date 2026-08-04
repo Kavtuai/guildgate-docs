@@ -1,13 +1,13 @@
 ---
-title: Realtime hub ve taşıyıcılar
-description: WebSocket, Socket.IO ve SSE bağlantılarını aynı yetki, replay ve backpressure kurallarıyla çalıştır.
+title: Realtime hub and transports
+description: Run WebSocket, Socket.IO, and SSE connections under the same authorization, replay, and backpressure rules.
 ---
 
-# Realtime hub ve taşıyıcılar
+# Realtime hub and transports
 
-`createRealtimeHub()` bağlantı kimliği, session doğrulaması, kanal aboneliği ve yayın sınırlarını taşıyıcıdan ayırır. Bir WebSocket veya Socket.IO sunucusunu kendisi başlatmaz.
+`createRealtimeHub()` separates connection identity, session validation, channel subscriptions, and delivery limits from the transport. It does not start a WebSocket or Socket.IO server.
 
-## Hub oluşturma
+## Creating the hub
 
 ```ts
 import { createRealtimeHub } from "@kavtuai/guildgate/realtime";
@@ -29,22 +29,22 @@ const hub = createRealtimeHub({
 });
 ```
 
-Varsayılanlar sınırlandırılmıştır; uygulamanın event boyutu ve bağlantı profiline göre daha dar değer seçebilirsin.
+Defaults are bounded; choose narrower values for the application's event size and connection profile when possible.
 
-## Attach sırası
+## Attach sequence
 
-Bağlantı eklenirken:
+When a connection is attached:
 
-1. Origin allowlist ile karşılaştırılır.
-2. Session token doğrulanır.
-3. Connection session hash'iyle indekslenir.
-4. `ready` mesajı gönderilir.
+1. Origin is checked against the allowlist.
+2. The session token is validated.
+3. The connection is indexed by session hash.
+4. A `ready` message is sent.
 
-Kimlik doğrulama başarısızsa bağlantı `1008` ile kapanır.
+Authentication failure closes the connection with `1008`.
 
-## Kanal aboneliği
+## Channel subscription
 
-Kanal adını server tarafında üret veya dar bir parser ile doğrula. Control karakterleri ve aşırı uzun kanal adları reddedilir.
+Generate channel names on the server or validate them with a narrow parser. Control characters and excessive lengths are rejected.
 
 ```ts
 authorize: async ({ userId, channel }) => {
@@ -53,7 +53,7 @@ authorize: async ({ userId, channel }) => {
 }
 ```
 
-`1.1.0`, async authorization tamamlandıktan sonra bağlantının hâlâ aktif olduğunu ve subscription kapasitesinin aşılmadığını yeniden kontrol eder. Eşzamanlı subscribe istekleri limiti atlayamaz.
+After asynchronous authorization completes, `1.1.0` rechecks that the connection is still active and has subscription capacity. Concurrent subscribe requests cannot bypass the limit.
 
 ## WebSocket
 
@@ -70,9 +70,9 @@ await attachWebSocket({
 });
 ```
 
-WebSocket mesajları önce `hub.acceptMessage()` üzerinden geçer. Payload boyutu, message rate ve JSON biçimi doğrulanmadan subscribe/unsubscribe uygulanmaz.
+WebSocket messages pass through `hub.acceptMessage()` first. Subscribe and unsubscribe are not applied before payload size, message rate, and JSON shape are validated.
 
-## Socket.IO eşitliği
+## Socket.IO parity
 
 ```ts
 import { attachSocketIo } from "@kavtuai/guildgate/realtime";
@@ -85,37 +85,37 @@ await attachSocketIo({
 });
 ```
 
-`1.1.0` subscribe, unsubscribe ve heartbeat event'lerini WebSocket ile aynı kontrollerden geçirir. Socket.IO acknowledgement yanıtları, replay ve transport writable durumundan türetilen backpressure kontrolü desteklenir.
+In `1.1.0`, subscribe, unsubscribe, and heartbeat events use the same controls as WebSocket messages. Socket.IO acknowledgements, replay, and backpressure derived from transport writable state are supported.
 
 ## SSE
 
-`createServerSentEventStream()` bounded event queue kullanır. Writer backpressure bildirirse queue drain bekler; `maximumBufferedEvents` aşılırsa stream kapanır.
+`createServerSentEventStream()` uses a bounded event queue. When the writer reports backpressure, it waits for drain; when `maximumBufferedEvents` is exceeded, the stream closes.
 
-SSE inbound mesaj taşımaz. Abonelik yetkisini stream açılmadan önce ve uzun bağlantıda periyodik olarak uygulama doğrulamalıdır.
+SSE has no inbound message channel. The application should authorize before opening the stream and periodically revalidate long-lived access.
 
-## Sequence ve replay
+## Sequence and replay
 
-`createSequencedPublisher()` kanal başına sequence üretir. İstemci son gördüğü sequence'i `afterSequence` olarak gönderdiğinde event log sınırlı replay döndürür.
+`createSequencedPublisher()` generates per-channel sequences. A client can send its last sequence as `afterSequence` and receive a bounded replay from the event log.
 
-Replay için maksimum event sayısını sınırla. Cursor çok eskiyse tam state snapshot veya yeniden yükleme yolu sun.
+Limit replay size. When a cursor is too old, provide a full state snapshot or reload path.
 
 ## Session revocation
 
-`hub.revokeSession(sessionIdHash)` aynı session'a bağlı tüm bağlantıları kapatır. Çoklu worker için `MemorySessionRevocationBus` yerine paylaşımlı pub/sub uygulaması bağla.
+`hub.revokeSession(sessionIdHash)` closes all connections for that session. In multi-worker deployments, replace `MemorySessionRevocationBus` with a shared pub/sub implementation.
 
-Revocation listener hataları diğer listener'ları durdurmamalıdır. `1.1.0` listener başarısızlıklarını izole eder.
+A failed revocation listener must not stop other listeners. `1.1.0` isolates listener failures.
 
-## Backpressure ve send hatası
+## Backpressure and send failure
 
-Publish sırasında `bufferedAmount` sınırı aşılırsa istemci `1013` ile kapatılır. Send promise'i hata verirse bağlantı kaydı temizlenir; bozuk connection map içinde kalmaz.
+If `bufferedAmount` exceeds the limit, the client closes with `1013`. When the send promise fails, the connection record is removed so a broken connection does not remain in the hub.
 
-## İşletim kontrolü
+## Operations checklist
 
-- origin ve session handshake sırasında doğrulanıyor
-- kanal yetkisi server tarafında
-- Socket.IO event'leri hub kontrolünden geçiyor
-- bağlantı ömrü ve idle timeout sınırlı
-- session periyodik yeniden doğrulanıyor
-- replay batch sınırlı
-- yavaş istemci kapatılıyor
-- shutdown sırasında `hub.close()` çağrılıyor
+- origin and session are checked during handshake
+- channel authorization runs on the server
+- Socket.IO events pass through hub controls
+- connection lifetime and idle time are bounded
+- session is revalidated periodically
+- replay batches are bounded
+- slow clients are closed
+- `hub.close()` runs during shutdown

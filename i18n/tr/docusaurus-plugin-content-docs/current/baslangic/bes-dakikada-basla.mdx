@@ -1,0 +1,97 @@
+---
+title: Beş dakikada başla
+description: Memory store ve transaction adapter ile ilk GuildGate 1.1.1 action'ını çalıştır.
+---
+
+# Beş dakikada başla
+
+Bu örnek geliştirme ve test içindir. Memory store'lar süreç kapanınca temizlenir.
+
+```env
+BOT_OWNER_ID=123456789012345678
+GUILDGATE_CSRF_SECRET=uzun-rastgele-csrf-sirri
+GUILDGATE_AUDIT_IP_SALT=csrf-sirrindan-farkli-uzun-salt
+```
+
+```ts
+import {
+  createGuildGate,
+  createMemoryStoreBundle,
+  createMemoryTransactionAdapter,
+} from "@kavtuai/guildgate";
+
+const stores = createMemoryStoreBundle();
+
+export const gate = createGuildGate({
+  app: {
+    name: "Discord Panelim",
+    environment: "development",
+    baseUrl: "http://localhost:3000",
+  },
+  owners: [process.env.BOT_OWNER_ID!],
+  locale: {default: "tr"},
+  security: {
+    allowedOrigins: ["http://localhost:3000"],
+    csrfSecret: process.env.GUILDGATE_CSRF_SECRET!,
+    auditIpSalt: process.env.GUILDGATE_AUDIT_IP_SALT!,
+    session: {
+      ttlMs: 12 * 60 * 60_000,
+      idleTimeoutMs: 30 * 60_000,
+      rotateAfterMs: 15 * 60_000,
+      maximumSessionsPerUser: 5,
+    },
+  },
+  stores,
+  transactions: createMemoryTransactionAdapter(),
+  reliability: {maximumLateSettlementMs: 5 * 60_000},
+});
+```
+
+## İlk action
+
+```ts
+let revision = 1;
+
+export const updateGuildSettings = gate.action({
+  name: "guild.settings.update",
+  parse: (value) => value as {
+    guildId: string;
+    expectedRevision: number;
+    prefix: string;
+  },
+  resource: (input) => ({type: "guild", id: input.guildId}),
+  rateLimit: {limit: 20, windowMs: 60_000},
+  idempotency: {required: true, ttlMs: 10 * 60_000},
+  optimistic: {
+    expected: (input) => input.expectedRevision,
+    current: async () => revision,
+  },
+  transaction: {required: true, isolation: "serializable"},
+  timeoutMs: 5_000,
+  async execute(context, input) {
+    context.signal.throwIfAborted();
+    revision += 1;
+    return {...input, revision};
+  },
+  cache: {invalidateTags: (result) => [`guild:${result.guildId}`]},
+  audit: {enabled: true, changes: (result) => result},
+});
+```
+
+Fastify bağlantısı:
+
+```ts
+import {fastifyActionHandler} from "@kavtuai/guildgate/fastify";
+
+app.patch(
+  "/api/guilds/:guildId/settings",
+  fastifyActionHandler(gate, updateGuildSettings, {
+    input: (request) => ({
+      ...(request.body as object),
+      guildId: (request.params as {guildId: string}).guildId,
+    }),
+  }),
+);
+```
+
+Üretimde memory store'ları kalıcı ve paylaşılan adapter'larla değiştir; HTTPS, session revoke, deadline, idempotent replay ve realtime reconnect senaryolarını staging ortamında doğrula.

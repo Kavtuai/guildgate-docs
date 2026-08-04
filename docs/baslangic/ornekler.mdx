@@ -1,22 +1,22 @@
 ---
-title: Örnek projeler
-description: GuildGate 1.1.0 adapter, store, realtime ve test örneklerini doğru sınırlarla kullan.
+title: Example projects
+description: Use GuildGate 1.1.1 adapter, store, realtime, and test examples with correct boundaries.
 ---
 
-# Örnek projeler
+# Example projects
 
-Paketin `examples/` klasörü küçük entegrasyon örnekleri içerir. Örneği kendi authorization, storage ve deployment koşullarına göre uyarlamalısın.
+The package `examples/` directory contains small integrations. Adapt each example to your own authorization, storage, and deployment conditions.
 
-## Adapter'lar
+## Adapters
 
 - Fastify: `@kavtuai/guildgate/fastify`
 - Express: `@kavtuai/guildgate/express`
 - Hono: `@kavtuai/guildgate/hono`
 - discord.js: `@kavtuai/guildgate/discordjs`
 
-HTTP adapter'ı response sınırını kurar; parse, resource, authorization, idempotency, transaction ve audit kararı action tanımında kalır.
+An HTTP adapter establishes the response boundary; parsing, resource lookup, authorization, idempotency, transactions, and audit remain in the action definition.
 
-## PostgreSQL ve Redis
+## PostgreSQL and Redis
 
 ```ts
 const postgres = createPostgresAdapter({pool});
@@ -28,13 +28,13 @@ const stores = composeStores(
 );
 ```
 
-## Realtime ve test
+## Realtime and testing
 
-`createRealtimeHub()`, `attachWebSocket()`, `attachSocketIo()` ve `createServerSentEventStream()` aynı session ve authorization çekirdeğini kullanır. Custom transport, client mesajını işlemeden önce `hub.acceptMessage()` çağırmalıdır.
+`createRealtimeHub()`, `attachWebSocket()`, `attachSocketIo()`, and `createServerSentEventStream()` share the same session and authorization kernel. A custom transport must call `hub.acceptMessage()` before handling a client message.
 
 ```ts
 const harness = createGuildGateTestHarness();
-const login = await harness.login("user-1", "tr");
+const login = await harness.login("user-1", "en");
 ```
 
-Memory store'u production'da bırakma; custom store'ları `runStoreContract()` ve driver'a özel race testleriyle doğrula.
+Do not leave memory stores in production. Verify custom stores through `runStoreContract()` and driver-specific race tests.

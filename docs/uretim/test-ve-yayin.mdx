@@ -1,120 +1,64 @@
 ---
-title: Test ve yayın doğrulaması
-description: GuildGate 1.1.0 release:verify zincirini, coverage eşiklerini, service testlerini ve package consumer kontrolünü uygula.
+title: Test and release verification
+description: Run the GuildGate 1.1.1 release gate, coverage, service integration, load regression, and packed-consumer checks.
 ---
 
-# Test ve yayın doğrulaması
+# Test and release verification
 
-GuildGate `1.1.0` final kaynak paketi `npm run release:verify` ile doğrulandı. Aynı zinciri uygulama veya custom adapter release'inde de temel al.
-
-## Release zinciri
+The current package release gate is:
 
 ```bash
 npm run release:verify
 ```
 
-Paket script sırası:
+It runs formatting and metadata checks, TypeScript type-checking, a clean build, deterministic tests, coverage thresholds, source security checks, secret-pattern scanning, the in-memory load regression, and packed-tarball consumer inspection.
 
-```text
-typecheck
-npm test
-coverage
-security verification
-load harness
-npm pack --dry-run
-```
+## Current local result
 
-`npm test` kendi içinde temiz build, doküman kontrolü ve deterministik testleri çalıştırır.
-
-## Final test sonucu
-
-| Sonuç | Adet |
+| Result | Count |
 | --- | ---: |
-| Geçen | 76 |
-| Başarısız | 0 |
-| Yerelde atlanan live-service tanımı | 2 |
-| İptal | 0 |
+| Test definitions | 80 |
+| Passed without external services | 78 |
+| Failed | 0 |
+| Live-service tests skipped locally | 2 |
 
-İki live-service tanımı gerçek PostgreSQL ve Redis daemon gerektirir. GitHub Actions disposable PostgreSQL 17 ve Redis 8 servisleriyle bu testleri etkinleştirir.
-
-Final deterministik suite, son düzeltmeden sonra beş kez art arda aynı sonuçla çalıştırıldı: 76 geçen, 0 başarısız, aynı iki live-service tanımı yerelde atlandı.
+The two service tests require PostgreSQL and Redis. CI starts disposable PostgreSQL 17 and Redis 8 services and runs those tests separately.
 
 ## Coverage
 
-| Ölçüm | Sonuç | Eşik |
+| Metric | Result | Required threshold |
 | --- | ---: | ---: |
-| Satırlar | 86.56% | 80% |
-| Dallar | 77.15% | 70% |
-| Fonksiyonlar | 78.08% | 70% |
+| Lines | 86.45% | 80% |
+| Branches | 76.78% | 70% |
+| Functions | 78.31% | 70% |
 
-Coverage düşüşü release'i durdurur. Yalnızca oranı yükseltmek için davranışsız test yazma; yarış, rollback, reservation ve transport sınırlarını test et.
+Coverage is a release gate, not a security guarantee. Add tests for observable behavior, races, ownership, rollback, and transport limits rather than adding assertions only to increase a percentage.
 
 ## Load regression
 
-Default release harness:
+The release harness completed 5,000 guarded in-memory writes at concurrency 10 with zero failures. The recorded run produced approximately 14,848 operations per second, p50 0.57 ms, p95 1.32 ms, and p99 3.52 ms.
 
-| İşlem | Eşzamanlılık | Hata | Throughput | p50 | p95 | p99 |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 5.000 | 10 | 0 | 14,690.15/s | 0.60 ms | 1.29 ms | 2.37 ms |
+This measurement excludes network, PostgreSQL, Redis, and Discord latency. It is useful for regression comparison on similar hardware and is not a production capacity promise.
 
-Ek referanslar 10.000/20 ve 20.000/32 koşullarında sıfır hata verdi. Bunlar memory regression ölçümleridir; network, PostgreSQL, Redis veya Discord latency içermez ve production kapasite sözü değildir.
+## Packed consumer inspection
 
-## Package consumer testi
+`npm run pack:inspect` creates the actual npm tarball, checks its allowlist, installs it into an empty project with lifecycle scripts disabled, imports all 16 public export paths, and runs all 3 CLI help commands.
 
-Final tarball boş bir projeye lifecycle scriptleri kapalı olarak kuruldu. Kontroller:
+The current packed artifact contains 146 files and about 439 kB unpacked. Source files, tests, workflows, `.env` files, source maps, checksums, and internal review reports are rejected.
 
-- 16 public export yolu import edildi
-- 3 CLI help komutu başarıyla çıktı
-- test harness session oluşturdu
-- idempotent action bir kez çalıştı ve saklanan sonucu replay etti
+## Dependency installation and audit
 
-Consumer sonucu `CONSUMER_TEST_PASSED` oldu.
-
-## Service integration
-
-CI şu yolları gerçek servislerle doğrulamalıdır:
-
-- PostgreSQL migration ve store contract
-- nested transaction/savepoint
-- advisory-lock rate limit
-- idempotency reservation compare-and-set
-- atomik session cap
-- Redis cache retag ve tag TTL
-- lease renew/release owner kontrolü
-- outbox claim recovery
-
-## Kaynak bütünlüğü
-
-Final kaynak arşivinde:
-
-- 318 kaynak dosyası
-- 318 manifest kaydı
-- checksum dosyası hariç 317 SHA-256 kaydı
-- nested ZIP/TGZ yok
-- `.env` yok
-- `node_modules` yok
-- bitmemiş kaynak işareti yok
-
-Her checksum ayrı klasöre çıkarılan ağaçta eşleşti. Typecheck, test, security verify ve pack dry-run çıkarılan ağaçta tekrarlandı.
-
-## Uygulama release kapısı
+CI must use the committed lockfile:
 
 ```bash
-npm ci
-npm run typecheck
-npm test
-npm run test:coverage
-npm run test:services
-npx guildgate-doctor --json
-npm pack --dry-run
+npm ci --ignore-scripts
+npm audit --omit=dev
 ```
 
-Bunlara uygulama için login, permission loss, session revoke, timeout, late settlement, realtime replay ve backup/restore testlerini ekle.
+The production dependency audit currently reports zero vulnerabilities. A full development audit must also run against the public npm audit endpoint in CI; a registry that does not implement npm's audit API cannot be treated as a passing audit.
 
-## Yayın sonrası
+## Publishing
 
-- npm sürümü ve dist integrity değerini doğrula
-- Git tag ile package commit'ini eşleştir
-- production health endpoint ve heartbeat'i kontrol et
-- post-commit issue ve reservation-loss oranını izle
-- ilk rollout'ta audit/outbox backlog ve Redis latency'yi takip et
+The GitHub release tag must equal `v` plus the package version. The verify job produces a tarball artifact; the publish job receives only that artifact and publishes it through npm Trusted Publishing/OIDC after confirming that the version does not already exist.
+
+Repository configuration still matters: protect `main`, require CI and CodeQL, configure the npm trusted publisher for the exact repository and workflow, and protect the `npm` environment when approval is required.

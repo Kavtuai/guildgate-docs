@@ -1,0 +1,99 @@
+---
+title: Memory ve Redis store'ları
+description: Yerel test için memory, çoklu worker için Redis ephemeral store paketini doğru sınırlarla kullan.
+---
+
+# Memory ve Redis store'ları
+
+Memory ve Redis aynı store sözleşmelerini uygulayabilir, ancak dayanıklılık ve yaşam döngüleri farklıdır.
+
+## Memory store
+
+```ts
+import { createMemoryStoreBundle } from "@kavtuai/guildgate";
+
+const stores = createMemoryStoreBundle();
+```
+
+Memory bundle:
+
+- yerel geliştirme
+- unit test
+- dokümantasyon örneği
+- tek process test harness
+
+amaçları içindir. Process kapanınca session, idempotency, audit, outbox ve politika kayıtları kaybolur. Çoklu worker arasında paylaşılmaz.
+
+## Redis ephemeral store paketi
+
+```ts
+import {
+  createRedisEphemeralStores,
+  fromNodeRedis,
+} from "@kavtuai/guildgate/redis";
+
+const redis = fromNodeRedis(redisClient);
+const ephemeral = createRedisEphemeralStores(redis, {
+  prefix: "guildgate:prod",
+});
+
+const stores = composeStores(postgres.stores, ephemeral);
+```
+
+`fromIoRedis()` ioredis uyumlu istemciyi aynı dar arayüze çevirir.
+
+Redis paketi paylaşılması gereken kısa ömürlü davranışlar için uygundur:
+
+- session
+- OAuth state
+- rate limit
+- cache
+- idempotency reservation
+- distributed lease
+
+Kalıcı audit/outbox/policy gereksinimi için PostgreSQL veya başka durable store kullan.
+
+## Prefix
+
+Aynı Redis kümesinde environment ve uygulamayı ayır:
+
+```text
+guildgate:production:fieldbot
+guildgate:staging:fieldbot
+```
+
+Prefix değiştirmek mevcut session ve idempotency kayıtlarını görünmez yapar. Deployment sırasında planlı migration veya kullanıcı logout etkisini hesaba kat.
+
+## Atomic cache retag
+
+`1.1.0` cache entry güncellemesi sırasında:
+
+1. eski tag üyeliklerini kaldırır
+2. yeni entry'yi yazar
+3. yeni tag üyeliklerini ekler
+4. tag indekslerine entry TTL'ini kapsayan sınırlı TTL uygular
+
+Bu adımlar atomiktir. Aksi halde bir key eski tag setinde kalabilir veya tag temizliği aktif entry'yi kaçırabilir.
+
+## Reservation ve lease
+
+Idempotency owner kontrolü ve lease release/renew işlemleri Lua compare-and-set ile yapılmalıdır. `DEL key` gibi koşulsuz release, yeni sahibin lease'ini silebilir.
+
+Renewal sırasında Redis bağlantı hatası sahiplik kaybı kabul edilmelidir. Domain store fencing token doğrulaması kullanıyorsa stale worker yazımı ayrıca reddedilir.
+
+## Session sınırı
+
+Redis session store, yeni kayıt ekleme ve kullanıcı başına fazla kayıtları silme işlemini atomik yürütür. Session index anahtarlarına da TTL uygula; sahipsiz set birikmesine izin verme.
+
+## Cache stampede
+
+Cache manager yenilenebilir lease kullanır. Kilit meşgulse fallback loader sonucu kullanılabilir ve yükleme sınırlı kalır. Loader'ın kendisi deadline ve cancellation politikasına uymalıdır.
+
+## İşletim
+
+- eviction policy'nin güvenlik kayıtlarını beklenmedik biçimde silmediğini doğrula
+- TLS ve ACL kullan
+- latency/timeout metriği topla
+- keyspace notification'a temel doğruluk için bağımlı olma
+- maxmemory baskısında session ve idempotency davranışını test et
+- production ile staging prefix'lerini ayır

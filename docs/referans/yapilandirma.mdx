@@ -1,11 +1,11 @@
 ---
-title: Yapılandırma referansı
-description: GuildGate 1.1.0 GuildGateConfig alanlarını güvenli production varsayımlarıyla yapılandır.
+title: Configuration reference
+description: Configure GuildGate 1.1.0 GuildGateConfig fields with safe production assumptions.
 ---
 
-# Yapılandırma referansı
+# Configuration reference
 
-`createGuildGate()` yapılandırmayı başlangıçta doğrular. Hatalı origin, cookie, secret veya production URL ile process'in devam etmesine izin vermez.
+`createGuildGate()` validates configuration at startup. It refuses to continue with invalid origins, cookies, secrets, or production URLs.
 
 ```ts
 const gate = createGuildGate({
@@ -46,48 +46,48 @@ const gate = createGuildGate({
 
 ## `app`
 
-| Alan | Açıklama |
+| Field | Description |
 | --- | --- |
-| `name` | Log, trace ve hata bağlamındaki uygulama adı |
-| `environment` | `development`, `test` veya `production` |
-| `baseUrl` | Uygulamanın public kök URL'si |
+| `name` | Application name used in logs, traces, and error context |
+| `environment` | `development`, `test`, or `production` |
+| `baseUrl` | Public application root URL |
 
-Production `baseUrl` HTTPS olmalı ve loopback/unspecified host kullanmamalıdır.
+A production `baseUrl` must use HTTPS and cannot target a loopback or unspecified host.
 
 ## `owners`
 
-Discord user ID listesi. Owner yalnızca owner service/action yetkisini alır; action güvenlik zincirini atlamaz.
+A list of Discord user IDs. Owner status grants operator capabilities but does not bypass the action security chain.
 
 ## `locale`
 
-- `default`: `tr` veya `en`
-- `messages`: kararlı hata kodları için uygulamaya özel çeviri override'ları
+- `default`: `tr` or `en`
+- `messages`: application-specific overrides for stable error codes
 
-Çeviride secret veya dahili exception ayrıntısı kullanma.
+Do not include secrets or internal exception details in translations.
 
 ## `security.allowedOrigins`
 
-Exact-origin listesi. Production'da en az bir origin gerekir ve tümü HTTPS/public host olmalıdır.
+An exact-origin list. Production requires at least one origin, and every entry must use HTTPS and a public host.
 
-## Secret alanları
+## Secret fields
 
-- `csrfSecret`: en az 32 byte
-- `auditIpSalt`: IP hash/pseudonymization için ayrı secret
+- `csrfSecret`: at least 32 bytes
+- `auditIpSalt`: a separate secret for IP hashing or pseudonymization
 
-Aynı secret'ı iki amaç için kullanma. Environment içinde yeterli entropy ile üret.
+Do not reuse one secret for both purposes. Generate sufficient entropy in the environment.
 
 ## Session
 
-| Alan | Koşul |
+| Field | Requirement |
 | --- | --- |
-| `ttlMs` | Pozitif absolute TTL |
-| `idleTimeoutMs` | Pozitif idle sınırı |
-| `rotateAfterMs` | TTL'den önce rotation |
-| `maximumSessionsPerUser` | Store içinde atomik uygulanacak pozitif sınır |
+| `ttlMs` | Positive absolute TTL |
+| `idleTimeoutMs` | Positive idle bound |
+| `rotateAfterMs` | Rotation before TTL expiry |
+| `maximumSessionsPerUser` | Positive cap applied atomically by the store |
 
 ## Cookie
 
-İsteğe bağlı `security.cookie`:
+Optional `security.cookie`:
 
 ```ts
 cookie: {
@@ -99,36 +99,36 @@ cookie: {
 }
 ```
 
-`__Host-` adı `Secure` ve `Path=/` gerektirir. Production varsayılanı bu adı kullanır.
+A `__Host-` name requires `Secure` and `Path=/`. The production default uses this name.
 
 ## `stores`
 
-On store'un tamamı zorunludur. `composeStores()` ile hazır paketleri birleştirebilirsin.
+All ten stores are required. Combine official bundles with `composeStores()`.
 
 ## `transactions`
 
-`TransactionAdapter` optional görünür; transaction kullanan action ve fail-closed audit için gereklidir. Production yazmalarında domain store ile aynı backend/connection sınırına katılabilmelidir.
+`TransactionAdapter` is optional at the type level but required for transactional actions and fail-closed audit. For production writes, it should enlist the domain store in the same backend and connection boundary.
 
 ## `realtime`
 
-Action'ın immediate realtime event'lerini alan `RealtimePublisher`. Outbox delivery kullanıldığında store/worker yolu ayrıca kurulur.
+A `RealtimePublisher` for immediate action events. Outbox delivery also requires the store and worker path.
 
 ## `telemetry`
 
-`TelemetryHooks` veya `createOpenTelemetryHooks()` sonucu. Exporter seçimi uygulamaya aittir.
+`TelemetryHooks` or the result of `createOpenTelemetryHooks()`. Exporter selection belongs to the application.
 
 ## `audit`
 
-- `enabled`: global audit varsayılanı
-- `redactKeys`: ek hassas alan adları
-- `failClosedActions`: audit yazımı commit için zorunlu action adları
+- `enabled`: global audit default
+- `redactKeys`: extra sensitive field names
+- `failClosedActions`: action names whose audit write is required for commit
 
-Fail-closed action idempotency ve required transaction kullanmalıdır.
+A fail-closed action must use idempotency and a required transaction.
 
 ## `reliability.maximumLateSettlementMs`
 
-Deadline sonrasında underlying iş için reservation/lease sahipliğinin en fazla tutulacağı süre. Pozitif ve sınırlı değer kullan. Idempotency TTL ile birlikte planla.
+Maximum time reservation and lease ownership may remain after the response deadline. Use a positive, bounded value and plan it together with idempotency TTL.
 
 ## `clock`
 
-Testlerde deterministik zaman için `Clock` override'ı. Production'da varsayılan `systemClock` yeterlidir; process saat senkronizasyonunu işletim sistemi seviyesinde koru.
+A `Clock` override for deterministic tests. The default `systemClock` is suitable for production; keep process time synchronized at the operating-system layer.

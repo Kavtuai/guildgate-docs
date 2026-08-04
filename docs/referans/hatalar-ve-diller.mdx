@@ -1,11 +1,11 @@
 ---
-title: Hatalar ve diller
-description: GuildGate hata kodlarını, HTTP durumlarını, retry bilgisini ve Türkçe-İngilizce mesajları güvenli biçimde işle.
+title: Errors and locales
+description: Handle GuildGate error codes, HTTP statuses, retry metadata, and Turkish-English messages safely.
 ---
 
-# Hatalar ve diller
+# Errors and locales
 
-GuildGate hata yanıtı kararlı bir kod, kullanıcı mesajı, HTTP durumu ve retry bilgisinden oluşur.
+A GuildGate error result contains a stable code, user message, HTTP status, and retry information.
 
 ```ts
 if (!result.ok) {
@@ -18,14 +18,14 @@ if (!result.ok) {
 }
 ```
 
-## Yanıt biçimi
+## Result shape
 
 ```ts
 {
   ok: false,
   error: {
     code: "revision_conflict",
-    message: "Kaynak başka bir işlem tarafından değiştirildi.",
+    message: "The resource changed in another operation.",
     status: 409,
     retryable: false,
     details: {
@@ -35,16 +35,16 @@ if (!result.ok) {
   },
   meta: {
     requestId: "...",
-    locale: "tr",
+    locale: "en",
   },
 }
 ```
 
-`details` yalnızca istemci için güvenli alanları içermelidir. SQL, stack, token veya ham driver hatası döndürme.
+`details` must contain only client-safe fields. Do not return SQL, stacks, tokens, or raw driver errors.
 
-## Dil çözümü
+## Locale resolution
 
-Request locale desteklenen biçime çevrilir; desteklenmeyen değer için config default'u kullanılır. Paket `tr` ve `en` mesajları içerir.
+The request locale is narrowed to a supported value; unsupported input falls back to the configured default. The package includes `tr` and `en` messages.
 
 ```ts
 locale: {
@@ -57,46 +57,46 @@ locale: {
 }
 ```
 
-Override anahtarı kararlı hata koduyla eşleşmelidir. Kod ile gösterilen mesajı birbirinden ayır; frontend mantığını çevrilmiş metne bağlama.
+An override key should match the stable error code. Keep code and display text separate; do not bind frontend logic to translated prose.
 
-## Önemli 1.1 hata alanları
+## Important 1.1 error areas
 
-- deadline/timeout
+- deadline and timeout
 - idempotency conflict
 - idempotency reservation loss
 - revision conflict
-- lock/lease alınamaması
+- lock or lease acquisition
 - malformed audit cursor
-- origin veya CSRF reddi
-- session required/expired/revoked
-- maintenance veya policy block
-- realtime subscription/message sınırı
+- origin or CSRF rejection
+- required, expired, or revoked session
+- maintenance or policy block
+- realtime subscription and message limits
 
-Tam kod listesi için kurulu sürümün `errors.d.ts` ve runtime sonucunu esas al.
+Use the installed version's `errors.d.ts` and runtime result for the complete code list.
 
-## Retry kararı
+## Retry decision
 
-`retryable: true`, istemcinin hemen sınırsız tekrar yapması anlamına gelmez. İstemci:
+`retryable: true` does not mean the client should retry immediately without bounds. A client should:
 
-- `Retry-After` veya rate metadata'sını kullanmalı
-- exponential backoff uygulamalı
-- aynı idempotency key'i korumalı
-- kullanıcı etkileşimi gerektiren authorization hatasını tekrar etmemeli
+- honor `Retry-After` or rate metadata
+- apply exponential backoff
+- preserve the same idempotency key
+- avoid retrying authorization failures that need user action
 
-## Commit sonrası sorunlar
+## Post-commit issues
 
-Başarılı sonuçta `meta.postCommitIssues` bulunabilir. Bu durum domain yazımının başarısız olduğu anlamına gelmez. UI başarılı state'i göstermeli; server cache/realtime/audit tekrar yolunu işletmelidir.
+A successful result may include `meta.postCommitIssues`. This does not mean the domain write failed. The UI should show the committed state while the server handles cache, realtime, or audit retry paths.
 
 ## Request ID
 
-Kullanıcıya destek kodu olarak `requestId` gösterilebilir. Aynı ID'yi application log, trace ve audit kaydında taşıyarak zinciri birleştir.
+`requestId` may be displayed as a support code. Carry the same ID through application logs, traces, and audit records to connect the request chain.
 
-## HTTP bağdaştırıcısı
+## HTTP adapter
 
-Resmi adapter'lar status ve cookie metadata'sını işler. Custom adapter:
+Official adapters handle status and cookie metadata. A custom adapter must:
 
-- status'u yalnızca bir kez yazmalı
-- error code'u değiştirmemeli
-- locale mesajını güvenli biçimde serializable hale getirmeli
-- `clearSessionCookie` ve replacement token'ları uygulamalı
-- server error cause'u istemciye sızdırmamalı
+- write status only once
+- preserve the error code
+- serialize the localized message safely
+- apply `clearSessionCookie` and replacement tokens
+- avoid exposing the server error cause

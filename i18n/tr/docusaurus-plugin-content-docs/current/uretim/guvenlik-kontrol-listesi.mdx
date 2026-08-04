@@ -1,0 +1,105 @@
+---
+title: Production güvenlik kontrol listesi
+description: GuildGate 1.1.1 deployment'ında URL, secret, store, transaction, realtime ve operasyon sınırlarını doğrula.
+---
+
+# Production güvenlik kontrol listesi
+
+Bu liste release öncesi gözden geçirme içindir. Her maddeye config, test, dashboard veya runbook bağlantısı ekle.
+
+## Ağ ve URL
+
+- [ ] `app.environment` production.
+- [ ] `app.baseUrl` HTTPS ve public host.
+- [ ] `allowedOrigins` exact-origin listesi; wildcard yok.
+- [ ] Localhost, unspecified ve IPv4-mapped loopback değerleri yok.
+- [ ] Discord authorize/token endpoint'leri HTTPS ve resmi/public hedef.
+- [ ] Reverse proxy trusted proxy/IP ayarı dar tutulmuş.
+- [ ] HTTP, HTTPS'e kalıcı yönlendiriliyor.
+
+## Secret ve cookie
+
+- [ ] CSRF secret en az 32 byte ve ayrı secret.
+- [ ] Audit IP salt ayrı üretilmiş.
+- [ ] OAuth credential anahtar halkası secret manager'da.
+- [ ] Session cookie `HttpOnly`, `Secure` ve uygun `SameSite`.
+- [ ] `__Host-` cookie için `Path=/` ve domain attribute yok.
+- [ ] Token, cookie ve authorization header log redaction listesinde.
+
+## Oturum ve OAuth
+
+- [ ] TTL, idle ve rotation değerleri belirlenmiş.
+- [ ] Kullanıcı başına session cap store içinde atomik.
+- [ ] Logout ve owner revocation realtime bağlantılarını kapatıyor.
+- [ ] OAuth state tek işlemde tüketiliyor.
+- [ ] Return path allowlist kullanıyor.
+- [ ] OAuth refresh distributed single-flight ve credential reread yapıyor.
+
+## Action güvenliği
+
+- [ ] Her yazma POST/PUT/PATCH/DELETE kullanıyor.
+- [ ] Origin ve CSRF yalnızca gerekçeli endpoint'te kapatılabiliyor.
+- [ ] Input parser bilinmeyen alanları ve boyutları sınırlıyor.
+- [ ] Kaynak ve Discord yetkisi server tarafında doğrulanıyor.
+- [ ] Kullanıcı ve bot izinleri ayrı kontrol ediliyor.
+- [ ] Optimistic revision veya domain unique constraint var.
+- [ ] Idempotency key ve reservation owner uygulanıyor.
+- [ ] Lease kullanan kalıcı yazma fencing token doğruluyor.
+
+## Transaction ve audit
+
+- [ ] Domain write ile transactional outbox aynı transaction'da.
+- [ ] Fail-closed action audit, idempotency ve required transaction kullanıyor.
+- [ ] Commit sonrası callback hatası domain write'ı tekrar çalıştırmıyor.
+- [ ] Nested PostgreSQL işlemleri savepoint testinden geçti.
+- [ ] Audit changes secret ve gereksiz kişisel veri içermiyor.
+- [ ] Audit cursor ile tüm sayfalar eksiksiz gezilebiliyor.
+
+## Deadline ve retry
+
+- [ ] Her dış I/O için timeout var.
+- [ ] Action `timeoutMs` değeri SLA ile uyumlu.
+- [ ] `maximumLateSettlementMs` pozitif ve sınırlı.
+- [ ] Idempotency TTL, deadline ve late-settlement penceresini kapsıyor.
+- [ ] I/O `AbortSignal` değerini dinliyor.
+- [ ] Retry yalnızca güvenli hata sınıflarında.
+- [ ] Circuit breaker ve backoff metrikleri izleniyor.
+
+## Redis ve PostgreSQL
+
+- [ ] Redis TLS/ACL ve environment prefix yapılandırılmış.
+- [ ] Redis eviction etkisi test edilmiş.
+- [ ] Cache retag/tag TTL işlemi atomik.
+- [ ] PostgreSQL runtime ve migration rolleri ayrılmış.
+- [ ] Statement/lock timeout ve pool boyutu belirlenmiş.
+- [ ] PostgreSQL rate-limit advisory lock yolu test edilmiş.
+- [ ] Audit/outbox retention ve index bakımı planlanmış.
+- [ ] Backup restore tatbikatı yapılmış.
+
+## Realtime
+
+- [ ] Handshake origin ve session doğruluyor.
+- [ ] WebSocket ve Socket.IO mesajları hub kontrolünden geçiyor.
+- [ ] Payload, rate, channel, subscription, queue ve buffered byte sınırları var.
+- [ ] Session periyodik yeniden doğrulanıyor.
+- [ ] Replay batch sınırlı.
+- [ ] Slow client ve send failure bağlantıyı temizliyor.
+- [ ] Outbox consumer event ID ile deduplication yapıyor.
+
+## CI ve release
+
+- [ ] Node.js 22 ve 24 CI testleri geçiyor.
+- [ ] `npm run release:verify` geçiyor.
+- [ ] Coverage eşikleri geçiyor.
+- [ ] PostgreSQL 17 ve Redis 8 service testleri geçiyor.
+- [ ] 16 public import ve 3 CLI help consumer testinde doğrulanıyor.
+- [ ] `npm pack --dry-run` içeriği incelenmiş.
+- [ ] Çalışma ağacı ve lockfile temiz.
+
+## Operasyon
+
+- [ ] Health probe ve heartbeat monitor'ları ayrı.
+- [ ] Request ID log/trace/audit zincirinde korunuyor.
+- [ ] Post-commit issue, reservation loss ve lease renewal alarmları var.
+- [ ] Incident response ve secret rotation runbook'u mevcut.
+- [ ] Rollback planı database migration etkisini kapsıyor.

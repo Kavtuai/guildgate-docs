@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const enRoot='docs'; const trRoot='i18n/tr/docusaurus-plugin-content-docs/current';
+const walk=(root)=>fs.readdirSync(root,{withFileTypes:true}).flatMap((e)=>e.isDirectory()?walk(path.join(root,e.name)):[path.join(root,e.name)]);
+const ids=(root)=>walk(root).filter((f)=>/\.mdx?$/u.test(f)).map((f)=>path.relative(root,f).replaceAll(path.sep,'/')).sort();
+const en=ids(enRoot), tr=ids(trRoot);
+if (JSON.stringify(en)!==JSON.stringify(tr)) throw new Error(`Locale documents differ: EN ${en.length}, TR ${tr.length}`);
+const config=fs.readFileSync('docusaurus.config.js','utf8');
+for (const expected of ["defaultLocale: 'en'","locales: ['en', 'tr']","htmlLang: 'en'","htmlLang: 'tr'","@docusaurus/plugin-client-redirects"]) if(!config.includes(expected)) throw new Error(`Missing locale config: ${expected}`);
+console.log(`Locale check passed: English root and ${tr.length} Turkish documents under /tr/.`);
